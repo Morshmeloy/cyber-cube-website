@@ -1,5 +1,6 @@
 import './styles/index.css'
-import { initSiteNavigation, type SiteElements } from './navigation/navigation.ts'
+import { initSiteNavigation } from './navigation/navigation.ts'
+import type { SiteElements } from './types/site-elements.ts'
 
 function requireElement<T extends HTMLElement>(id: string): T {
   const el = document.getElementById(id)

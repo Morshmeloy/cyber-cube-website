@@ -1,34 +1,6 @@
-import type { AudioEngine } from '../audio/audio-engine.ts'
-import type { HeaderChromeElements } from './header-chrome.ts'
-
-const TYPEWRITER_CHAR_DELAY_MS = 30
-
-export interface PlasmaElements extends HeaderChromeElements {
-  screen: HTMLElement
-  /** Скроллируемый контейнер терминала — нужен, чтобы автоскроллить его при печати текста. */
-  tickerViewport: HTMLElement
-  tickerText: HTMLElement
-  closeButton: HTMLButtonElement
-  /** Контейнер главного куба (.scene) — на время показа сворачивается в иконку внутри экрана. */
-  scene: HTMLElement
-}
-
-export interface PlasmaCallbacks {
-  isSubmenuActive(): boolean
-  hideSubmenuCubesOnly(): void
-  restoreSubmenuCubesOnly(): void
-  pauseCubeIdleBehaviour(): void
-  resetCubeRotation(): void
-  scheduleCubeAutoRotation(): void
-  startCubeMinimizedIdleSpin(): void
-  stopCubeMinimizedIdleSpin(): void
-}
-
-export interface PlasmaController {
-  show(color: string, content: string): void
-  hide(): void
-  isActive(): boolean
-}
+import type { AudioEngine } from '../types/audio.ts'
+import type { PlasmaElements, PlasmaCallbacks, PlasmaController } from '../types/plasma.ts'
+import { TYPEWRITER_CHAR_DELAY_MS } from '../settings/navigation/plasma.ts'
 
 /** Создаёт плазменный информационный экран с эффектом печатающегося ЭЛТ-терминала. */
 export function createPlasma(elements: PlasmaElements, audio: AudioEngine, callbacks: PlasmaCallbacks): PlasmaController {

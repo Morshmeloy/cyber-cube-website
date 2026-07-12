@@ -1,16 +1,17 @@
-import type { AudioEngine } from '../audio/audio-engine.ts'
-import { FACE_NAMES, type FaceName } from '../types/faces.ts'
-import type { HeaderChromeElements } from './header-chrome.ts'
-
-const GRID_AXIS = [-1, 0, 1] as const
-const MINI_SIZE_PX = 140
-const MINI_SPACING_PX = 175
-const GROUP_IDLE_DELAY_MS = 7000
-const GROUP_SNAP_EASING = 0.18
-const GROUP_INERTIA_DAMPING = 0.82
-const GROUP_INERTIA_STOP_VELOCITY = 0.3
-const EXPLODE_OUTWARD_IMPULSE_MS = 80
-const COLLAPSE_DURATION_MS = 650
+import type { AudioEngine } from '../types/audio.ts'
+import { FACE_NAMES, type FaceName } from '../types/navigation.ts'
+import type { SubmenuCallbacks, SubmenuElements, SubmenuController } from '../types/submenu.ts'
+import {
+  GRID_AXIS,
+  MINI_SIZE_PX,
+  MINI_SPACING_PX,
+  GROUP_IDLE_DELAY_MS,
+  GROUP_SNAP_EASING,
+  GROUP_INERTIA_DAMPING,
+  GROUP_INERTIA_STOP_VELOCITY,
+  EXPLODE_OUTWARD_IMPULSE_MS,
+  COLLAPSE_DURATION_MS,
+} from '../settings/navigation/submenu.ts'
 
 interface MiniCubeSlot {
   wrapper: HTMLElement
@@ -26,34 +27,6 @@ interface GroupRotation {
   x: number
   y: number
   z: number
-}
-
-export interface SubmenuCallbacks {
-  /** Клик по одному из 27 маленьких кубов подменю. */
-  onMiniCubeActivated(index: number, faceName: FaceName): void
-  /** Подменю начинает разворачиваться — главный куб должен приостановить своё автовращение. */
-  onExpandStarted(): void
-  /** Подменю полностью свернулось обратно в главный куб — можно возобновлять его автовращение. */
-  onCollapseFinished(): void
-}
-
-export interface SubmenuElements extends HeaderChromeElements {
-  container: HTMLElement
-  group: HTMLElement
-  /** Контейнер главного куба (.scene) — на время показа подменю анимированно прячется. */
-  scene: HTMLElement
-}
-
-export interface SubmenuController {
-  /** Полное превращение главного куба в разлетающееся подменю выбранной грани. */
-  show(faceName: FaceName): void
-  /** Полный гравитационный коллапс подменю обратно в главный куб. */
-  hide(): void
-  /** Плазменный экран открыт поверх подменю — просто прячем кубы, не разворачивая куб обратно. */
-  hideCubesOnly(): void
-  /** Плазменный экран закрылся — снова показываем ранее скрытые кубы подменю. */
-  restoreCubesOnly(): void
-  isActive(): boolean
 }
 
 function buildMiniCubeSlots(groupEl: HTMLElement, faceColors: Record<FaceName, string>): MiniCubeSlot[] {

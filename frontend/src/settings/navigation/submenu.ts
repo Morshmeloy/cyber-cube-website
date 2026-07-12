@@ -1,0 +1,9 @@
+export const GRID_AXIS = [-1, 0, 1] as const
+export const MINI_SIZE_PX = 140
+export const MINI_SPACING_PX = 175
+export const GROUP_IDLE_DELAY_MS = 7000
+export const GROUP_SNAP_EASING = 0.18
+export const GROUP_INERTIA_DAMPING = 0.82
+export const GROUP_INERTIA_STOP_VELOCITY = 0.3
+export const EXPLODE_OUTWARD_IMPULSE_MS = 80
+export const COLLAPSE_DURATION_MS = 650

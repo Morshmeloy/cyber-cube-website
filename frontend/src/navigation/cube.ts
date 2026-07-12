@@ -1,39 +1,20 @@
-import type { AudioEngine } from '../audio/audio-engine.ts'
-import { cubeFaceDefinitions } from '../data/faces.ts'
+import type { AudioEngine } from '../types/audio.ts'
+import { cubeFaceDefinitions } from '../settings/navigation/faces.ts'
 import { applyLumaKeyCutout } from '../background/logo-luma-key.ts'
-import type { FaceName } from '../types/faces.ts'
-
-const DRAG_THRESHOLD_PX = 5
-const ROTATION_DAMPING = 0.82
-const INERTIA_STOP_VELOCITY = 0.3
-const SNAP_EASING = 0.22
-const AUTO_ROTATE_IDLE_DELAY_MS = 7000
-const AUTO_ROTATE_RAMP_FRAMES = 180 // кадров до полной скорости автовращения (~3 сек)
+import type { FaceName } from '../types/navigation.ts'
+import type { CubeCallbacks, CubeController } from '../types/cube.ts'
+import {
+  DRAG_THRESHOLD_PX,
+  ROTATION_DAMPING,
+  INERTIA_STOP_VELOCITY,
+  SNAP_EASING,
+  AUTO_ROTATE_IDLE_DELAY_MS,
+  AUTO_ROTATE_RAMP_FRAMES,
+} from '../settings/navigation/cube.ts'
 
 interface Rotation {
   x: number
   y: number
-}
-
-export interface CubeCallbacks {
-  /** Клик по грани в обычном (не свёрнутом) состоянии куба, когда активация разрешена. */
-  onFaceActivated(face: FaceName): void
-  /** Клик по свёрнутому кубу (миниатюра поверх открытого плазменного экрана). */
-  onMinimizedClick(): void
-  /** Позволяет вызывающему коду временно запретить активацию грани (например, во время анимации). */
-  canActivateFace(): boolean
-}
-
-export interface CubeController {
-  /** Полностью сбрасывает вращение и разгон — используется при закрытии плазменного экрана. */
-  resetRotation(): void
-  /** Останавливает автовращение и таймер простоя — вызывается при открытии подменю/плазмы. */
-  pauseIdleBehaviour(): void
-  /** Планирует автовращение через AUTO_ROTATE_IDLE_DELAY_MS простоя. */
-  scheduleAutoRotation(): void
-  /** Мягкое непрерывное вращение свёрнутой иконки куба, пока открыт плазменный экран. */
-  startMinimizedIdleSpin(): void
-  stopMinimizedIdleSpin(): void
 }
 
 function resolveFaceFromRotation(rotation: Rotation): FaceName | null {

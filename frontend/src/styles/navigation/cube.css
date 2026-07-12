@@ -121,37 +121,37 @@ body.plasma-open {
 /* Грани — цвета и позиции в 3D-пространстве */
 .front {
   background: linear-gradient(135deg, rgba(0, 255, 255, 0.7), rgba(0, 80, 80, 0.85));
-  color: #0ff;
+  color: var(--face-color-front);
   box-shadow: 0 0 25px rgba(0, 255, 255, 0.25), inset 0 0 40px rgba(0, 255, 255, 0.08);
   transform: translateZ(var(--half));
 }
 .back {
   background: linear-gradient(135deg, rgba(255, 0, 255, 0.7), rgba(80, 0, 80, 0.85));
-  color: #f0f;
+  color: var(--face-color-back);
   box-shadow: 0 0 25px rgba(255, 0, 255, 0.25), inset 0 0 40px rgba(255, 0, 255, 0.08);
   transform: rotateY(180deg) translateZ(var(--half));
 }
 .right {
   background: linear-gradient(135deg, rgba(0, 255, 136, 0.7), rgba(0, 80, 40, 0.85));
-  color: #0f8;
+  color: var(--face-color-right);
   box-shadow: 0 0 25px rgba(0, 255, 136, 0.25), inset 0 0 40px rgba(0, 255, 136, 0.08);
   transform: rotateY(90deg) translateZ(var(--half));
 }
 .left {
   background: linear-gradient(135deg, rgba(255, 136, 0, 0.7), rgba(80, 40, 0, 0.85));
-  color: #f80;
+  color: var(--face-color-left);
   box-shadow: 0 0 25px rgba(255, 136, 0, 0.25), inset 0 0 40px rgba(255, 136, 0, 0.08);
   transform: rotateY(-90deg) translateZ(var(--half));
 }
 .top {
   background: linear-gradient(135deg, rgba(136, 0, 255, 0.7), rgba(50, 0, 100, 0.85));
-  color: #80f;
+  color: var(--face-color-top);
   box-shadow: 0 0 25px rgba(136, 0, 255, 0.25), inset 0 0 40px rgba(136, 0, 255, 0.08);
   transform: rotateX(90deg) translateZ(var(--half));
 }
 .bottom {
   background: linear-gradient(135deg, rgba(0, 136, 255, 0.7), rgba(0, 40, 80, 0.85));
-  color: #08f;
+  color: var(--face-color-bottom);
   box-shadow: 0 0 25px rgba(0, 136, 255, 0.25), inset 0 0 40px rgba(0, 136, 255, 0.08);
   transform: rotateX(-90deg) translateZ(var(--half));
 }

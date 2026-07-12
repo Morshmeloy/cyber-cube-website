@@ -1,29 +1,21 @@
-import type { AudioEngine } from '../audio/audio-engine.ts'
+import type { AudioEngine } from '../types/audio.ts'
 import { createAudioEngine } from '../audio/audio-engine.ts'
 import { startBackgroundSlideshow } from '../background/background-slideshow.ts'
 import { createRainEffect } from '../background/rain.ts'
 import { applyLumaKeyCutout } from '../background/logo-luma-key.ts'
-import { faceColors } from '../data/faces.ts'
+import { faceColors } from '../settings/navigation/faces.ts'
+import { buildPlaceholderContent } from '../settings/navigation/plasma.ts'
+import { LOGO_IMAGE_PATH } from '../settings/site/site.ts'
+import type { SiteElements } from '../types/site-elements.ts'
 import { createCube } from './cube.ts'
 import { createSubmenu } from './submenu.ts'
 import { createPlasma } from './plasma.ts'
 
-export interface SiteElements {
-  bgLayerA: HTMLElement
-  bgLayerB: HTMLElement
-  rainContainer: HTMLElement
-  trailContainer: HTMLElement
-  neonTitle: HTMLElement
-  headerLogoCanvas: HTMLCanvasElement
-  scene: HTMLElement
-  cube: HTMLDivElement
-  plasmaScreen: HTMLElement
-  plasmaTickerViewport: HTMLElement
-  plasmaText: HTMLElement
-  plasmaCloseButton: HTMLButtonElement
-  submenuContainer: HTMLElement
-  submenuGroup: HTMLElement
-  backButton: HTMLButtonElement
+/** Прокидывает faceColors в CSS как переменные, чтобы cube.css не дублировал цвета граней. */
+function applyFaceColorCssVariables(): void {
+  for (const [face, color] of Object.entries(faceColors)) {
+    document.documentElement.style.setProperty(`--face-color-${face}`, color)
+  }
 }
 
 /**
@@ -34,9 +26,10 @@ export interface SiteElements {
 export function initSiteNavigation(elements: SiteElements): void {
   const audio: AudioEngine = createAudioEngine()
 
+  applyFaceColorCssVariables()
   startBackgroundSlideshow(elements.bgLayerA, elements.bgLayerB)
   createRainEffect(elements.rainContainer, elements.trailContainer)
-  applyLumaKeyCutout(elements.headerLogoCanvas, '/images/logo.jpg', { sizeToImage: true })
+  applyLumaKeyCutout(elements.headerLogoCanvas, LOGO_IMAGE_PATH, { sizeToImage: true })
 
   const chrome = {
     neonTitle: elements.neonTitle,
@@ -62,8 +55,7 @@ export function initSiteNavigation(elements: SiteElements): void {
 
   submenu = createSubmenu({ container: elements.submenuContainer, group: elements.submenuGroup, scene: elements.scene, ...chrome }, faceColors, audio, {
     onMiniCubeActivated(index, faceName) {
-      const placeholderContent = `Подменю ${index} — ${faceName}\n\nЗдесь будет контент для элемента ${index}`
-      plasma.show(faceColors[faceName] ?? '#0ff', placeholderContent)
+      plasma.show(faceColors[faceName] ?? '#0ff', buildPlaceholderContent(index, faceName))
     },
     onExpandStarted: () => cube.pauseIdleBehaviour(),
     onCollapseFinished: () => cube.scheduleAutoRotation(),

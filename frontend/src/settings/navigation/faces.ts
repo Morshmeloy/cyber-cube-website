@@ -1,21 +1,13 @@
-import type { FaceName } from '../types/faces.ts'
-
-export interface CubeFaceDefinition {
-  name: FaceName
-  /** HTML-разметка иконки грани (SVG-контур или canvas для логотипа). */
-  iconHtml: string
-  label: string
-  /** Более подробное описание для aria-label; если не задано, используется label. */
-  ariaLabel?: string
-}
+import type { CubeFaceDefinition, FaceName } from '../../types/navigation.ts'
+import { SITE_NAME, LOGO_IMAGE_PATH } from '../site/site.ts'
 
 /** Разметка и подписи шести граней главного куба, в порядке их создания в DOM. */
 export const cubeFaceDefinitions: CubeFaceDefinition[] = [
   {
     name: 'front',
-    iconHtml: '<canvas class="face-logo-canvas" data-src="/images/logo.jpg" width="600" height="216"></canvas>',
+    iconHtml: `<canvas class="face-logo-canvas" data-src="${LOGO_IMAGE_PATH}" width="600" height="216"></canvas>`,
     label: '',
-    ariaLabel: 'Главная — Д4 Технологии',
+    ariaLabel: `Главная — ${SITE_NAME}`,
   },
   {
     name: 'back',

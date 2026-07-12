@@ -3,8 +3,7 @@
  * пикселя (лума-ключ), чтобы логотип светился на неоновом фоне без чёрной
  * подложки. Используется и для логотипа в шапке, и для лицевой грани куба.
  */
-const DARK_CUTOFF = 110
-const LIGHT_CUTOFF = 180
+import { DARK_CUTOFF, LIGHT_CUTOFF } from '../settings/background/luma-key.ts'
 
 export interface LumaKeyOptions {
   /** Если true — canvas принимает натуральный размер изображения (для шапки). */

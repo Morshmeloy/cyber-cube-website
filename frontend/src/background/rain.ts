@@ -1,5 +1,4 @@
-const RAINDROP_COUNT = 25
-const PURPLE_TRAIL_COUNT = 15
+import { RAINDROP_COUNT, PURPLE_TRAIL_COUNT } from '../settings/background/rain.ts'
 
 /** Заполняет контейнеры дождя каплями со случайной высотой, скоростью и задержкой. */
 export function createRainEffect(rainContainer: HTMLElement, trailContainer: HTMLElement): void {

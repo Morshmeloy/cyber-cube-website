@@ -6,15 +6,17 @@
  * Web Audio API требует жеста пользователя для запуска — до первого клика/тача
  * все звуки молчат, план инициализации откладывается до `unlockOnFirstGesture`.
  */
-export interface AudioEngine {
-  startKubSound(): void
-  stopKubSound(): void
-  playSnapBoom(): void
-  playPlasmaOpen(): void
-  playPlasmaClose(): void
-  startIdleRotateSound(): void
-  stopIdleRotateSound(): void
-}
+import type { AudioEngine } from '../types/audio.ts'
+import {
+  FON_SOUND_URL,
+  KUB_SOUND_URL,
+  PLASMA_OPEN_SOUND_URL,
+  PLASMA_CLOSE_SOUND_URL,
+  HUM_RAMP_SECONDS,
+  HUM_TARGET_GAIN,
+  FON_SOUND_BASE_DELAY_S,
+  FON_SOUND_RANDOM_RANGE_S,
+} from '../settings/audio/audio.ts'
 
 async function loadAudioBuffer(ctx: AudioContext, url: string): Promise<AudioBuffer | null> {
   try {
@@ -57,13 +59,13 @@ export function createAudioEngine(): AudioEngine {
       osc.start()
     }
     humGain.gain.setValueAtTime(0, ctx.currentTime)
-    humGain.gain.linearRampToValueAtTime(0.35, ctx.currentTime + 3)
+    humGain.gain.linearRampToValueAtTime(HUM_TARGET_GAIN, ctx.currentTime + HUM_RAMP_SECONDS)
     scheduleFonSound()
   }
 
   // --- Редкие всплески audio/fon.mp3 (каждые ~25-40 секунд) ---
   let fonBuffer: AudioBuffer | null = null
-  loadAudioBuffer(ctx, '/audio/fon.mp3').then((buffer) => {
+  loadAudioBuffer(ctx, FON_SOUND_URL).then((buffer) => {
     fonBuffer = buffer
   })
 
@@ -90,7 +92,7 @@ export function createAudioEngine(): AudioEngine {
 
   function scheduleFonSound(): void {
     if (!started) return
-    const delay = (25 + Math.random() * 15) * 1000
+    const delay = (FON_SOUND_BASE_DELAY_S + Math.random() * FON_SOUND_RANDOM_RANGE_S) * 1000
     setTimeout(() => {
       playFonSound()
       scheduleFonSound()
@@ -105,7 +107,7 @@ export function createAudioEngine(): AudioEngine {
   kubGain.gain.value = 0
   kubGain.connect(ctx.destination)
 
-  loadAudioBuffer(ctx, '/audio/kub4.mp3').then((buffer) => {
+  loadAudioBuffer(ctx, KUB_SOUND_URL).then((buffer) => {
     kubBuffer = buffer
   })
 
@@ -154,10 +156,10 @@ export function createAudioEngine(): AudioEngine {
   // --- Звуки открытия/закрытия плазменного экрана ---
   let openBuffer: AudioBuffer | null = null
   let closeBuffer: AudioBuffer | null = null
-  loadAudioBuffer(ctx, '/audio/open.mp3').then((buffer) => {
+  loadAudioBuffer(ctx, PLASMA_OPEN_SOUND_URL).then((buffer) => {
     openBuffer = buffer
   })
-  loadAudioBuffer(ctx, '/audio/close.mp3').then((buffer) => {
+  loadAudioBuffer(ctx, PLASMA_CLOSE_SOUND_URL).then((buffer) => {
     closeBuffer = buffer
   })
 
