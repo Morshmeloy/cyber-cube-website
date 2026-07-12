@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Д4Технологии — кибер-куб</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <!-- Фон с электроподстанцией -->
+    <div class="cyber-substation">
+      <div class="bg-layer active" id="bg-layer-a" style="background-image: url('/images/fon1.jpg')"></div>
+      <div class="bg-layer hidden" id="bg-layer-b"></div>
+      <div class="bg-overlay"></div>
+    </div>
+
+    <!-- Дождь -->
+    <div class="rain-container" id="rain"></div>
+    <div class="rain-container" id="trails"></div>
+
+    <!-- Заголовок / Логотип -->
+    <h1 class="neon-title" id="neon-title" data-text="Д4 Технологии">Д4 Технологии</h1>
+    <canvas class="site-logo hidden" id="header-logo" aria-label="Д4 Технологии"></canvas>
+
+    <!-- Куб -->
+    <div class="scene" id="scene-el">
+      <div class="cube" id="cube"></div>
+    </div>
+
+    <!-- Плазменный экран -->
+    <div class="plasma-screen" id="plasma-screen" aria-label="Информационная строка">
+      <div class="plasma-bg"></div>
+      <div class="plasma-scanlines"></div>
+      <div class="plasma-ticker">
+        <span class="plasma-ticker-inner" id="plasma-text"></span>
+      </div>
+      <div class="plasma-glare"></div>
+      <button class="plasma-close" id="plasma-close" aria-label="Закрыть">&times;</button>
+    </div>
+
+    <!-- Подменю из маленьких кубов -->
+    <div class="submenu-container" id="submenu-container">
+      <div class="submenu-cube-group" id="submenu-cube-group"></div>
+    </div>
+
+    <!-- Кнопка возврата -->
+    <button class="back-button" id="back-button" aria-label="Назад">&times;</button>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

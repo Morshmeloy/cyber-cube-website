@@ -1,0 +1,9 @@
+/* Единая точка входа для всех стилей сайта — порядок импорта соответствует
+   визуальным слоям страницы: базовые стили → фон → текст → куб → оверлеи. */
+@import './base.css';
+@import './background.css';
+@import './neon-title.css';
+@import './rain.css';
+@import './cube.css';
+@import './plasma-screen.css';
+@import './submenu.css';

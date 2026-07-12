@@ -1,0 +1,161 @@
+/* === Плазменный экран: информационная панель с эффектом ЭЛТ-терминала === */
+.plasma-screen {
+  position: relative;
+  z-index: 11;
+  width: calc(100vw - 40px);
+  height: 0;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: clamp(11px, 1.4vw, 14px);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid transparent;
+  box-shadow: none;
+  opacity: 0;
+  margin-top: clamp(140px, 22vh, 220px); /* отступ под фиксированный логотип */
+  transition: height 0.5s ease, opacity 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
+}
+
+.plasma-screen.active {
+  height: 70vh;
+  opacity: 1;
+  border-color: var(--plasma-color, rgba(0, 255, 255, 0.4));
+  box-shadow:
+    0 0 12px var(--plasma-color, rgba(0, 255, 255, 0.5)),
+    0 0 30px var(--plasma-color, rgba(0, 255, 255, 0.25)),
+    inset 0 0 20px rgba(0, 0, 0, 0.6);
+}
+
+.plasma-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 20;
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--plasma-color, rgba(0, 255, 255, 0.6));
+  border-radius: 50%;
+  background: rgba(5, 5, 16, 0.85);
+  color: var(--plasma-color, #0ff);
+  font-size: 22px;
+  font-weight: 300;
+  line-height: 1;
+  cursor: pointer;
+  display: none;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 0 12px var(--plasma-color, rgba(0, 255, 255, 0.4));
+  transition: all 0.3s ease;
+}
+
+.plasma-screen.active .plasma-close {
+  display: flex;
+}
+
+.plasma-close:hover {
+  background: rgba(0, 255, 255, 0.2);
+  box-shadow: 0 0 20px var(--plasma-color, rgba(0, 255, 255, 0.6));
+  transform: scale(1.1) rotate(90deg);
+}
+
+/* Плазменный фон */
+.plasma-bg {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 50%, var(--plasma-color, #0ff) 0%, #050510 80%);
+  opacity: 0.15;
+  animation: plasmaShift 6s ease-in-out infinite alternate;
+}
+
+@keyframes plasmaShift {
+  0% {
+    background-position: 0% 50%, 100% 50%, 50% 0%;
+    filter: hue-rotate(0deg);
+  }
+  50% {
+    background-position: 30% 70%, 70% 30%, 60% 40%;
+    filter: hue-rotate(60deg);
+  }
+  100% {
+    background-position: 60% 30%, 40% 70%, 30% 80%;
+    filter: hue-rotate(120deg);
+  }
+}
+
+/* Сканлайны */
+.plasma-scanlines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 3px,
+    rgba(0, 0, 0, 0.18) 3px,
+    rgba(0, 0, 0, 0.18) 4px
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Текст терминала (печатается посимвольно через typewriter) */
+.plasma-ticker {
+  position: absolute;
+  inset: 0;
+  display: block;
+  z-index: 3;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 12px;
+  scrollbar-width: thin;
+  scrollbar-color: #0f0 rgba(5, 5, 16, 0.4);
+}
+
+.plasma-ticker::-webkit-scrollbar {
+  width: 8px;
+}
+
+.plasma-ticker::-webkit-scrollbar-track {
+  background: rgba(5, 5, 16, 0.4);
+  border-radius: 4px;
+}
+
+.plasma-ticker::-webkit-scrollbar-thumb {
+  background: #0f0;
+  border-radius: 4px;
+  box-shadow: 0 0 6px #0f0;
+}
+
+.plasma-ticker-inner {
+  display: block;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: clamp(17px, 2.4vw, 22px);
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  line-height: 1.5;
+  color: #e8f8ff;
+  text-shadow: 0 0 6px rgba(0, 255, 255, 0.5), 0 0 15px rgba(0, 255, 255, 0.25);
+  white-space: pre-wrap;
+  word-break: break-word;
+  animation: terminalAppear 0.3s ease forwards;
+}
+
+@keyframes terminalAppear {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Блик сверху */
+.plasma-glare {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.06), transparent);
+  border-radius: 12px 12px 0 0;
+  pointer-events: none;
+  z-index: 4;
+}
