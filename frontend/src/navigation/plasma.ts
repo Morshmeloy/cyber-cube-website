@@ -87,8 +87,26 @@ export function createPlasma(elements: PlasmaElements, audio: AudioEngine, callb
     })
   }
 
+  /** Переключение на другую страницу, когда панель уже открыта — без анимации куба,
+   * просто короткий перекрёстный переход контента (это то, чем пользуется навигация в футере). */
+  function switchContent(color: string, content: PageContent): void {
+    audio.playPlasmaOpen()
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+
+    contentRoot.style.transition = 'opacity 0.18s ease'
+    contentRoot.style.opacity = '0'
+    setTimeout(() => {
+      screen.style.setProperty('--plasma-color', color)
+      renderContent(content)
+      contentRoot.style.opacity = '1'
+    }, 180)
+  }
+
   function show(color: string, content: PageContent): void {
-    if (isOpen) return
+    if (isOpen) {
+      switchContent(color, content)
+      return
+    }
     isOpen = true
     audio.playPlasmaOpen()
     screen.style.setProperty('--plasma-color', color)
@@ -119,6 +137,9 @@ export function createPlasma(elements: PlasmaElements, audio: AudioEngine, callb
       headerLogo.classList.remove('hidden')
       scene.classList.add('hidden')
       document.body.classList.add('plasma-open')
+      // cube.ts прописывает курсор куба напрямую как inline-стиль (grab/grabbing) —
+      // он имеет приоритет над CSS-правилом body.plasma-open, поэтому сбрасываем его здесь.
+      document.body.style.cursor = ''
       screen.classList.add('active')
       renderContent(content)
     }, 450)

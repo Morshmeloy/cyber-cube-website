@@ -10,12 +10,22 @@
   box-shadow: none;
   opacity: 0;
   margin-top: clamp(8px, 1.2vh, 16px);
-  transition: height 0.5s ease, opacity 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
+  transform: scale(0.92) translateY(28px);
+  filter: blur(6px);
+  transition:
+    height 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.5s ease,
+    opacity 0.45s ease,
+    border-color 0.4s ease,
+    box-shadow 0.4s ease;
 }
 
 .plasma-screen.active {
   height: min(78vh, 900px);
   opacity: 1;
+  transform: scale(1) translateY(0);
+  filter: blur(0);
   border-color: var(--plasma-color, rgba(0, 255, 255, 0.4));
   box-shadow:
     0 0 12px var(--plasma-color, rgba(0, 255, 255, 0.5)),

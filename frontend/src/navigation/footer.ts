@@ -1,5 +1,6 @@
 import { FOOTER_TAGLINE, FOOTER_NAV_ITEMS, FOOTER_CONTACT_LINES, FOOTER_LEGAL_LINES, FOOTER_CREDIT_LINE } from '../settings/site/footer.ts'
 import { SITE_NAME, LOGO_MARK_IMAGE_PATH } from '../settings/site/site.ts'
+import { faceColors } from '../settings/navigation/faces.ts'
 import type { FaceName } from '../types/navigation.ts'
 
 export interface FooterCallbacks {
@@ -32,6 +33,7 @@ export function createSiteFooter(container: HTMLElement, callbacks: FooterCallba
     const button = document.createElement('button')
     button.type = 'button'
     button.textContent = item.label
+    button.style.setProperty('--nav-color', faceColors[item.face])
     button.addEventListener('click', () => callbacks.onNavigate(item.face))
     nav.appendChild(button)
   }

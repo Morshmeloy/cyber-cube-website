@@ -58,12 +58,13 @@
   font-family: inherit;
   font-size: 15px;
   color: rgba(224, 255, 255, 0.75);
-  transition: color 0.2s ease;
+  transition: color 0.2s ease, text-shadow 0.2s ease;
 }
 
 .site-footer-nav button:hover,
 .site-footer-nav button:focus-visible {
-  color: #0ff;
+  color: var(--nav-color, #0ff);
+  text-shadow: 0 0 8px var(--nav-color, rgba(0, 255, 255, 0.6));
 }
 
 .site-footer-contacts p {
