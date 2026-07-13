@@ -5,6 +5,7 @@ import { createRainEffect } from '../background/rain.ts'
 import { applyLumaKeyCutout } from '../background/logo-luma-key.ts'
 import { faceColors } from '../settings/navigation/faces.ts'
 import { pageContentByFace } from '../settings/navigation/pages/index.ts'
+import { legalPageColor, legalPageContent } from '../settings/navigation/pages/legal.ts'
 import { LOGO_IMAGE_PATH } from '../settings/site/site.ts'
 import type { SiteElements } from '../types/site-elements.ts'
 import { createCube } from './cube.ts'
@@ -66,6 +67,9 @@ export function initSiteNavigation(elements: SiteElements): void {
   createSiteFooter(elements.siteFooterContainer, {
     onNavigate(face) {
       plasma.show(faceColors[face], pageContentByFace[face])
+    },
+    onOpenLegal() {
+      plasma.show(legalPageColor, legalPageContent)
     },
   })
 }

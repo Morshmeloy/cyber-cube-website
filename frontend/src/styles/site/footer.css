@@ -100,13 +100,19 @@
   color: rgba(255, 255, 255, 0.9);
 }
 
-.site-footer-legal a {
+.site-footer-legal a,
+.site-footer-legal button {
+  all: unset;
   color: rgba(255, 255, 255, 0.9);
   font-weight: 600;
   text-decoration: underline;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
 }
 
-.site-footer-legal a:hover {
+.site-footer-legal a:hover,
+.site-footer-legal button:hover {
   color: #0ff;
 }
 

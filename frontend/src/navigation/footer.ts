@@ -5,6 +5,8 @@ import type { FaceName } from '../types/navigation.ts'
 
 export interface FooterCallbacks {
   onNavigate(face: FaceName): void
+  /** Открывает «Правовую информацию» — отдельную страницу без своей грани куба. */
+  onOpenLegal(): void
 }
 
 /** Строит общий футер сайта (лого, навигация по граням куба, контакты, реквизиты). */
@@ -59,7 +61,13 @@ export function createSiteFooter(container: HTMLElement, callbacks: FooterCallba
   for (const line of FOOTER_LEGAL_LINES) {
     const p = document.createElement('p')
     if (line.emphasis) p.classList.add('site-footer-legal-emphasis')
-    if (line.href) {
+    if (line.openLegalPage) {
+      const button = document.createElement('button')
+      button.type = 'button'
+      button.textContent = line.text
+      button.addEventListener('click', () => callbacks.onOpenLegal())
+      p.appendChild(button)
+    } else if (line.href) {
       const a = document.createElement('a')
       a.href = line.href
       a.target = '_blank'
