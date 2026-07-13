@@ -1,5 +1,7 @@
 /* === Общий футер сайта — виден на кубе и на любой открытой странице, ниже по прокрутке.
-   Намеренно НЕ использует --plasma-color: он общий фон для всех граней, а не контент одной из них. */
+   Намеренно НЕ использует --plasma-color: он общий фон для всех граней, а не контент одной из них.
+   Стилистически футер сделан чище и спокойнее, чем неоновый интерфейс куба (обычный регистр,
+   без uppercase и свечения) — так он остаётся читаемым как обычный подвал сайта. */
 .site-footer {
   position: relative;
   z-index: 5;
@@ -8,70 +10,66 @@
   /* Верхний паддинг — зона плавного перехода из просвечивающего фона в сплошную
      темноту; сам переход (см. background) укладывается внутрь неё с запасом,
      так что к началу текста (padding-top) фон уже полностью тёмный. */
-  padding: 180px clamp(20px, 6vw, 64px) 28px;
+  padding: 180px clamp(20px, 6vw, 64px) 32px;
   background: linear-gradient(to bottom, transparent, #050510 140px);
-  font-family: 'Orbitron', Arial, sans-serif;
-  color: rgba(224, 255, 255, 0.8);
+  font-family: Arial, sans-serif;
+  color: rgba(224, 255, 255, 0.85);
 }
 
 .site-footer-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 32px;
-  max-width: 1100px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 40px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding-bottom: 24px;
-  border-bottom: 1px solid rgba(0, 255, 255, 0.15);
+  padding-bottom: 28px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .site-footer-brand p {
-  margin-top: 12px;
-  font-size: 13px;
+  margin-top: 16px;
+  font-size: 15px;
   line-height: 1.6;
-  color: rgba(224, 255, 255, 0.6);
+  color: rgba(224, 255, 255, 0.65);
+  max-width: 32ch;
 }
 
 .site-footer-logo {
-  width: 96px;
+  width: 160px;
   height: auto;
-  filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.6));
 }
 
 .site-footer h3 {
-  font-size: 14px;
+  font-size: 17px;
   font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #0ff;
-  text-shadow: 0 0 6px rgba(0, 255, 255, 0.4);
-  margin-bottom: 14px;
+  color: rgba(255, 255, 255, 0.95);
+  margin-bottom: 16px;
 }
 
 .site-footer-nav {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .site-footer-nav button {
   all: unset;
   cursor: pointer;
   font-family: inherit;
-  font-size: 13px;
+  font-size: 15px;
   color: rgba(224, 255, 255, 0.75);
-  transition: color 0.2s ease, text-shadow 0.2s ease;
+  transition: color 0.2s ease;
 }
 
 .site-footer-nav button:hover,
 .site-footer-nav button:focus-visible {
   color: #0ff;
-  text-shadow: 0 0 6px rgba(0, 255, 255, 0.5);
 }
 
 .site-footer-contacts p {
-  font-size: 13px;
-  line-height: 1.7;
-  color: rgba(224, 255, 255, 0.75);
+  font-size: 15px;
+  line-height: 1.8;
+  color: rgba(224, 255, 255, 0.8);
 }
 
 .site-footer-contacts a {
@@ -84,13 +82,36 @@
 }
 
 .site-footer-contacts span {
-  color: rgba(224, 255, 255, 0.45);
+  color: rgba(224, 255, 255, 0.5);
 }
 
 .site-footer-legal {
-  max-width: 1100px;
+  max-width: 1200px;
   margin: 20px auto 0;
-  font-size: 11px;
-  line-height: 1.7;
-  color: rgba(224, 255, 255, 0.4);
+  font-size: 13px;
+  line-height: 1.8;
+  color: rgba(224, 255, 255, 0.45);
+}
+
+.site-footer-legal-emphasis {
+  font-size: 15px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.site-footer-legal a {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.site-footer-legal a:hover {
+  color: #0ff;
+}
+
+.site-footer-credit {
+  max-width: 1200px;
+  margin: 8px auto 0;
+  font-size: 12px;
+  color: rgba(224, 255, 255, 0.35);
 }

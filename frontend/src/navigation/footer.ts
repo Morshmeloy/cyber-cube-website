@@ -1,5 +1,5 @@
-import { FOOTER_TAGLINE, FOOTER_NAV_ITEMS, FOOTER_CONTACT_LINES, FOOTER_LEGAL_LINES } from '../settings/site/footer.ts'
-import { SITE_NAME, LOGO_IMAGE_PATH } from '../settings/site/site.ts'
+import { FOOTER_TAGLINE, FOOTER_NAV_ITEMS, FOOTER_CONTACT_LINES, FOOTER_LEGAL_LINES, FOOTER_CREDIT_LINE } from '../settings/site/footer.ts'
+import { SITE_NAME, LOGO_MARK_IMAGE_PATH } from '../settings/site/site.ts'
 import type { FaceName } from '../types/navigation.ts'
 
 export interface FooterCallbacks {
@@ -11,7 +11,7 @@ export function createSiteFooter(container: HTMLElement, callbacks: FooterCallba
   container.innerHTML = `
     <div class="site-footer-grid">
       <div class="site-footer-brand">
-        <img class="site-footer-logo" src="${LOGO_IMAGE_PATH}" alt="${SITE_NAME}" />
+        <img class="site-footer-logo" src="${LOGO_MARK_IMAGE_PATH}" alt="${SITE_NAME}" />
         <p>${FOOTER_TAGLINE}</p>
       </div>
       <div class="site-footer-col">
@@ -24,6 +24,7 @@ export function createSiteFooter(container: HTMLElement, callbacks: FooterCallba
       </div>
     </div>
     <div class="site-footer-legal"></div>
+    <div class="site-footer-credit"></div>
   `
 
   const nav = container.querySelector<HTMLElement>('.site-footer-nav')!
@@ -55,7 +56,20 @@ export function createSiteFooter(container: HTMLElement, callbacks: FooterCallba
   const legal = container.querySelector<HTMLElement>('.site-footer-legal')!
   for (const line of FOOTER_LEGAL_LINES) {
     const p = document.createElement('p')
-    p.textContent = line
+    if (line.emphasis) p.classList.add('site-footer-legal-emphasis')
+    if (line.href) {
+      const a = document.createElement('a')
+      a.href = line.href
+      a.target = '_blank'
+      a.rel = 'noopener'
+      a.textContent = line.text
+      p.appendChild(a)
+    } else {
+      p.textContent = line.text
+    }
     legal.appendChild(p)
   }
+
+  const credit = container.querySelector<HTMLElement>('.site-footer-credit')!
+  credit.textContent = FOOTER_CREDIT_LINE
 }

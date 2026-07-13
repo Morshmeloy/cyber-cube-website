@@ -21,8 +21,11 @@ export const FOOTER_CONTACT_LINES: { label: string; value: string; href?: string
   },
 ]
 
-export const FOOTER_LEGAL_LINES = [
-  'Общество с ограниченной ответственностью «Д4 технологии»',
-  'ИНН: 9723116807 | ОГРН: 1217700245916 | КПП: 772301001',
-  '© 2021–2026 Все права защищены.',
+export const FOOTER_LEGAL_LINES: { text: string; href?: string; emphasis?: boolean }[] = [
+  { text: 'Общество с ограниченной ответственностью «Д4 технологии»', emphasis: true },
+  { text: 'ИНН: 9723116807 | ОГРН: 1217700245916 | КПП: 772301001' },
+  { text: 'Правовая информация (Приказ Минцифры РФ № 511)', href: 'https://d4tech.ru/compliance/' },
+  { text: '© 2021–2026 Все права защищены.' },
 ]
+
+export const FOOTER_CREDIT_LINE = 'Разработка сайта — Д4 Технологии'
