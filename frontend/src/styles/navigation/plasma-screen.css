@@ -60,9 +60,8 @@
 }
 
 .plasma-close:hover {
-  background: rgba(0, 255, 255, 0.2);
   box-shadow: 0 0 20px var(--plasma-color, rgba(0, 255, 255, 0.6));
-  transform: scale(1.1) rotate(90deg);
+  transform: scale(1.12);
 }
 
 /* Плазменный фон */
@@ -280,7 +279,11 @@ h3.plasma-heading {
   display: block;
   width: 100%;
   height: 260px;
-  object-fit: cover;
+  /* contain, не cover — сертификат не обрезается; если он горизонтальный (шире, чем
+     прямоугольник слота), сверху/снизу остаётся поле, которое заливаем фоном ниже,
+     чтобы слот всё равно выглядел цельным прямоугольником, как и остальные. */
+  object-fit: contain;
+  background: rgba(5, 5, 16, 0.55);
   border-radius: 10px;
   border: 1px solid var(--plasma-color, rgba(0, 255, 255, 0.4));
   box-shadow: 0 0 14px color-mix(in srgb, var(--plasma-color, #0ff) 20%, transparent);
@@ -327,14 +330,19 @@ h3.plasma-heading {
   position: fixed;
   inset: 0;
   z-index: 500;
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(2, 2, 8, 0.92);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0s linear 0.3s;
 }
 
 .plasma-lightbox.active {
-  display: flex;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.3s ease, visibility 0s linear 0s;
 }
 
 .plasma-lightbox img {
@@ -343,6 +351,12 @@ h3.plasma-heading {
   border-radius: 10px;
   border: 1px solid var(--plasma-color, rgba(0, 255, 255, 0.5));
   box-shadow: 0 0 40px color-mix(in srgb, var(--plasma-color, #0ff) 40%, transparent);
+  transform: scale(0.9);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.plasma-lightbox.active img {
+  transform: scale(1);
 }
 
 .plasma-lightbox-close {
@@ -357,6 +371,41 @@ h3.plasma-heading {
   color: var(--plasma-color, #0ff);
   font-size: 22px;
   cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.plasma-lightbox-close:hover {
+  box-shadow: 0 0 20px var(--plasma-color, rgba(0, 255, 255, 0.6));
+  transform: scale(1.12);
+}
+
+.plasma-lightbox-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 2px solid var(--plasma-color, rgba(0, 255, 255, 0.6));
+  background: rgba(5, 5, 16, 0.85);
+  color: var(--plasma-color, #0ff);
+  font-size: 18px;
+  cursor: pointer;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--plasma-color, #0ff) 40%, transparent);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.plasma-lightbox-arrow:hover {
+  transform: translateY(-50%) scale(1.12);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--plasma-color, #0ff) 60%, transparent);
+}
+
+.plasma-lightbox-prev {
+  left: clamp(8px, 3vw, 40px);
+}
+
+.plasma-lightbox-next {
+  right: clamp(8px, 3vw, 40px);
 }
 
 .plasma-contact {

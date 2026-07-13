@@ -12,36 +12,80 @@ type GalleryImage = Extract<PageBlock, { kind: 'imageGallery' }>['images'][numbe
 
 const STEP_PX = CAROUSEL_ITEM_WIDTH_PX + CAROUSEL_GAP_PX
 
-/** Полноэкранный лайтбокс для увеличенного просмотра — один на страницу, старый убирается при пересоздании. */
-function createLightbox(): { overlay: HTMLElement; open(src: string, alt: string): void } {
+/**
+ * Полноэкранный лайтбокс для увеличенного просмотра — один на страницу, старый
+ * убирается при пересоздании. Живёт в document.body (а не внутри плазменной
+ * панели), поэтому не наследует --plasma-color по CSS-каскаду — цвет крестика
+ * и стрелок синхронизируем вручную при каждом открытии, считывая его с текущей
+ * .plasma-screen.
+ */
+function createLightbox(images: GalleryImage[]): { overlay: HTMLElement; open(index: number): void } {
   document.querySelector('.plasma-lightbox')?.remove()
 
   const overlay = document.createElement('div')
   overlay.className = 'plasma-lightbox'
   const img = document.createElement('img')
+
+  const prevButton = document.createElement('button')
+  prevButton.type = 'button'
+  prevButton.className = 'plasma-lightbox-arrow plasma-lightbox-prev'
+  prevButton.setAttribute('aria-label', 'Предыдущий сертификат')
+  prevButton.innerHTML = '&#10094;'
+
+  const nextButton = document.createElement('button')
+  nextButton.type = 'button'
+  nextButton.className = 'plasma-lightbox-arrow plasma-lightbox-next'
+  nextButton.setAttribute('aria-label', 'Следующий сертификат')
+  nextButton.innerHTML = '&#10095;'
+
   const closeButton = document.createElement('button')
   closeButton.type = 'button'
   closeButton.className = 'plasma-lightbox-close'
   closeButton.setAttribute('aria-label', 'Закрыть')
   closeButton.textContent = '×'
-  overlay.append(img, closeButton)
+
+  overlay.append(img, prevButton, nextButton, closeButton)
   document.body.appendChild(overlay)
+
+  let currentIndex = 0
+
+  function syncColor(): void {
+    const screenEl = document.querySelector<HTMLElement>('.plasma-screen')
+    const color = screenEl ? getComputedStyle(screenEl).getPropertyValue('--plasma-color').trim() : ''
+    if (color) overlay.style.setProperty('--plasma-color', color)
+  }
+
+  function render(): void {
+    const image = images[currentIndex]
+    img.src = image.src
+    img.alt = image.alt
+  }
 
   function hide(): void {
     overlay.classList.remove('active')
   }
-  function open(src: string, alt: string): void {
-    img.src = src
-    img.alt = alt
+  function open(index: number): void {
+    currentIndex = index
+    syncColor()
+    render()
     overlay.classList.add('active')
   }
+  function step(delta: number): void {
+    currentIndex = (currentIndex + delta + images.length) % images.length
+    render()
+  }
 
+  prevButton.addEventListener('click', () => step(-1))
+  nextButton.addEventListener('click', () => step(1))
   closeButton.addEventListener('click', hide)
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) hide()
   })
   document.addEventListener('keydown', (e) => {
+    if (!overlay.classList.contains('active')) return
     if (e.key === 'Escape') hide()
+    else if (e.key === 'ArrowLeft') step(-1)
+    else if (e.key === 'ArrowRight') step(1)
   })
 
   return { overlay, open }
@@ -89,7 +133,7 @@ export function createImageCarousel(images: GalleryImage[]): HTMLElement {
     }
   }
 
-  const lightbox = createLightbox()
+  const lightbox = createLightbox(images)
   let activeItem: HTMLElement | null = null
 
   function applyTransforms(): void {
@@ -106,7 +150,11 @@ export function createImageCarousel(images: GalleryImage[]): HTMLElement {
       const t = absDist / CAROUSEL_FALLOFF_ITEMS
       const scale = 1 - t * (1 - CAROUSEL_MIN_SCALE)
       const opacity = 1 - t * (1 - CAROUSEL_MIN_OPACITY)
-      const tilt = dist === 0 ? 0 : dist > 0 ? -CAROUSEL_TILT_DEG : CAROUSEL_TILT_DEG
+      // Плавный, пропорциональный расстоянию наклон — а не бинарный "0 или максимум":
+      // dist почти никогда не бывает ровно 0 при реальной прокрутке (плавающая точка),
+      // из-за чего центральный слайд после первого скролла всегда оказывался наклонён.
+      const tiltDist = Math.max(-1, Math.min(1, dist))
+      const tilt = -tiltDist * CAROUSEL_TILT_DEG
       item.style.transform = `perspective(1000px) rotateY(${tilt}deg) scale(${scale})`
       item.style.opacity = String(opacity)
       item.style.zIndex = String(Math.round((1 - t) * 100))
@@ -170,17 +218,16 @@ export function createImageCarousel(images: GalleryImage[]): HTMLElement {
   window.addEventListener('pointerup', endDrag)
   window.addEventListener('pointercancel', endDrag)
 
-  for (const item of items) {
+  items.forEach((item, i) => {
     item.addEventListener('click', () => {
       if (hasDraggedPast) return
       if (item === activeItem) {
-        const img = item.querySelector('img')!
-        lightbox.open(img.src, img.alt)
+        lightbox.open(i % images.length)
       } else {
         item.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
       }
     })
-  }
+  })
 
   prevButton.addEventListener('click', () => track.scrollBy({ left: -STEP_PX, behavior: 'smooth' }))
   nextButton.addEventListener('click', () => track.scrollBy({ left: STEP_PX, behavior: 'smooth' }))
