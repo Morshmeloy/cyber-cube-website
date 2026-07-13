@@ -9,12 +9,12 @@
   border: 1px solid transparent;
   box-shadow: none;
   opacity: 0;
-  margin-top: clamp(90px, 14vh, 140px); /* отступ под фиксированный логотип */
+  margin-top: clamp(8px, 1.2vh, 16px);
   transition: height 0.5s ease, opacity 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
 }
 
 .plasma-screen.active {
-  height: min(78vh, 860px);
+  height: min(78vh, 900px);
   opacity: 1;
   border-color: var(--plasma-color, rgba(0, 255, 255, 0.4));
   box-shadow:
@@ -69,10 +69,12 @@
     background-position: 0% 50%, 100% 50%, 50% 0%;
     filter: hue-rotate(0deg);
   }
+
   50% {
     background-position: 30% 70%, 70% 30%, 60% 40%;
     filter: hue-rotate(60deg);
   }
+
   100% {
     background-position: 60% 30%, 40% 70%, 30% 80%;
     filter: hue-rotate(120deg);
@@ -83,13 +85,11 @@
 .plasma-scanlines {
   position: absolute;
   inset: 0;
-  background: repeating-linear-gradient(
-    to bottom,
-    transparent 0px,
-    transparent 3px,
-    rgba(0, 0, 0, 0.1) 3px,
-    rgba(0, 0, 0, 0.1) 4px
-  );
+  background: repeating-linear-gradient(to bottom,
+      transparent 0px,
+      transparent 3px,
+      rgba(0, 0, 0, 0.1) 3px,
+      rgba(0, 0, 0, 0.1) 4px);
   pointer-events: none;
   z-index: 2;
 }
@@ -148,6 +148,7 @@
     opacity: 0;
     transform: translateY(8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -361,7 +362,7 @@ h3.plasma-heading {
   color: rgba(232, 248, 255, 0.9);
 }
 
-.plasma-contact p + p {
+.plasma-contact p+p {
   margin-top: 6px;
 }
 

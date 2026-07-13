@@ -117,17 +117,16 @@
   }
 }
 
-/* Логотип, который подменяет заголовок в шапке, когда открыт плазменный экран */
+/* Логотип просто подменяет собой текстовый заголовок в шапке (тот же слот в потоке
+   .viewport-hero), поэтому и крепится он ровно так же — обычным position: relative,
+   а не fixed. Так они ведут себя идентично: видны наверху, пока страница не
+   прокручена, и не «блуждают» отдельно от остального контента шапки. */
 .site-logo {
-  position: fixed;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  position: relative;
   z-index: 100;
   width: clamp(280px, 55vmin, 500px);
   height: auto;
   display: block;
-  mix-blend-mode: screen;
   filter: drop-shadow(0 0 12px rgba(0, 255, 255, 1))
           drop-shadow(0 0 30px rgba(0, 255, 255, 0.8))
           drop-shadow(0 0 60px rgba(0, 255, 255, 0.6))

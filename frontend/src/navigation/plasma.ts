@@ -94,6 +94,10 @@ export function createPlasma(elements: PlasmaElements, audio: AudioEngine, callb
     screen.style.setProperty('--plasma-color', color)
     callbacks.pauseCubeIdleBehaviour()
 
+    // Открыть могли и с прокруткой у футера — поднимаем страницу наверх, чтобы куб/панель
+    // и зафиксированный логотип сразу оказались в видимой области.
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+
     if (flashTimer !== null) clearTimeout(flashTimer)
     if (openTimer !== null) clearTimeout(openTimer)
 

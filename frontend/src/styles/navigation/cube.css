@@ -18,11 +18,6 @@
   display: none;
 }
 
-body.plasma-open .viewport-hero {
-  justify-content: flex-start;
-  padding-top: 4vh;
-}
-
 .cube {
   width: 100%;
   height: 100%;
