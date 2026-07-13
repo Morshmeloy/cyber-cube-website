@@ -8,17 +8,14 @@ export interface SiteElements {
   scene: HTMLElement
   cube: HTMLDivElement
   plasmaScreen: HTMLElement
-  plasmaTickerViewport: HTMLElement
-  plasmaText: HTMLElement
+  plasmaContentViewport: HTMLElement
+  plasmaContentRoot: HTMLElement
   plasmaCloseButton: HTMLButtonElement
-  submenuContainer: HTMLElement
-  submenuGroup: HTMLElement
-  backButton: HTMLButtonElement
+  siteFooterContainer: HTMLElement
 }
 
-/** Общие элементы шапки, которые переключают и подменю, и плазменный экран. */
+/** Общие элементы шапки, которые переключает плазменный экран. */
 export interface HeaderChromeElements {
   neonTitle: HTMLElement
   headerLogo: HTMLElement
-  backButton: HTMLElement
 }

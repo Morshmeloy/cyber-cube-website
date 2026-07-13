@@ -163,7 +163,7 @@ export function createCube(sceneEl: HTMLElement, cubeEl: HTMLDivElement, audio: 
   // --- Перетаскивание мышью ---
   document.addEventListener('mousedown', (e) => {
     if (e.button !== 0) return
-    if (sceneEl.classList.contains('minimized')) return
+    if (sceneEl.classList.contains('hidden')) return
 
     isDragging = true
     isInertia = false
@@ -208,7 +208,7 @@ export function createCube(sceneEl: HTMLElement, cubeEl: HTMLDivElement, audio: 
   document.addEventListener(
     'touchstart',
     (e) => {
-      if (sceneEl.classList.contains('minimized')) return
+      if (sceneEl.classList.contains('hidden')) return
       isDragging = true
       isInertia = false
       isSnapping = false
@@ -248,15 +248,9 @@ export function createCube(sceneEl: HTMLElement, cubeEl: HTMLDivElement, audio: 
 
   document.addEventListener('contextmenu', (e) => e.preventDefault())
 
-  // --- Клик по кубу: активация грани либо возврат из свёрнутого состояния ---
-  sceneEl.addEventListener('click', (e) => {
-    if (sceneEl.classList.contains('minimized')) {
-      e.preventDefault()
-      e.stopPropagation()
-      callbacks.onMinimizedClick()
-      return
-    }
-
+  // --- Клик по кубу: активация грани ---
+  sceneEl.addEventListener('click', () => {
+    if (sceneEl.classList.contains('hidden')) return
     if (hasDragged) return
     if (!callbacks.canActivateFace()) return
 
@@ -265,30 +259,6 @@ export function createCube(sceneEl: HTMLElement, cubeEl: HTMLDivElement, audio: 
   })
 
   scheduleAutoRotation()
-
-  // --- Мини-вращение свёрнутой иконки куба поверх плазменного экрана ---
-  let minimizedSpinId: number | null = null
-
-  function startMinimizedIdleSpin(): void {
-    stopMinimizedIdleSpin()
-    rotation.x = -15
-    audio.startIdleRotateSound()
-    function spin(): void {
-      rotation.y += 0.4
-      rotation.x += (-15 - rotation.x) * 0.02
-      updateCubeTransform()
-      minimizedSpinId = requestAnimationFrame(spin)
-    }
-    spin()
-  }
-
-  function stopMinimizedIdleSpin(): void {
-    if (minimizedSpinId !== null) {
-      cancelAnimationFrame(minimizedSpinId)
-      minimizedSpinId = null
-    }
-    audio.stopIdleRotateSound()
-  }
 
   return {
     resetRotation(): void {
@@ -300,7 +270,5 @@ export function createCube(sceneEl: HTMLElement, cubeEl: HTMLDivElement, audio: 
     },
     pauseIdleBehaviour,
     scheduleAutoRotation,
-    startMinimizedIdleSpin,
-    stopMinimizedIdleSpin,
   }
 }

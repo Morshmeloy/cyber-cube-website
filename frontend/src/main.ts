@@ -18,12 +18,10 @@ const elements: SiteElements = {
   scene: requireElement('scene-el'),
   cube: requireElement<HTMLDivElement>('cube'),
   plasmaScreen: requireElement('plasma-screen'),
-  plasmaTickerViewport: document.querySelector<HTMLElement>('#plasma-screen .plasma-ticker')!,
-  plasmaText: requireElement('plasma-text'),
+  plasmaContentViewport: requireElement('plasma-content-viewport'),
+  plasmaContentRoot: requireElement('plasma-content-root'),
   plasmaCloseButton: requireElement<HTMLButtonElement>('plasma-close'),
-  submenuContainer: requireElement('submenu-container'),
-  submenuGroup: requireElement('submenu-cube-group'),
-  backButton: requireElement<HTMLButtonElement>('back-button'),
+  siteFooterContainer: requireElement('site-footer'),
 }
 
 initSiteNavigation(elements)

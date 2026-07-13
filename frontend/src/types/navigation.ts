@@ -11,3 +11,9 @@ export interface CubeFaceDefinition {
   /** Более подробное описание для aria-label; если не задано, используется label. */
   ariaLabel?: string
 }
+
+/** Пункт навигации в общем футере сайта — ведёт на страницу той же грани куба. */
+export interface FooterNavItem {
+  label: string
+  face: FaceName
+}

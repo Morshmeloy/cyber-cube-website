@@ -13,18 +13,12 @@
   transition: all 0.5s ease;
 }
 
-/* Свёрнутое состояние куба — маленькая иконка-кнопка в углу поверх плазменного экрана */
-.scene.minimized {
-  --size: clamp(24px, 3.4vmin, 32px);
-  top: 8px;
-  right: 8px;
-  left: auto;
-  transform: none;
-  cursor: pointer;
-  z-index: 20;
+/* Куб полностью скрывается, пока открыт плазменный экран — закрывается только крестиком. */
+.scene.hidden {
+  display: none;
 }
 
-body.plasma-open {
+body.plasma-open .viewport-hero {
   justify-content: flex-start;
   padding-top: 4vh;
 }
@@ -116,6 +110,7 @@ body.plasma-open {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   text-shadow: 0 0 10px currentColor;
+  text-align: center;
 }
 
 /* Грани — цвета и позиции в 3D-пространстве */

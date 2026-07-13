@@ -1,22 +1,20 @@
-/* === Плазменный экран: информационная панель с эффектом ЭЛТ-терминала === */
+/* === Плазменный экран: полноразмерная панель страницы грани куба === */
 .plasma-screen {
   position: relative;
   z-index: 11;
-  width: calc(100vw - 40px);
+  width: min(calc(100vw - 32px), 920px);
   height: 0;
-  font-family: 'Courier New', Courier, monospace;
-  font-size: clamp(11px, 1.4vw, 14px);
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid transparent;
   box-shadow: none;
   opacity: 0;
-  margin-top: clamp(140px, 22vh, 220px); /* отступ под фиксированный логотип */
+  margin-top: clamp(90px, 14vh, 140px); /* отступ под фиксированный логотип */
   transition: height 0.5s ease, opacity 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
 }
 
 .plasma-screen.active {
-  height: 70vh;
+  height: min(78vh, 860px);
   opacity: 1;
   border-color: var(--plasma-color, rgba(0, 255, 255, 0.4));
   box-shadow:
@@ -62,7 +60,7 @@
   position: absolute;
   inset: 0;
   background: radial-gradient(ellipse at 50% 50%, var(--plasma-color, #0ff) 0%, #050510 80%);
-  opacity: 0.15;
+  opacity: 0.12;
   animation: plasmaShift 6s ease-in-out infinite alternate;
 }
 
@@ -89,62 +87,282 @@
     to bottom,
     transparent 0px,
     transparent 3px,
-    rgba(0, 0, 0, 0.18) 3px,
-    rgba(0, 0, 0, 0.18) 4px
+    rgba(0, 0, 0, 0.1) 3px,
+    rgba(0, 0, 0, 0.1) 4px
   );
   pointer-events: none;
   z-index: 2;
 }
 
-/* Текст терминала (печатается посимвольно через typewriter) */
-.plasma-ticker {
+/* Скроллируемая панель с контентом страницы */
+.plasma-content {
   position: absolute;
   inset: 0;
   display: block;
   z-index: 3;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 8px 12px;
+  padding: 44px clamp(16px, 4vw, 48px) 32px;
   scrollbar-width: thin;
-  scrollbar-color: #0f0 rgba(5, 5, 16, 0.4);
+  scrollbar-color: var(--plasma-color, #0ff) rgba(5, 5, 16, 0.4);
 }
 
-.plasma-ticker::-webkit-scrollbar {
+.plasma-content::-webkit-scrollbar {
   width: 8px;
 }
 
-.plasma-ticker::-webkit-scrollbar-track {
+.plasma-content::-webkit-scrollbar-track {
   background: rgba(5, 5, 16, 0.4);
   border-radius: 4px;
 }
 
-.plasma-ticker::-webkit-scrollbar-thumb {
-  background: #0f0;
+.plasma-content::-webkit-scrollbar-thumb {
+  background: var(--plasma-color, #0ff);
   border-radius: 4px;
-  box-shadow: 0 0 6px #0f0;
+  box-shadow: 0 0 6px var(--plasma-color, #0ff);
 }
 
-.plasma-ticker-inner {
+.plasma-content-root {
   display: block;
-  font-family: 'Courier New', Courier, monospace;
-  font-size: clamp(17px, 2.4vw, 22px);
-  font-weight: 400;
-  letter-spacing: 0.05em;
-  line-height: 1.5;
+  font-family: 'Orbitron', Arial, sans-serif;
   color: #e8f8ff;
-  text-shadow: 0 0 6px rgba(0, 255, 255, 0.5), 0 0 15px rgba(0, 255, 255, 0.25);
-  white-space: pre-wrap;
-  word-break: break-word;
-  animation: terminalAppear 0.3s ease forwards;
 }
 
-@keyframes terminalAppear {
+.plasma-page-title {
+  font-size: clamp(22px, 3.6vw, 34px);
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  line-height: 1.3;
+  color: var(--plasma-color, #0ff);
+  text-shadow: 0 0 8px var(--plasma-color, rgba(0, 255, 255, 0.6)), 0 0 20px var(--plasma-color, rgba(0, 255, 255, 0.3));
+  margin-bottom: 24px;
+}
+
+.plasma-block {
+  opacity: 0;
+  animation: plasmaBlockAppear 0.5s ease forwards;
+}
+
+@keyframes plasmaBlockAppear {
   from {
     opacity: 0;
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
+    transform: translateY(0);
   }
+}
+
+.plasma-heading {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--plasma-color, #0ff);
+  text-shadow: 0 0 6px var(--plasma-color, rgba(0, 255, 255, 0.5));
+  margin: 28px 0 12px;
+}
+
+h2.plasma-heading {
+  font-size: clamp(18px, 2.4vw, 24px);
+}
+
+h3.plasma-heading {
+  font-size: clamp(16px, 2vw, 20px);
+}
+
+.plasma-paragraph {
+  font-size: clamp(14px, 1.6vw, 17px);
+  line-height: 1.7;
+  color: rgba(232, 248, 255, 0.9);
+  margin-bottom: 14px;
+}
+
+.plasma-list {
+  list-style: none;
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.plasma-list li {
+  position: relative;
+  padding-left: 22px;
+  font-size: clamp(14px, 1.5vw, 16px);
+  line-height: 1.6;
+  color: rgba(232, 248, 255, 0.85);
+}
+
+.plasma-list li::before {
+  content: '▸';
+  position: absolute;
+  left: 0;
+  color: var(--plasma-color, #0ff);
+  text-shadow: 0 0 6px var(--plasma-color, rgba(0, 255, 255, 0.6));
+}
+
+.plasma-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.plasma-card {
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--plasma-color, rgba(0, 255, 255, 0.4));
+  background: rgba(0, 0, 0, 0.25);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--plasma-color, #0ff) 25%, transparent), inset 0 0 20px rgba(0, 0, 0, 0.3);
+}
+
+.plasma-card h4 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--plasma-color, #0ff);
+  text-shadow: 0 0 6px var(--plasma-color, rgba(0, 255, 255, 0.5));
+  margin-bottom: 6px;
+}
+
+.plasma-card p {
+  font-size: 13px;
+  line-height: 1.55;
+  color: rgba(232, 248, 255, 0.85);
+}
+
+/* === Карусель сертификатов: зацикленный «coverflow» с активным слайдом по центру === */
+.plasma-carousel {
+  position: relative;
+  margin-bottom: 18px;
+  padding: 12px 44px;
+}
+
+.plasma-carousel-track {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  padding: 20px calc(50% - 110px);
+  cursor: grab;
+}
+
+.plasma-carousel-track::-webkit-scrollbar {
+  display: none;
+}
+
+.plasma-carousel-track.dragging {
+  cursor: grabbing;
+  scroll-snap-type: none;
+}
+
+.plasma-carousel-item {
+  flex: 0 0 220px;
+  scroll-snap-align: center;
+  cursor: pointer;
+}
+
+.plasma-carousel-item img {
+  display: block;
+  width: 100%;
+  height: 260px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid var(--plasma-color, rgba(0, 255, 255, 0.4));
+  box-shadow: 0 0 14px color-mix(in srgb, var(--plasma-color, #0ff) 20%, transparent);
+  pointer-events: none;
+  user-select: none;
+  transition: box-shadow 0.2s ease;
+}
+
+.plasma-carousel-item.active img {
+  box-shadow: 0 0 30px color-mix(in srgb, var(--plasma-color, #0ff) 55%, transparent);
+}
+
+.plasma-carousel-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid var(--plasma-color, rgba(0, 255, 255, 0.6));
+  background: rgba(5, 5, 16, 0.85);
+  color: var(--plasma-color, #0ff);
+  font-size: 15px;
+  cursor: pointer;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--plasma-color, #0ff) 40%, transparent);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.plasma-carousel-arrow:hover {
+  transform: translateY(-50%) scale(1.12);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--plasma-color, #0ff) 60%, transparent);
+}
+
+.plasma-carousel-prev {
+  left: 0;
+}
+
+.plasma-carousel-next {
+  right: 0;
+}
+
+.plasma-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(2, 2, 8, 0.92);
+}
+
+.plasma-lightbox.active {
+  display: flex;
+}
+
+.plasma-lightbox img {
+  max-width: 90vw;
+  max-height: 85vh;
+  border-radius: 10px;
+  border: 1px solid var(--plasma-color, rgba(0, 255, 255, 0.5));
+  box-shadow: 0 0 40px color-mix(in srgb, var(--plasma-color, #0ff) 40%, transparent);
+}
+
+.plasma-lightbox-close {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid var(--plasma-color, rgba(0, 255, 255, 0.6));
+  background: rgba(5, 5, 16, 0.85);
+  color: var(--plasma-color, #0ff);
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.plasma-contact {
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px dashed var(--plasma-color, rgba(0, 255, 255, 0.4));
+  margin-bottom: 14px;
+}
+
+.plasma-contact p {
+  font-size: clamp(13px, 1.5vw, 15px);
+  line-height: 1.6;
+  color: rgba(232, 248, 255, 0.9);
+}
+
+.plasma-contact p + p {
+  margin-top: 6px;
 }
 
 /* Блик сверху */
