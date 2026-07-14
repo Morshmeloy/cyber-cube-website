@@ -8,7 +8,7 @@ import { pageContentByFace } from '../settings/navigation/pages/index.ts'
 import { legalPageColor, legalPageContent } from '../settings/navigation/pages/legal.ts'
 import { LOGO_IMAGE_PATH } from '../settings/site/site.ts'
 import type { SiteElements } from '../types/site-elements.ts'
-import type { PageLinkTarget } from '../types/page-content.ts'
+import type { PageNavigationTarget } from '../types/page-content.ts'
 import { createCube } from './cube.ts'
 import { createPlasma } from './plasma.ts'
 import { createSiteFooter } from './footer.ts'
@@ -43,7 +43,7 @@ export function initSiteNavigation(elements: SiteElements): void {
 
   /** Открывает страницу по грани или «Правовую информацию» — общий переход для куба,
    * футера и ссылок/кнопок внутри контента страниц. */
-  function openTarget(target: PageLinkTarget): void {
+  function openTarget(target: PageNavigationTarget): void {
     if ('legal' in target) {
       plasma.show(legalPageColor, legalPageContent)
     } else {

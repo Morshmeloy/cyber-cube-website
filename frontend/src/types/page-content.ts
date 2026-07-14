@@ -1,8 +1,12 @@
 import type { FaceName } from './navigation.ts'
 
-/** Куда ведёт ссылка/кнопка внутри контента страницы — на грань куба или на страницу
- * «Правовая информация» (у неё своей грани нет, см. settings/navigation/pages/legal.ts). */
-export type PageLinkTarget = { face: FaceName } | { legal: true }
+/** Переключение на другую страницу сайта внутри плазмы: грань куба или «Правовая информация»
+ * (у неё своей грани нет, см. settings/navigation/pages/legal.ts). */
+export type PageNavigationTarget = { face: FaceName } | { legal: true }
+
+/** Куда ведёт ссылка/кнопка внутри контента страницы — то же самое переключение, либо
+ * внешний/статический файл (открывается в новой вкладке обычной ссылкой, не через плазму). */
+export type PageLinkTarget = PageNavigationTarget | { href: string }
 
 /** Один структурный блок содержимого страницы грани куба. */
 export type PageBlock =

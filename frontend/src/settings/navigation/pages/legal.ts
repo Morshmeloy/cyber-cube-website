@@ -141,7 +141,13 @@ export const legalPageContent: PageContent = {
       kind: 'paragraph',
       text: 'Организация аккредитована в качестве ИТ-компании (решение Минцифры № АО-20251013-32678149401-3 от 10.11.2025).',
     },
-    { kind: 'paragraph', text: 'Скачать выписку из реестра (PDF)' },
+    {
+      kind: 'paragraphLink',
+      before: '',
+      linkText: 'Скачать выписку из реестра (PDF)',
+      after: '',
+      target: { href: '/documents/accreditation-extract.pdf' },
+    },
 
     {
       kind: 'contactInfo',

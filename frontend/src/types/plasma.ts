@@ -1,5 +1,5 @@
 import type { HeaderChromeElements } from './site-elements.ts'
-import type { PageContent, PageLinkTarget } from './page-content.ts'
+import type { PageContent, PageNavigationTarget } from './page-content.ts'
 
 export interface PlasmaElements extends HeaderChromeElements {
   screen: HTMLElement
@@ -17,7 +17,7 @@ export interface PlasmaCallbacks {
   resetCubeRotation(): void
   scheduleCubeAutoRotation(): void
   /** Переход по ссылке/кнопке внутри контента страницы — работает как навигация в футере. */
-  navigateTo(target: PageLinkTarget): void
+  navigateTo(target: PageNavigationTarget): void
 }
 
 export interface PlasmaController {

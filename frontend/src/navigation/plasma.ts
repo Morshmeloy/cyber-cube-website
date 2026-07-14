@@ -1,10 +1,36 @@
 import type { AudioEngine } from '../types/audio.ts'
 import type { PlasmaElements, PlasmaCallbacks, PlasmaController } from '../types/plasma.ts'
-import type { PageBlock, PageContent, PageLinkTarget } from '../types/page-content.ts'
+import type { PageBlock, PageContent, PageLinkTarget, PageNavigationTarget } from '../types/page-content.ts'
 import { BLOCK_REVEAL_STAGGER_MS } from '../settings/navigation/plasma.ts'
 import { createImageCarousel } from './certificate-carousel.ts'
 
-function renderBlock(block: PageBlock, navigateTo: (target: PageLinkTarget) => void): HTMLElement {
+/** Кликабельный элемент для PageLinkTarget: реальная <a target="_blank"> для внешних/файловых
+ * ссылок (просмотр PDF в новой вкладке перед скачиванием), иначе <button> на переключение
+ * контента внутри плазмы (грань куба или «Правовая информация»). */
+function createLinkTrigger(
+  target: PageLinkTarget,
+  label: string,
+  className: string,
+  navigateTo: (target: PageNavigationTarget) => void,
+): HTMLElement {
+  if ('href' in target) {
+    const a = document.createElement('a')
+    a.href = target.href
+    a.target = '_blank'
+    a.rel = 'noopener'
+    a.className = className
+    a.textContent = label
+    return a
+  }
+  const button = document.createElement('button')
+  button.type = 'button'
+  button.className = className
+  button.textContent = label
+  button.addEventListener('click', () => navigateTo(target))
+  return button
+}
+
+function renderBlock(block: PageBlock, navigateTo: (target: PageNavigationTarget) => void): HTMLElement {
   switch (block.kind) {
     case 'heading': {
       const el = document.createElement(block.level === 2 ? 'h2' : 'h3')
@@ -22,12 +48,7 @@ function renderBlock(block: PageBlock, navigateTo: (target: PageLinkTarget) => v
       const el = document.createElement('p')
       el.className = 'plasma-block plasma-paragraph'
       el.append(document.createTextNode(block.before))
-      const link = document.createElement('button')
-      link.type = 'button'
-      link.className = 'plasma-inline-link'
-      link.textContent = block.linkText
-      link.addEventListener('click', () => navigateTo(block.target))
-      el.appendChild(link)
+      el.appendChild(createLinkTrigger(block.target, block.linkText, 'plasma-inline-link', navigateTo))
       el.append(document.createTextNode(block.after))
       return el
     }
@@ -35,12 +56,8 @@ function renderBlock(block: PageBlock, navigateTo: (target: PageLinkTarget) => v
       const el = document.createElement('div')
       el.className = 'plasma-block plasma-link-buttons'
       block.buttons.forEach((btn, i) => {
-        const button = document.createElement('button')
-        button.type = 'button'
-        button.className = i === 0 ? 'plasma-cta plasma-cta-primary' : 'plasma-cta plasma-cta-outline'
-        button.textContent = btn.label
-        button.addEventListener('click', () => navigateTo(btn.target))
-        el.appendChild(button)
+        const className = i === 0 ? 'plasma-cta plasma-cta-primary' : 'plasma-cta plasma-cta-outline'
+        el.appendChild(createLinkTrigger(btn.target, btn.label, className, navigateTo))
       })
       return el
     }
