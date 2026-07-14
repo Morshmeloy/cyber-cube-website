@@ -1,10 +1,10 @@
 import type { AudioEngine } from '../types/audio.ts'
 import type { PlasmaElements, PlasmaCallbacks, PlasmaController } from '../types/plasma.ts'
-import type { PageBlock, PageContent } from '../types/page-content.ts'
+import type { PageBlock, PageContent, PageLinkTarget } from '../types/page-content.ts'
 import { BLOCK_REVEAL_STAGGER_MS } from '../settings/navigation/plasma.ts'
 import { createImageCarousel } from './certificate-carousel.ts'
 
-function renderBlock(block: PageBlock): HTMLElement {
+function renderBlock(block: PageBlock, navigateTo: (target: PageLinkTarget) => void): HTMLElement {
   switch (block.kind) {
     case 'heading': {
       const el = document.createElement(block.level === 2 ? 'h2' : 'h3')
@@ -16,6 +16,32 @@ function renderBlock(block: PageBlock): HTMLElement {
       const el = document.createElement('p')
       el.className = 'plasma-block plasma-paragraph'
       el.textContent = block.text
+      return el
+    }
+    case 'paragraphLink': {
+      const el = document.createElement('p')
+      el.className = 'plasma-block plasma-paragraph'
+      el.append(document.createTextNode(block.before))
+      const link = document.createElement('button')
+      link.type = 'button'
+      link.className = 'plasma-inline-link'
+      link.textContent = block.linkText
+      link.addEventListener('click', () => navigateTo(block.target))
+      el.appendChild(link)
+      el.append(document.createTextNode(block.after))
+      return el
+    }
+    case 'linkButtons': {
+      const el = document.createElement('div')
+      el.className = 'plasma-block plasma-link-buttons'
+      block.buttons.forEach((btn, i) => {
+        const button = document.createElement('button')
+        button.type = 'button'
+        button.className = i === 0 ? 'plasma-cta plasma-cta-primary' : 'plasma-cta plasma-cta-outline'
+        button.textContent = btn.label
+        button.addEventListener('click', () => navigateTo(btn.target))
+        el.appendChild(button)
+      })
       return el
     }
     case 'list': {
@@ -81,7 +107,7 @@ export function createPlasma(elements: PlasmaElements, audio: AudioEngine, callb
     contentRoot.appendChild(titleEl)
 
     content.blocks.forEach((block, i) => {
-      const el = renderBlock(block)
+      const el = renderBlock(block, callbacks.navigateTo)
       el.style.animationDelay = `${(i + 1) * BLOCK_REVEAL_STAGGER_MS}ms`
       contentRoot.appendChild(el)
     })

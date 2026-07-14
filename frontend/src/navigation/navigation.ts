@@ -8,6 +8,7 @@ import { pageContentByFace } from '../settings/navigation/pages/index.ts'
 import { legalPageColor, legalPageContent } from '../settings/navigation/pages/legal.ts'
 import { LOGO_IMAGE_PATH } from '../settings/site/site.ts'
 import type { SiteElements } from '../types/site-elements.ts'
+import type { PageLinkTarget } from '../types/page-content.ts'
 import { createCube } from './cube.ts'
 import { createPlasma } from './plasma.ts'
 import { createSiteFooter } from './footer.ts'
@@ -40,9 +41,19 @@ export function initSiteNavigation(elements: SiteElements): void {
   let cube: ReturnType<typeof createCube>
   let plasma: ReturnType<typeof createPlasma>
 
+  /** Открывает страницу по грани или «Правовую информацию» — общий переход для куба,
+   * футера и ссылок/кнопок внутри контента страниц. */
+  function openTarget(target: PageLinkTarget): void {
+    if ('legal' in target) {
+      plasma.show(legalPageColor, legalPageContent)
+    } else {
+      plasma.show(faceColors[target.face], pageContentByFace[target.face])
+    }
+  }
+
   cube = createCube(elements.scene, elements.cube, audio, {
     onFaceActivated(face) {
-      plasma.show(faceColors[face], pageContentByFace[face])
+      openTarget({ face })
     },
     canActivateFace: () => !plasma.isActive(),
   })
@@ -61,15 +72,16 @@ export function initSiteNavigation(elements: SiteElements): void {
       pauseCubeIdleBehaviour: () => cube.pauseIdleBehaviour(),
       resetCubeRotation: () => cube.resetRotation(),
       scheduleCubeAutoRotation: () => cube.scheduleAutoRotation(),
+      navigateTo: openTarget,
     },
   )
 
   createSiteFooter(elements.siteFooterContainer, {
     onNavigate(face) {
-      plasma.show(faceColors[face], pageContentByFace[face])
+      openTarget({ face })
     },
     onOpenLegal() {
-      plasma.show(legalPageColor, legalPageContent)
+      openTarget({ legal: true })
     },
   })
 }

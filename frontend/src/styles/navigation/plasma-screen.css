@@ -187,6 +187,61 @@ h3.plasma-heading {
   margin-bottom: 14px;
 }
 
+/* Ссылка на другую страницу сайта, встроенная посередине абзаца. */
+.plasma-inline-link {
+  all: unset;
+  cursor: pointer;
+  color: var(--plasma-color, #0ff);
+  font-weight: 600;
+  text-decoration: underline;
+  text-shadow: 0 0 6px var(--plasma-color, rgba(0, 255, 255, 0.5));
+}
+
+.plasma-inline-link:hover {
+  color: #fff;
+}
+
+/* Кнопки-переходы на другие страницы сайта (аналог кнопок на исходном сайте). */
+.plasma-link-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 8px 0 18px;
+}
+
+.plasma-cta {
+  border-radius: 8px;
+  padding: 11px 22px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.plasma-cta-primary {
+  border: 1px solid var(--plasma-color, #0ff);
+  background: var(--plasma-color, #0ff);
+  color: #050510;
+  box-shadow: 0 0 16px color-mix(in srgb, var(--plasma-color, #0ff) 45%, transparent);
+}
+
+.plasma-cta-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--plasma-color, #0ff) 65%, transparent);
+}
+
+.plasma-cta-outline {
+  border: 1px solid var(--plasma-color, #0ff);
+  background: transparent;
+  color: var(--plasma-color, #0ff);
+}
+
+.plasma-cta-outline:hover {
+  background: color-mix(in srgb, var(--plasma-color, #0ff) 15%, transparent);
+  transform: translateY(-2px);
+}
+
 .plasma-list {
   list-style: none;
   margin-bottom: 14px;
