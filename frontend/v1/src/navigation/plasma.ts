@@ -1,5 +1,5 @@
 import type { AudioEngine } from '../types/audio.ts'
-import type { PlasmaElements, PlasmaCallbacks, PlasmaController } from '../types/plasma.ts'
+import type { PlasmaElements, PlasmaCallbacks, PlasmaController, PlasmaShowOptions } from '../types/plasma.ts'
 import type { PageBlock, PageContent, PageLinkTarget, PageNavigationTarget } from '../types/page-content.ts'
 import { BLOCK_REVEAL_STAGGER_MS } from '../settings/navigation/plasma.ts'
 import { createImageCarousel } from './certificate-carousel.ts'
@@ -139,6 +139,12 @@ function renderBlock(block: PageBlock, navigateTo: (target: PageNavigationTarget
       el.appendChild(iframe)
       return el
     }
+    case 'custom': {
+      const el = document.createElement('div')
+      el.className = 'plasma-block'
+      el.appendChild(block.render({ navigateTo }))
+      return el
+    }
   }
 }
 
@@ -228,15 +234,21 @@ export function createPlasma(elements: PlasmaElements, audio: AudioEngine, callb
   /** true с первого кадра show() — раньше, чем DOM получает класс .active — чтобы
    * canActivateFace() гарантированно блокировал повторный клик во время анимации открытия. */
   let isOpen = false
+  /** Действие крестика для текущего показа — по умолчанию null (обычное hide() к кубу),
+   * переопределяется опцией show() (разделы личного кабинета ведут на дашборд). */
+  let closeOverride: (() => void) | null = null
 
   function renderContent(content: PageContent): void {
     contentRoot.innerHTML = ''
     contentViewport.scrollTop = 0
 
-    const titleEl = document.createElement('h1')
-    titleEl.className = 'plasma-page-title'
-    titleEl.textContent = content.title
-    contentRoot.appendChild(titleEl)
+    // Пустой title — страница сама рисует свой заголовок в первом блоке (личный кабинет).
+    if (content.title) {
+      const titleEl = document.createElement('h1')
+      titleEl.className = 'plasma-page-title'
+      titleEl.textContent = content.title
+      contentRoot.appendChild(titleEl)
+    }
 
     content.blocks.forEach((block, i) => {
       const el = renderBlock(block, callbacks.navigateTo)
@@ -260,7 +272,8 @@ export function createPlasma(elements: PlasmaElements, audio: AudioEngine, callb
     }, 180)
   }
 
-  function show(color: string, content: PageContent): void {
+  function show(color: string, content: PageContent, options?: PlasmaShowOptions): void {
+    closeOverride = options?.onClose ?? null
     if (isOpen) {
       switchContent(color, content)
       return
@@ -333,7 +346,10 @@ export function createPlasma(elements: PlasmaElements, audio: AudioEngine, callb
     callbacks.scheduleCubeAutoRotation()
   }
 
-  closeButton.addEventListener('click', hide)
+  closeButton.addEventListener('click', () => {
+    if (closeOverride) closeOverride()
+    else hide()
+  })
 
   return {
     show,

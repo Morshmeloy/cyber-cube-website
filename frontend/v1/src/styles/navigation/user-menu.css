@@ -1,0 +1,142 @@
+/* === Виджет профиля — фиксирован в правом верхнем углу, вне плазменной панели === */
+.user-menu {
+  position: fixed;
+  top: clamp(10px, 2vh, 20px);
+  right: clamp(10px, 2vw, 24px);
+  z-index: 600;
+}
+
+.user-menu-widget {
+  position: relative;
+}
+
+.user-menu-trigger {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 9px 18px 9px 9px;
+  border: 1px solid rgba(0, 255, 255, 0.35);
+  border-radius: 999px;
+  background: rgba(5, 5, 16, 0.75);
+  backdrop-filter: blur(6px);
+  color: #e8f8ff;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 0 14px rgba(0, 255, 255, 0.15);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.user-menu-trigger:hover {
+  border-color: rgba(0, 255, 255, 0.7);
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+}
+
+.user-menu-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 30% 30%, rgba(0, 255, 255, 0.35), rgba(0, 0, 0, 0.6));
+  border: 1px solid rgba(0, 255, 255, 0.5);
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.35);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.user-menu-avatar img {
+  width: 70%;
+  height: 70%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 4px rgba(0, 255, 255, 0.6));
+}
+
+.user-menu-info {
+  display: none;
+  flex-direction: column;
+  line-height: 1.25;
+  text-align: left;
+}
+
+.user-menu-name {
+  font-size: 19px;
+  font-weight: 700;
+  max-width: 210px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-menu-role {
+  font-size: 16px;
+  color: rgba(232, 248, 255, 0.55);
+}
+
+.user-menu-chevron {
+  width: 21px;
+  height: 21px;
+  color: rgba(232, 248, 255, 0.6);
+  transition: transform 0.25s ease;
+}
+
+.user-menu-widget.open .user-menu-chevron {
+  transform: rotate(180deg);
+}
+
+@media (min-width: 560px) {
+  .user-menu-info {
+    display: flex;
+  }
+}
+
+.user-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  min-width: 280px;
+  padding: 9px;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: rgba(5, 5, 16, 0.92);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 255, 255, 0.15);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px);
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0s linear 0.2s;
+}
+
+.user-menu-widget.open .user-menu-dropdown {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0s linear 0s;
+}
+
+.user-menu-item {
+  display: block;
+  width: 100%;
+  padding: 15px 18px;
+  border: none;
+  border-radius: 11px;
+  background: transparent;
+  color: #e8f8ff;
+  font-family: inherit;
+  font-size: 16px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.user-menu-item:hover {
+  background: rgba(0, 255, 255, 0.12);
+}
+
+.user-menu-item-danger {
+  color: #ffb3b3;
+}
+
+.user-menu-item-danger:hover {
+  background: rgba(255, 60, 60, 0.15);
+}

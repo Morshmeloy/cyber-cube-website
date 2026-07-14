@@ -12,6 +12,8 @@ export interface SiteElements {
   plasmaContentRoot: HTMLElement
   plasmaCloseButton: HTMLButtonElement
   siteFooterContainer: HTMLElement
+  /** Виджет профиля в правом верхнем углу — вне плазменной панели, виден на любом экране. */
+  userMenuContainer: HTMLElement
 }
 
 /** Общие элементы шапки, которые переключает плазменный экран. */

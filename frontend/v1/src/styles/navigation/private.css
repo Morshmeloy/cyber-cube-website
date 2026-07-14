@@ -1,0 +1,469 @@
+/* === Личный кабинет: вход, дашборд, разделы «Обучение»/«Склад»/«Документы»/«Финансы» ===
+   Использует ту же неоновую эстетику плазменной панели (--plasma-color, стеклянные
+   панели с glow-обводкой), а не отдельную плоскую палитру. */
+
+/* --- Вход --- */
+.login-form-container {
+  max-width: 380px;
+  margin: 12px auto 0;
+  padding: 28px 26px;
+  border-radius: 14px;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--plasma-color, #0ff) 10%, #171b30) 0%, color-mix(in srgb, var(--plasma-color, #0ff) 4%, #11101f) 100%);
+  border: 1px solid var(--plasma-color, rgba(0, 255, 255, 0.4));
+  box-shadow: 0 0 24px color-mix(in srgb, var(--plasma-color, #0ff) 25%, transparent), inset 0 0 24px rgba(0, 0, 0, 0.2);
+}
+
+.login-form .form-group {
+  margin-bottom: 18px;
+}
+
+.login-form label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--plasma-color, #0ff) 80%, white);
+}
+
+.login-form input {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid rgba(232, 248, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(10, 12, 24, 0.65);
+  color: #e8f8ff;
+  font-family: inherit;
+  font-size: 15px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.login-form input::placeholder {
+  color: rgba(232, 248, 255, 0.35);
+}
+
+.login-form input:focus {
+  outline: none;
+  border-color: var(--plasma-color, #0ff);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--plasma-color, #0ff) 45%, transparent);
+}
+
+.login-form .btn-primary {
+  width: 100%;
+  padding: 13px;
+  margin-top: 4px;
+  border: 1px solid var(--plasma-color, #0ff);
+  border-radius: 8px;
+  background: var(--plasma-color, #0ff);
+  color: #050510;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 0 16px color-mix(in srgb, var(--plasma-color, #0ff) 45%, transparent);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.login-form .btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--plasma-color, #0ff) 65%, transparent);
+}
+
+.login-error {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #ffb3b3;
+  background: rgba(255, 60, 60, 0.1);
+  border: 1px solid rgba(255, 90, 90, 0.35);
+}
+
+/* --- Дашборд: приветствие + карточки-разделы --- */
+.dashboard-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 26px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(232, 248, 255, 0.12);
+}
+
+.dashboard-eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--plasma-color, #0ff);
+  text-shadow: 0 0 6px color-mix(in srgb, var(--plasma-color, #0ff) 60%, transparent);
+  margin-bottom: 6px;
+}
+
+.dashboard-greeting {
+  font-size: clamp(20px, 3vw, 28px);
+  font-weight: 800;
+  color: #e8f8ff;
+  margin-bottom: 4px;
+}
+
+.dashboard-role {
+  font-size: 13px;
+  color: rgba(232, 248, 255, 0.6);
+}
+
+.btn-logout {
+  flex-shrink: 0;
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 90, 90, 0.5);
+  background: rgba(255, 60, 60, 0.12);
+  color: #ffb3b3;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.btn-logout:hover {
+  background: rgba(255, 60, 60, 0.22);
+  transform: translateY(-1px);
+}
+
+/* Ряд разворачивающихся по наведению карточек-разделов («flex cards»). */
+.flex-cards {
+  display: flex;
+  gap: 10px;
+  height: clamp(260px, 40vh, 340px);
+}
+
+.flex-card {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  border: none;
+  border-radius: 16px;
+  padding: 0;
+  cursor: pointer;
+  overflow: hidden;
+  background:
+    linear-gradient(to top, color-mix(in srgb, var(--card-color) 55%, black) 0%, color-mix(in srgb, var(--card-color) 22%, black) 100%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--card-color) 45%, transparent);
+  transition: flex 0.5s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+}
+
+.flex-card.active {
+  flex: 3.4;
+  box-shadow: inset 0 0 0 1px var(--card-color), 0 0 22px color-mix(in srgb, var(--card-color) 45%, transparent);
+}
+
+.flex-card-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 30px;
+  height: 30px;
+  color: color-mix(in srgb, var(--card-color) 70%, white);
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--card-color) 70%, transparent));
+  transform: translate(-50%, -50%);
+  transition: top 0.4s ease, transform 0.4s ease;
+}
+
+.flex-card.active .flex-card-icon {
+  top: 28px;
+  transform: translate(-50%, 0);
+}
+
+.flex-card-body {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 14px;
+  text-align: left;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.flex-card.active .flex-card-body {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.flex-card-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.flex-card-desc {
+  font-size: 12px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+@media (max-width: 640px) {
+  .dashboard-hero {
+    flex-direction: column;
+  }
+
+  .flex-cards {
+    height: auto;
+    flex-direction: column;
+  }
+
+  .flex-card {
+    flex: none !important;
+    height: 64px;
+  }
+
+  .flex-card-icon {
+    top: 50%;
+    left: 20px;
+    transform: translateY(-50%);
+  }
+
+  .flex-card.active .flex-card-icon {
+    top: 50%;
+    left: 20px;
+    transform: translateY(-50%);
+  }
+
+  .flex-card-body {
+    inset: 0 0 0 56px;
+    justify-content: center;
+    opacity: 1;
+    transform: none;
+    padding: 8px 14px;
+  }
+}
+
+.learning-iframe-container {
+  width: 100%;
+  min-height: 65vh;
+}
+
+.learning-iframe-container iframe {
+  width: 100%;
+  height: 100%;
+  min-height: 65vh;
+  border: none;
+  border-radius: 8px;
+}
+
+/* --- Общие стили форм/таблиц разделов «Склад»/«Финансы»/«Документы» --- */
+.warehouse-form,
+.finance-form {
+  max-width: 480px;
+  margin-bottom: 22px;
+  padding: 18px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--plasma-color, #0ff) 7%, #171b30);
+  border: 1px solid color-mix(in srgb, var(--plasma-color, #0ff) 20%, transparent);
+}
+
+.warehouse-form h3,
+.finance-form h3,
+.warehouse-table-wrapper h3,
+.finance-table-wrapper h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--plasma-color, #0ff);
+  text-shadow: 0 0 6px color-mix(in srgb, var(--plasma-color, #0ff) 50%, transparent);
+  margin-bottom: 12px;
+}
+
+.warehouse-form .form-group,
+.finance-form .form-group {
+  margin-bottom: 12px;
+}
+
+.warehouse-form label,
+.finance-form label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(232, 248, 255, 0.7);
+  margin-bottom: 4px;
+}
+
+.warehouse-form input,
+.warehouse-form select,
+.finance-form input,
+.finance-form select {
+  width: 100%;
+  padding: 9px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(232, 248, 255, 0.2);
+  background: rgba(10, 12, 24, 0.65);
+  color: #e8f8ff;
+  font-family: inherit;
+}
+
+.warehouse-form input:focus,
+.warehouse-form select:focus,
+.finance-form input:focus,
+.finance-form select:focus {
+  outline: none;
+  border-color: var(--plasma-color, #0ff);
+}
+
+/* Нативный <select> со своей стрелкой вместо системной — под общий тёмный дизайн. */
+.warehouse-form select {
+  appearance: none;
+  padding-right: 34px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300ffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+  cursor: pointer;
+}
+
+.warehouse-form select option {
+  background: #0c0e1e;
+  color: #e8f8ff;
+}
+
+/* Убираем нативные стрелки счётчика у числовых полей (Количество/Сумма) — некрасиво
+   расходятся со стилем остальных полей. */
+.warehouse-form input[type='number'],
+.finance-form input[type='number'] {
+  appearance: textfield;
+}
+
+.warehouse-form input[type='number']::-webkit-outer-spin-button,
+.warehouse-form input[type='number']::-webkit-inner-spin-button,
+.finance-form input[type='number']::-webkit-outer-spin-button,
+.finance-form input[type='number']::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+/* Стилизованный выбор файла — нативный input визуально скрыт (но кликабелен под лейблом
+   и достижим с клавиатуры), кнопка+имя файла нарисованы поверх. */
+.file-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.warehouse-form .file-input-button,
+.finance-form .file-input-button {
+  flex-shrink: 0;
+  display: inline-block;
+  padding: 9px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--plasma-color, #0ff);
+  background: color-mix(in srgb, var(--plasma-color, #0ff) 14%, transparent);
+  color: var(--plasma-color, #0ff);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  margin-bottom: 0;
+  transition: background 0.2s ease;
+}
+
+.file-input-button:hover {
+  background: color-mix(in srgb, var(--plasma-color, #0ff) 26%, transparent);
+}
+
+.file-input-name {
+  font-size: 12px;
+  color: rgba(232, 248, 255, 0.55);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-input-native {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+.file-input-native:focus-visible + .file-input-button {
+  outline: 2px solid var(--plasma-color, #0ff);
+  outline-offset: 2px;
+}
+
+.warehouse-form .btn-primary,
+.finance-form .btn-primary {
+  padding: 10px 20px;
+  border: 1px solid var(--plasma-color, #0ff);
+  border-radius: 8px;
+  background: var(--plasma-color, #0ff);
+  color: #050510;
+  font-family: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.warehouse-table-wrapper,
+.finance-table-wrapper {
+  margin-bottom: 22px;
+  padding: 16px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--plasma-color, #0ff) 6%, #14172c);
+  border: 1px solid color-mix(in srgb, var(--plasma-color, #0ff) 16%, transparent);
+  overflow-x: auto;
+}
+
+.warehouse-table,
+.finance-table {
+  width: 100%;
+  min-width: 480px;
+  border-collapse: collapse;
+  color: rgba(232, 248, 255, 0.85);
+  font-size: 13px;
+}
+
+.warehouse-table th,
+.finance-table th {
+  background: rgba(255, 255, 255, 0.06);
+  padding: 9px 10px;
+  text-align: left;
+  font-weight: 700;
+  color: var(--plasma-color, #0ff);
+}
+
+.warehouse-table td,
+.finance-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(232, 248, 255, 0.08);
+}
+
+.warehouse-table tr:hover,
+.finance-table tr:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.docs-list {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.docs-list li {
+  padding: 12px 16px;
+  background: color-mix(in srgb, var(--plasma-color, #0ff) 6%, #171b30);
+  border-radius: 8px;
+  border-left: 3px solid var(--plasma-color, #0ff);
+  color: rgba(232, 248, 255, 0.9);
+}

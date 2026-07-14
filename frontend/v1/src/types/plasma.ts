@@ -20,8 +20,14 @@ export interface PlasmaCallbacks {
   navigateTo(target: PageNavigationTarget): void
 }
 
+export interface PlasmaShowOptions {
+  /** Переопределяет действие крестика для этого показа — например, разделы личного
+   * кабинета возвращают не к кубу, а на дашборд. Сбрасывается на дефолт при следующем show(). */
+  onClose?: () => void
+}
+
 export interface PlasmaController {
-  show(color: string, content: PageContent): void
+  show(color: string, content: PageContent, options?: PlasmaShowOptions): void
   hide(): void
   isActive(): boolean
 }

@@ -1,8 +1,11 @@
 import type { FaceName } from './navigation.ts'
 
-/** Переключение на другую страницу сайта внутри плазмы: грань куба или «Правовая информация»
- * (у неё своей грани нет, см. settings/navigation/pages/legal.ts). */
-export type PageNavigationTarget = { face: FaceName } | { legal: true }
+/** Ключ одной из приватных страниц личного кабинета (доступны только после входа). */
+export type PrivatePageKey = 'dashboard' | 'learning' | 'warehouse' | 'docs' | 'finance'
+
+/** Переключение на другую страницу сайта внутри плазмы: грань куба, «Правовая информация»
+ * (у неё своей грани нет, см. settings/navigation/pages/legal.ts) или страница личного кабинета. */
+export type PageNavigationTarget = { face: FaceName } | { legal: true } | { private: PrivatePageKey }
 
 /** Куда ведёт ссылка/кнопка внутри контента страницы — то же самое переключение, либо
  * внешний/статический файл (открывается в новой вкладке обычной ссылкой, не через плазму). */
@@ -27,6 +30,9 @@ export type PageBlock =
   | { kind: 'contactForm'; heading: string; recipientEmail: string }
   /** Встроенная карта (iframe), как на исходном сайте — обычно Яндекс.Карты. */
   | { kind: 'map'; embedUrl: string; title: string }
+  /** Произвольный DOM-узел (формы, таблицы, iframe) для страниц личного кабинета, которые
+   * не укладываются в остальные декларативные блоки. navigateTo — переход внутри плазмы. */
+  | { kind: 'custom'; render: (ctx: { navigateTo: (target: PageNavigationTarget) => void }) => HTMLElement }
 
 /** Контент одной страницы грани — заголовок и последовательность блоков. */
 export interface PageContent {

@@ -22,6 +22,7 @@ const elements: SiteElements = {
   plasmaContentRoot: requireElement('plasma-content-root'),
   plasmaCloseButton: requireElement<HTMLButtonElement>('plasma-close'),
   siteFooterContainer: requireElement('site-footer'),
+  userMenuContainer: requireElement('user-menu'),
 }
 
 initSiteNavigation(elements)

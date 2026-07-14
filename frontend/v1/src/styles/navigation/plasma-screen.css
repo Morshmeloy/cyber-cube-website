@@ -8,6 +8,9 @@
   overflow: hidden;
   border: 1px solid transparent;
   box-shadow: none;
+  /* Плотная тёмная подложка — без неё сквозь панель просвечивает фоновое фото подстанции
+     и текст теряет контраст (особенно на страницах без своих карточек/плашек). */
+  background: linear-gradient(160deg, rgba(6, 8, 20, 0.97) 0%, rgba(4, 4, 12, 0.97) 100%);
   opacity: 0;
   margin-top: clamp(8px, 1.2vh, 16px);
   transform: scale(0.92) translateY(28px);
