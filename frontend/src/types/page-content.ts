@@ -15,7 +15,8 @@ export type PageBlock =
   /** Абзац с одной встроенной ссылкой посередине текста — переход на другую страницу сайта. */
   | { kind: 'paragraphLink'; before: string; linkText: string; after: string; target: PageLinkTarget }
   | { kind: 'list'; items: string[] }
-  | { kind: 'cardGrid'; cards: { title: string; text: string }[] }
+  /** tags — короткие бейджи под текстом карточки (коды ОКВЭД, ИТ-направления и т.п.). */
+  | { kind: 'cardGrid'; cards: { title: string; text: string; tags?: string[] }[] }
   | { kind: 'imageGallery'; images: { src: string; alt: string }[] }
   | { kind: 'contactInfo'; lines: string[] }
   /** Ряд кнопок-переходов на другие страницы сайта (аналог кнопок на исходном сайте). */

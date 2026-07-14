@@ -82,6 +82,17 @@ function renderBlock(block: PageBlock, navigateTo: (target: PageNavigationTarget
         const textEl = document.createElement('p')
         textEl.textContent = card.text
         cardEl.append(titleEl, textEl)
+        if (card.tags && card.tags.length > 0) {
+          const tagsEl = document.createElement('div')
+          tagsEl.className = 'plasma-card-tags'
+          for (const tag of card.tags) {
+            const tagEl = document.createElement('span')
+            tagEl.className = 'plasma-tag'
+            tagEl.textContent = tag
+            tagsEl.appendChild(tagEl)
+          }
+          cardEl.appendChild(tagsEl)
+        }
         el.appendChild(cardEl)
       }
       return el

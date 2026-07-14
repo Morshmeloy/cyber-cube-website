@@ -297,6 +297,22 @@ h3.plasma-heading {
   color: rgba(232, 248, 255, 0.85);
 }
 
+.plasma-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.plasma-tag {
+  font-size: 11px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--plasma-color, #0ff) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--plasma-color, #0ff) 35%, transparent);
+  color: rgba(232, 248, 255, 0.75);
+}
+
 /* === Карусель сертификатов: зацикленный «coverflow» с активным слайдом по центру === */
 .plasma-carousel {
   position: relative;
