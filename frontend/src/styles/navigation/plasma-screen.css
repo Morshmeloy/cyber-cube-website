@@ -343,6 +343,7 @@ h3.plasma-heading {
 }
 
 .plasma-carousel-track {
+  --carousel-item-width: 220px;
   display: flex;
   align-items: center;
   gap: 24px;
@@ -351,7 +352,7 @@ h3.plasma-heading {
   scroll-snap-type: x proximity;
   -ms-overflow-style: none;
   scrollbar-width: none;
-  padding: 20px calc(50% - 110px);
+  padding: 20px calc(50% - var(--carousel-item-width) / 2);
   cursor: grab;
 }
 
@@ -365,7 +366,7 @@ h3.plasma-heading {
 }
 
 .plasma-carousel-item {
-  flex: 0 0 220px;
+  flex: 0 0 var(--carousel-item-width);
   scroll-snap-align: center;
   cursor: pointer;
 }
@@ -419,6 +420,26 @@ h3.plasma-heading {
 
 .plasma-carousel-next {
   right: 0;
+}
+
+/* На узких экранах — ровно один сертификат на экран, жёсткий snap (без "залипания"
+   между двумя слайдами) и компактные стрелки, чтобы не наезжать на карточку. */
+@media (max-width: 640px) {
+  .plasma-carousel {
+    padding: 8px 34px;
+  }
+
+  .plasma-carousel-track {
+    --carousel-item-width: min(72vw, 300px);
+    gap: 16px;
+    scroll-snap-type: x mandatory;
+  }
+
+  .plasma-carousel-arrow {
+    width: 34px;
+    height: 34px;
+    font-size: 13px;
+  }
 }
 
 .plasma-lightbox {
