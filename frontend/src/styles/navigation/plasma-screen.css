@@ -520,6 +520,101 @@ h3.plasma-heading {
   margin-top: 6px;
 }
 
+/* === Форма обратной связи === */
+.plasma-form-wrapper {
+  padding: 20px clamp(16px, 3vw, 28px);
+  border-radius: 12px;
+  border: 1px solid var(--plasma-color, rgba(0, 255, 255, 0.35));
+  background: rgba(0, 0, 0, 0.22);
+  max-width: 520px;
+}
+
+.plasma-form-heading {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--plasma-color, #0ff);
+  text-shadow: 0 0 6px var(--plasma-color, rgba(0, 255, 255, 0.5));
+  margin-bottom: 16px;
+}
+
+.plasma-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.plasma-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.plasma-form-field label {
+  font-size: 13px;
+  color: rgba(232, 248, 255, 0.7);
+}
+
+.plasma-form-field input,
+.plasma-form-field textarea {
+  font-family: inherit;
+  font-size: 14px;
+  color: #e8f8ff;
+  background: rgba(5, 5, 16, 0.6);
+  border: 1px solid rgba(232, 248, 255, 0.25);
+  border-radius: 8px;
+  padding: 9px 12px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.plasma-form-field textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.plasma-form-field input::placeholder,
+.plasma-form-field textarea::placeholder {
+  color: rgba(232, 248, 255, 0.35);
+}
+
+.plasma-form-field input:focus,
+.plasma-form-field textarea:focus {
+  outline: none;
+  border-color: var(--plasma-color, #0ff);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--plasma-color, #0ff) 35%, transparent);
+}
+
+.plasma-form-submit {
+  align-self: flex-start;
+}
+
+.plasma-form-status {
+  margin-top: 12px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(232, 248, 255, 0.7);
+  max-width: 520px;
+}
+
+/* === Карта (iframe), адаптивное соотношение сторон 16:9 === */
+.plasma-map {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+  aspect-ratio: 16 / 9;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--plasma-color, rgba(0, 255, 255, 0.4));
+  box-shadow: 0 0 14px color-mix(in srgb, var(--plasma-color, #0ff) 20%, transparent);
+}
+
+.plasma-map iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
 /* Блик сверху */
 .plasma-glare {
   position: absolute;

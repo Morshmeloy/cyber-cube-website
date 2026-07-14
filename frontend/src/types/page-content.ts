@@ -22,6 +22,11 @@ export type PageBlock =
   | { kind: 'contactInfo'; lines: string[] }
   /** Ряд кнопок-переходов на другие страницы сайта (аналог кнопок на исходном сайте). */
   | { kind: 'linkButtons'; buttons: { label: string; target: PageLinkTarget }[] }
+  /** Форма обратной связи. Бэкенда нет — отправка идёт через mailto: (открывает
+   * почтовый клиент пользователя с готовым письмом), а не тихой отправкой на сервер. */
+  | { kind: 'contactForm'; heading: string; recipientEmail: string }
+  /** Встроенная карта (iframe), как на исходном сайте — обычно Яндекс.Карты. */
+  | { kind: 'map'; embedUrl: string; title: string }
 
 /** Контент одной страницы грани — заголовок и последовательность блоков. */
 export interface PageContent {

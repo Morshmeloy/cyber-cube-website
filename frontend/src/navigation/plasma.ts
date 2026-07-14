@@ -126,7 +126,98 @@ function renderBlock(block: PageBlock, navigateTo: (target: PageNavigationTarget
       }
       return el
     }
+    case 'contactForm':
+      return createContactForm(block.heading, block.recipientEmail)
+    case 'map': {
+      const el = document.createElement('div')
+      el.className = 'plasma-block plasma-map'
+      const iframe = document.createElement('iframe')
+      iframe.src = block.embedUrl
+      iframe.title = block.title
+      iframe.loading = 'lazy'
+      iframe.allowFullscreen = true
+      el.appendChild(iframe)
+      return el
+    }
   }
+}
+
+/** Форма обратной связи. Бэкенда для тихой отправки нет, поэтому по сабмиту формируется
+ * mailto: со связкой имя/email/тема/сообщение — открывается почтовый клиент пользователя
+ * с уже готовым письмом, вместо фиктивной отправки в никуда. */
+function createContactForm(heading: string, recipientEmail: string): HTMLElement {
+  const wrapper = document.createElement('div')
+  wrapper.className = 'plasma-block plasma-form-wrapper'
+
+  const title = document.createElement('div')
+  title.className = 'plasma-form-heading'
+  title.textContent = heading
+  wrapper.appendChild(title)
+
+  const form = document.createElement('form')
+  form.className = 'plasma-form'
+  form.noValidate = true
+
+  function addField(labelText: string, input: HTMLInputElement | HTMLTextAreaElement): void {
+    const field = document.createElement('div')
+    field.className = 'plasma-form-field'
+    const label = document.createElement('label')
+    label.textContent = labelText
+    label.htmlFor = input.id
+    field.append(label, input)
+    form.appendChild(field)
+  }
+
+  const nameInput = document.createElement('input')
+  nameInput.type = 'text'
+  nameInput.id = 'plasma-form-name'
+  nameInput.placeholder = 'Иван Иванов'
+  nameInput.required = true
+  addField('Ваше имя', nameInput)
+
+  const emailInput = document.createElement('input')
+  emailInput.type = 'email'
+  emailInput.id = 'plasma-form-email'
+  emailInput.placeholder = 'ivan@example.com'
+  emailInput.required = true
+  addField('Ваш Email', emailInput)
+
+  const subjectInput = document.createElement('input')
+  subjectInput.type = 'text'
+  subjectInput.id = 'plasma-form-subject'
+  subjectInput.placeholder = 'Тема вашего сообщения'
+  addField('Тема', subjectInput)
+
+  const messageInput = document.createElement('textarea')
+  messageInput.id = 'plasma-form-message'
+  messageInput.rows = 5
+  messageInput.placeholder = 'Введите ваше сообщение здесь...'
+  messageInput.required = true
+  addField('Сообщение', messageInput)
+
+  const status = document.createElement('p')
+  status.className = 'plasma-form-status'
+
+  const submitButton = document.createElement('button')
+  submitButton.type = 'submit'
+  submitButton.className = 'plasma-cta plasma-cta-primary plasma-form-submit'
+  submitButton.textContent = 'Отправить'
+  form.appendChild(submitButton)
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault()
+    if (!form.reportValidity()) return
+
+    const subject = subjectInput.value.trim() || 'Сообщение с сайта'
+    const body = `Имя: ${nameInput.value.trim()}\nEmail: ${emailInput.value.trim()}\n\n${messageInput.value.trim()}`
+    const mailtoUrl = `mailto:${recipientEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+    window.location.href = mailtoUrl
+
+    status.textContent = `Открываем ваш почтовый клиент с готовым письмом. Если он не открылся, напишите нам напрямую на ${recipientEmail}.`
+  })
+
+  wrapper.append(form, status)
+  return wrapper
 }
 
 /** Создаёт плазменный информационный экран — полноразмерную панель страницы грани куба. */
