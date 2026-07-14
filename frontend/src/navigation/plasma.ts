@@ -79,9 +79,22 @@ function renderBlock(block: PageBlock, navigateTo: (target: PageNavigationTarget
         cardEl.className = 'plasma-card'
         const titleEl = document.createElement('h4')
         titleEl.textContent = card.title
-        const textEl = document.createElement('p')
-        textEl.textContent = card.text
-        cardEl.append(titleEl, textEl)
+        cardEl.appendChild(titleEl)
+        if (card.text) {
+          const textEl = document.createElement('p')
+          textEl.textContent = card.text
+          cardEl.appendChild(textEl)
+        }
+        if (card.items && card.items.length > 0) {
+          const itemsEl = document.createElement('ul')
+          itemsEl.className = 'plasma-card-items'
+          for (const item of card.items) {
+            const itemEl = document.createElement('li')
+            itemEl.textContent = item
+            itemsEl.appendChild(itemEl)
+          }
+          cardEl.appendChild(itemsEl)
+        }
         if (card.tags && card.tags.length > 0) {
           const tagsEl = document.createElement('div')
           tagsEl.className = 'plasma-card-tags'

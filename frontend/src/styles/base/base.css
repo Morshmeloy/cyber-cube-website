@@ -15,7 +15,6 @@ html {
   background: #050510;
   font-family: 'Orbitron', Arial, sans-serif;
   cursor: grab;
-  user-select: none;
 }
 
 body {

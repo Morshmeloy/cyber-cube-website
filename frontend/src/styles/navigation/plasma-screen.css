@@ -297,6 +297,28 @@ h3.plasma-heading {
   color: rgba(232, 248, 255, 0.85);
 }
 
+.plasma-card-items {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.plasma-card-items li {
+  position: relative;
+  padding-left: 16px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: rgba(232, 248, 255, 0.85);
+}
+
+.plasma-card-items li::before {
+  content: '▸';
+  position: absolute;
+  left: 0;
+  color: var(--plasma-color, #0ff);
+}
+
 .plasma-card-tags {
   display: flex;
   flex-wrap: wrap;
