@@ -1,0 +1,105 @@
+/* ==========================================================================
+   Глобальные переменные и сброс стилей.
+   Определяет цветовые схемы (тёмная, светлая, авто), базовые отступы и типографику.
+   Должен подключаться ПЕРВЫМ. Зависимости: нет.
+   ========================================================================== */
+
+/* ---------- Тёмная тема (по умолчанию) ---------- */
+:root {
+    --bg: #05080C;
+    --bg2: #0A1017;
+    --bg3: #111A24;
+    --text: #E8EDF2;
+    --text2: #8A99B4;
+    --accent: #3B82F6;
+    --accent2: #06B6D4;
+    --accent3: #8B5CF6;
+    --green: #10B981;
+    --green-bg: rgba(16, 185, 129, 0.1);
+    --red: #EF4444;
+    --red-bg: rgba(239, 68, 68, 0.1);
+    --yellow: #F59E0B;
+    --yellow-bg: rgba(245, 158, 11, 0.08);
+    --radius: 0.75rem;
+    --radius2: 1.5rem;
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    /* Подключение шрифтов в index.html обязательно (Google Fonts или локально) */
+    --glass-bg: rgba(10, 16, 23, 0.65);
+    --glass-border: rgba(59, 130, 246, 0.2);
+    --border-indicator: rgba(255, 255, 255, 0.15);
+    --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.25);
+    --transition: all 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+}
+
+/* ---------- Светлая тема (ручное переключение через data-theme) ---------- */
+[data-theme="light"] {
+    --bg: #F1F5F9;
+    --bg2: #FFFFFF;
+    --bg3: #E2E8F0;
+    --text: #0F172A;
+    --text2: #475569;
+    --accent: #2563EB;
+    --accent2: #0891B2;
+    --accent3: #7C3AED;
+    --green: #059669;
+    --green-bg: rgba(5, 150, 105, 0.08);
+    --red: #DC2626;
+    --red-bg: rgba(220, 38, 38, 0.08);
+    --yellow: #D97706;
+    --yellow-bg: rgba(217, 119, 6, 0.06);
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-border: rgba(37, 99, 235, 0.15);
+    --border-indicator: rgba(0, 0, 0, 0.12);
+    --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+/*
+  Автоматическая светлая тема (системные настройки).
+  Сработает, только если НЕТ ручного переопределения (data-theme отсутствует).
+  Дублирование переменных оправдано: резервный механизм на случай, если JS отключён.
+*/
+@media (prefers-color-scheme: light) {
+    :root:not([data-theme]) {
+        --bg: #F1F5F9;
+        --bg2: #FFFFFF;
+        --bg3: #E2E8F0;
+        --text: #0F172A;
+        --text2: #475569;
+        --accent: #2563EB;
+        --accent2: #0891B2;
+        --accent3: #7C3AED;
+        --green: #059669;
+        --green-bg: rgba(5, 150, 105, 0.08);
+        --red: #DC2626;
+        --red-bg: rgba(220, 38, 38, 0.08);
+        --yellow: #D97706;
+        --yellow-bg: rgba(217, 119, 6, 0.06);
+        --glass-bg: rgba(255, 255, 255, 0.7);
+        --glass-border: rgba(37, 99, 235, 0.15);
+        --border-indicator: rgba(0, 0, 0, 0.12);
+        --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
+    }
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: var(--font-sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0 0 4rem;
+    overflow-x: hidden;
+    line-height: 1.6;
+    transition: background 0.3s ease, color 0.3s ease;
+}

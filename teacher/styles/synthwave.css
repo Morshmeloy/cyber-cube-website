@@ -1,0 +1,138 @@
+/* ==========================================================================
+   Опциональная тема «Synthwave» (ретро-неон).
+   Активируется при data-theme="synthwave" на <html>.
+   Переопределяет переменные и ключевые визуальные элементы.
+   Зависимости: должен быть подключён после base.css, background.css, cards.css, options.css, map.css.
+   ========================================================================== */
+
+/* ---------- Переменные темы ---------- */
+[data-theme="synthwave"] {
+    --bg: #0b0c1a;
+    --bg2: #1a1b3a;
+    --bg3: #24264a;
+    --text: #ffffff;
+    --text2: #c4c4f2;
+    --accent: #ff007f;
+    --accent2: #ffcc00;
+    --accent3: #00ffff;
+    --green: #00ff88;
+    --green-bg: rgba(0, 255, 136, 0.15);
+    --red: #ff3366;
+    --red-bg: rgba(255, 51, 102, 0.15);
+    --yellow: #ffaa00;
+    --yellow-bg: rgba(255, 170, 0, 0.1);
+    --glass-bg: rgba(10, 12, 26, 0.85);
+    --glass-border: rgba(255, 0, 127, 0.4);
+    --border-indicator: rgba(255, 255, 255, 0.25);
+    --shadow-sm: 0 4px 12px rgba(255, 0, 127, 0.2);
+    --shadow-md: 0 8px 24px rgba(255, 0, 127, 0.3);
+}
+
+/* ---------- Фон ---------- */
+[data-theme="synthwave"] .cyber-grid {
+    background-image:
+        linear-gradient(rgba(255, 0, 127, 0.15) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 255, 0.1) 1px, transparent 1px);
+    mask-image: none;
+    /* убираем затухание, чтобы сетка была ярче */
+    background-size: 60px 60px;
+}
+
+/* Центральное солнце вместо трёх сфер */
+[data-theme="synthwave"] .gradient-orb--1 {
+    background: radial-gradient(circle, #ff007f, #ffcc00, #00ffff);
+    filter: blur(60px);
+    opacity: 0.6;
+    width: 600px;
+    height: 600px;
+    top: 60%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation: synthSunPulse 6s ease-in-out infinite;
+}
+
+/* Остальные сферы делаем едва заметными */
+[data-theme="synthwave"] .gradient-orb--2,
+[data-theme="synthwave"] .gradient-orb--3 {
+    opacity: 0.15;
+    filter: blur(100px);
+}
+
+@keyframes synthSunPulse {
+
+    0%,
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.6;
+    }
+
+    50% {
+        transform: translate(-50%, -50%) scale(1.2);
+        opacity: 0.9;
+    }
+}
+
+/* ---------- Карточки ---------- */
+[data-theme="synthwave"] .start-card,
+[data-theme="synthwave"] .question-card,
+[data-theme="synthwave"] .results-hero {
+    background: rgba(10, 12, 26, 0.9);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 0, 127, 0.5);
+    box-shadow: 0 0 15px rgba(255, 0, 127, 0.3);
+}
+
+/* ---------- Варианты ответов ---------- */
+[data-theme="synthwave"] .option {
+    background: rgba(26, 27, 58, 0.8);
+    border: none;
+    box-shadow: 0 0 8px rgba(0, 255, 255, 0.2);
+}
+
+[data-theme="synthwave"] .option:hover:not(.disabled) {
+    background: rgba(255, 0, 127, 0.2);
+    box-shadow: 0 0 12px #ff007f;
+    transform: translateX(4px) scale(1.01);
+}
+
+[data-theme="synthwave"] .option.selected {
+    background: rgba(255, 204, 0, 0.2);
+    border-color: #ffcc00;
+    box-shadow: 0 0 12px #ffcc00;
+}
+
+/* ---------- Кнопки ---------- */
+[data-theme="synthwave"] .btn-primary,
+[data-theme="synthwave"] .btn-check {
+    background: linear-gradient(135deg, #ff007f, #ffcc00);
+    box-shadow: 0 0 12px #ff007f;
+}
+
+/* ---------- Карта вопросов ---------- */
+[data-theme="synthwave"] .q-dot-button.current {
+    background: rgba(255, 0, 127, 0.3);
+    border-color: #ffcc00;
+    box-shadow: 0 0 8px #ffcc00;
+}
+
+/* ---------- Обратная связь ---------- */
+[data-theme="synthwave"] .feedback {
+    background: rgba(10, 12, 26, 0.95);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 0, 127, 0.5);
+}
+
+[data-theme="synthwave"] .feedback.ok {
+    border-color: #00ff88;
+    color: #00ff88;
+}
+
+[data-theme="synthwave"] .feedback.fail {
+    border-color: #ff3366;
+    color: #ff88aa;
+}
+
+[data-theme="synthwave"] .feedback-source {
+    color: #c4c4f2;
+    border-top-color: rgba(255, 0, 127, 0.3);
+}

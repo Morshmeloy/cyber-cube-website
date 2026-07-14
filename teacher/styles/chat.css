@@ -1,0 +1,191 @@
+/* ---------- Модальное окно чата ---------- */
+.chat-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+.chat-modal {
+    background: var(--bg2);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius2);
+    padding: 2rem;
+    max-width: 700px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: var(--shadow-md);
+}
+.chat-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+.chat-modal-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: var(--text);
+}
+.chat-modal-header .btn-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text2);
+    cursor: pointer;
+    padding: 0.25rem;
+    line-height: 1;
+}
+.chat-messages {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+.chat-msg {
+    border-bottom: 1px solid var(--glass-border);
+    padding-bottom: 1rem;
+}
+.chat-question {
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 0.5rem;
+}
+.chat-answer {
+    color: var(--text);
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+.error {
+    color: var(--red);
+}
+
+/* ---------- Полноэкранный чат ---------- */
+.chat-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+.chat-modal {
+    background: var(--bg2);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius2);
+    width: 90%;
+    max-width: 900px;
+    height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--shadow-md);
+}
+.chat-modal-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--glass-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.chat-modal-header h3 {
+    margin: 0;
+    color: var(--accent);
+}
+.chat-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+.mistakes-list {
+    width: 40%;
+    padding: 1.5rem;
+    border-right: 1px solid var(--glass-border);
+    overflow-y: auto;
+    background: rgba(0,0,0,0.1);
+}
+.mistakes-list h4 {
+    margin-top: 0;
+    color: var(--text);
+}
+.mistake-item {
+    background: var(--bg3);
+    border-radius: var(--radius);
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+.mistake-question {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--text);
+}
+.mistake-answers {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+}
+.user-answer strong {
+    color: var(--red);
+}
+.correct-answer strong {
+    color: var(--green);
+}
+.chat-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+}
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+.chat-msg {
+    background: var(--bg);
+    border-radius: 1rem;
+    padding: 1rem;
+}
+.chat-question {
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 0.5rem;
+}
+.chat-answer {
+    color: var(--text);
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+.chat-followup {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--glass-border);
+}
+.chat-followup input {
+    width: 70%;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--glass-border);
+    background: var(--bg3);
+    color: var(--text);
+}
+.chat-followup button {
+    margin-left: 0.5rem;
+    padding: 0.5rem 1rem;
+}
+.btn-close {
+    background: none;
+    border: none;
+    font-size: 1.8rem;
+    color: var(--text2);
+    cursor: pointer;
+}
+.error {
+    color: var(--red);
+}

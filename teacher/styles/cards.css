@@ -1,0 +1,443 @@
+/* ==========================================================================
+   Карточки и контейнеры: стартовый экран, вопрос, результаты, обратная связь.
+   Содержит стили для всех основных смысловых блоков теста.
+   Зависимости: должен быть подключён после base.css, buttons.css.
+   ========================================================================== */
+
+/* ---------- Общие контейнеры трёх экранов ---------- */
+#start-screen,
+#quiz-screen,
+#results-screen {
+    position: relative;
+    z-index: 1;
+    /* поверх декоративного фона */
+    max-width: 52rem;
+    margin: 2rem auto;
+    padding: 0 1.25rem;
+}
+
+/* ---------- Стартовый экран ---------- */
+.brand-banner {
+    margin-bottom: 2rem;
+    padding-top: 1rem;
+    text-align: center;
+}
+
+.brand-title {
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--text);
+}
+
+/* Градиентная заливка для букв "CS" */
+.brand-mark {
+    font-weight: 800;
+    background: linear-gradient(120deg, var(--accent), var(--accent2), var(--accent3));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.brand-name {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-size: 0.65em;
+    vertical-align: middle;
+    margin-left: 0.25em;
+}
+
+.brand-line {
+    width: min(14rem, 60%);
+    height: 2px;
+    margin: 1rem auto 0;
+    border-radius: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), var(--accent2), transparent);
+    opacity: 0.5;
+}
+
+/* Общие стили карточек (старт, вопрос, результаты) */
+.start-card,
+.question-card,
+.results-hero {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    /* эффект матового стекла */
+    border-radius: var(--radius2);
+    padding: 2rem;
+    transition: var(--transition);
+    box-shadow: var(--shadow-md);
+    position: relative;
+    z-index: 1;
+    border: none;
+}
+
+/* Лёгкий подъём при наведении (только для кликабельных карточек) */
+.start-card:hover,
+.question-card:hover {
+    transform: translateY(-2px);
+}
+
+.start-badge {
+    display: inline-block;
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.25rem 1rem;
+    border-radius: 2rem;
+    margin-bottom: 1.25rem;
+}
+
+.start-card h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+}
+
+.start-card p {
+    font-size: 0.9375rem;
+    color: var(--text2);
+    margin-bottom: 2rem;
+}
+
+/* Сетка статистики (вопросов, мульти-ответов, время) */
+.start-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+}
+
+.start-stat {
+    background: var(--bg3);
+    border-radius: var(--radius);
+    padding: 1rem 0.5rem;
+    text-align: center;
+    border: 1px solid var(--glass-border);
+}
+
+.start-stat-num {
+    font-size: 1.375rem;
+    font-weight: 700;
+    color: var(--accent);
+}
+
+.start-stat-label {
+    font-size: 0.75rem;
+    color: var(--text2);
+    margin-top: 0.25rem;
+}
+
+.mode-select {
+    margin-bottom: 1.5rem;
+    text-align: left;
+}
+
+.mode-select label {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text2);
+    display: block;
+    margin-bottom: 0.75rem;
+}
+
+.mode-btns {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+/* ---------- Карточка вопроса ---------- */
+.q-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.q-counter {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text2);
+    background: var(--bg2);
+    border: 1px solid var(--glass-border);
+    border-radius: 2rem;
+    padding: 0.5rem 1rem;
+}
+
+.q-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.q-num {
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.75rem;
+    border-radius: 2rem;
+}
+
+/* Бейдж "Несколько ответов" */
+.q-multi-badge {
+    background: var(--yellow-bg);
+    color: var(--yellow);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.25rem 0.75rem;
+    border-radius: 2rem;
+}
+
+.q-text {
+    font-size: 1rem;
+    line-height: 1.7;
+    font-weight: 500;
+    color: var(--text);
+}
+
+/* Кнопки действий под вопросом */
+.q-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+}
+
+/* ---------- Обратная связь (правильно/неправильно) ---------- */
+.feedback {
+    margin-top: 1rem;
+    padding: 0.875rem 1rem;
+    border-radius: 1rem;
+    font-size: 0.875rem;
+    display: none;
+}
+
+.feedback.show {
+    display: block;
+}
+
+.feedback.ok {
+    background: var(--green-bg);
+    color: var(--green);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.feedback.fail {
+    background: var(--red-bg);
+    color: var(--red);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.feedback-source {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--glass-border);
+    font-size: 0.75rem;
+    color: var(--text2);
+}
+
+/* ---------- Экран результатов ---------- */
+.results-hero {
+    text-align: center;
+    /* переопределение для центрирования */
+}
+
+/* Кольцо прогресса */
+.results-score-ring {
+    width: 7.5rem;
+    height: 7.5rem;
+    margin: 0 auto 1.5rem;
+    position: relative;
+}
+
+.results-score-ring svg {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+    /* начало шкалы сверху */
+}
+
+.results-score-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.75rem;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    color: var(--text);
+}
+
+.results-title {
+    font-size: 1.375rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.results-sub {
+    font-size: 0.9375rem;
+    color: var(--text2);
+}
+
+/* Сетка статистики результатов */
+.results-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: 0.75rem;
+    margin: 1.5rem 0 0;
+}
+
+.results-stat {
+    background: var(--bg3);
+    border-radius: var(--radius);
+    padding: 1rem 0.5rem;
+    text-align: center;
+    border: 1px solid var(--glass-border);
+}
+
+.results-stat-num {
+    font-size: 1.25rem;
+    font-weight: 700;
+    font-family: var(--font-mono);
+}
+
+.results-stat-num.g {
+    color: var(--green);
+}
+
+.results-stat-num.r {
+    color: var(--red);
+}
+
+.results-stat-num.y {
+    color: var(--yellow);
+}
+
+.results-stat-label {
+    font-size: 0.6875rem;
+    color: var(--text2);
+    margin-top: 0.25rem;
+}
+
+.results-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+/* ---------- Разбор по вопросам (детальный просмотр) ---------- */
+.results-detail h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.result-item {
+    background: var(--bg2);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.result-item-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+/* Бейдж результата (✓, ✗, ?) */
+.result-badge {
+    width: 1.5rem;
+    height: 1.5rem;
+    flex-shrink: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.result-badge.ok {
+    background: var(--green-bg);
+    color: var(--green);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.result-badge.fail {
+    background: var(--red-bg);
+    color: var(--red);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.result-badge.skip {
+    background: var(--yellow-bg);
+    color: var(--yellow);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.result-q-text {
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.result-q-num {
+    font-size: 0.75rem;
+    color: var(--text2);
+    margin-bottom: 0.25rem;
+}
+
+.result-answers {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--glass-border);
+}
+
+.result-ans-row {
+    font-size: 0.8125rem;
+    padding: 0.25rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.result-ans-row.r-ok {
+    color: var(--green);
+}
+
+.result-ans-row.r-fail {
+    color: var(--red);
+}
+
+.result-ans-row.r-miss {
+    color: var(--yellow);
+}
+
+.result-ans-row.r-neutral {
+    color: var(--text2);
+}
+
+/* Блок с цитатой из книги */
+.result-source {
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 0.75rem;
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: var(--text2);
+}
