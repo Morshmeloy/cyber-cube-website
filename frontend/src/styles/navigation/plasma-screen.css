@@ -374,12 +374,9 @@ h3.plasma-heading {
 .plasma-carousel-item img {
   display: block;
   width: 100%;
-  height: 260px;
-  /* contain, не cover — сертификат не обрезается; если он горизонтальный (шире, чем
-     прямоугольник слота), сверху/снизу остаётся поле, которое заливаем фоном ниже,
-     чтобы слот всё равно выглядел цельным прямоугольником, как и остальные. */
-  object-fit: contain;
-  background: rgba(5, 5, 16, 0.55);
+  height: auto;
+  /* Естественные пропорции сертификата, без леттербоксинга — как на исходном сайте
+     (там слайд просто подстраивался под картинку, а не наоборот). */
   border-radius: 10px;
   border: 1px solid var(--plasma-color, rgba(0, 255, 255, 0.4));
   box-shadow: 0 0 14px color-mix(in srgb, var(--plasma-color, #0ff) 20%, transparent);

@@ -5,6 +5,9 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  /* На мобильных браузерах (Chrome/Safari) тап по любому кликабельному элементу
+     иначе на мгновение подсвечивает его полупрозрачным синим прямоугольником. */
+  -webkit-tap-highlight-color: transparent;
 }
 
 body,
