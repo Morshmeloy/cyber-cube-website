@@ -2,7 +2,7 @@
 .plasma-screen {
   position: relative;
   z-index: 11;
-  width: min(calc(100vw - 32px), 920px);
+  width: min(calc(100vw - 32px), 1600px);
   height: 0;
   border-radius: 12px;
   overflow: hidden;
@@ -138,6 +138,11 @@
   display: block;
   font-family: 'Orbitron', Arial, sans-serif;
   color: #e8f8ff;
+  /* Панель теперь почти на всю ширину экрана (см. .plasma-screen) — без этого весь
+     контент просто прижимался бы к левому краю огромной панели. Центрируем колонку
+     разумной ширины вместо растягивания текста/карточек на весь экран. */
+  max-width: 1180px;
+  margin: 0 auto;
 }
 
 .plasma-page-title {
@@ -188,6 +193,9 @@ h3.plasma-heading {
   line-height: 1.7;
   color: rgba(232, 248, 255, 0.9);
   margin-bottom: 14px;
+  /* Панель теперь почти на всю ширину экрана — без ограничения строки текста
+     растягивались бы неудобно широко для чтения. Карточки/таблицы/тест ограничение не наследуют. */
+  max-width: 860px;
 }
 
 /* Ссылка на другую страницу сайта, встроенная посередине абзаца. */
@@ -253,6 +261,7 @@ h3.plasma-heading {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  max-width: 860px;
 }
 
 .plasma-list li {

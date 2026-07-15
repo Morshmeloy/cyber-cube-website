@@ -21,24 +21,38 @@ function renderLoginForm(navigateTo: (target: PageNavigationTarget) => void): HT
   const form = container.querySelector<HTMLFormElement>('#login-form')!
   const usernameInput = form.querySelector<HTMLInputElement>('#username')!
   const passwordInput = form.querySelector<HTMLInputElement>('#password')!
+  const submitButton = form.querySelector<HTMLButtonElement>('.btn-primary')!
   const errorDiv = form.querySelector<HTMLElement>('.login-error')!
 
-  form.addEventListener('submit', (e) => {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault()
-    const user = login(usernameInput.value.trim(), passwordInput.value.trim())
-    if (user) {
+    errorDiv.style.display = 'none'
+    submitButton.disabled = true
+    submitButton.textContent = 'Проверка…'
+
+    const result = await login(usernameInput.value.trim(), passwordInput.value.trim())
+
+    submitButton.disabled = false
+    submitButton.textContent = 'Войти'
+
+    if ('user' in result) {
       navigateTo({ private: 'dashboard' })
       return
     }
-    errorDiv.textContent = 'Неверный логин или пароль. Демо-доступ: admin/admin, engineer/engineer, accountant/accountant'
+
+    errorDiv.textContent =
+      result.error === 'server-unreachable'
+        ? 'Сервер авторизации недоступен. Убедитесь, что backend запущен (порт 9000).'
+        : 'Неверный логин или пароль. Демо-доступ: admin/admin, engineer/eng, accountant/acc, employee/emp'
     errorDiv.style.display = 'block'
   })
 
   return container
 }
 
-/** Грань «Авторизация» (лицевая грань с логотипом) — демо-вход в личный кабинет без бэкенда,
- * учётки зашиты в lib/auth.ts. После входа ведёт на dashboard.ts. */
+/** Грань «Авторизация» (лицевая грань с логотипом) — вход в личный кабинет проверяется
+ * реальным бэкендом (POST http://localhost:9000/api/login, см. backend/main.py), а не
+ * локально зашитыми учётками. После входа ведёт на dashboard.ts. */
 export const authPageContent: PageContent = {
   title: 'Вход в личный кабинет',
   blocks: [
@@ -48,7 +62,7 @@ export const authPageContent: PageContent = {
     },
     {
       kind: 'paragraph',
-      text: 'Для демонстрации используйте один из логинов: admin/admin, engineer/engineer, accountant/accountant.',
+      text: 'Для демонстрации используйте один из логинов: admin/admin, engineer/eng, accountant/acc, employee/emp.',
     },
   ],
 }

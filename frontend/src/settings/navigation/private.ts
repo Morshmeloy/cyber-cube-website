@@ -17,6 +17,7 @@ export const ROLE_LABELS: Record<User['role'], string> = {
   admin: 'Администратор',
   engineer: 'Инженер',
   accountant: 'Бухгалтер',
+  employee: 'Сотрудник',
 }
 
 /** Карточки-разделы личного кабинета: цвет (см. выше), иконка и переход по клику. */
