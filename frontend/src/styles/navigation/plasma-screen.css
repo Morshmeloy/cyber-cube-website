@@ -50,6 +50,22 @@
   transform: none;
 }
 
+/* На полном экране крестик/разворот иначе оказались бы ровно там же, где виджет
+   профиля (правый верхний угол, см. user-menu.css) — переносим их в левый верхний,
+   чтобы они не наслаивались друг на друга ни при какой ширине виджета профиля. */
+.plasma-screen.plasma-fullscreen .plasma-close,
+.plasma-screen.plasma-fullscreen .plasma-expand {
+  right: auto;
+}
+
+.plasma-screen.plasma-fullscreen .plasma-close {
+  left: 56px;
+}
+
+.plasma-screen.plasma-fullscreen .plasma-expand {
+  left: 12px;
+}
+
 .plasma-close,
 .plasma-expand {
   position: absolute;

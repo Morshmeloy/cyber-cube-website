@@ -70,6 +70,25 @@
   box-shadow: 0 0 24px color-mix(in srgb, var(--plasma-color, #0ff) 65%, transparent);
 }
 
+.login-form .btn-secondary {
+  width: 100%;
+  padding: 11px;
+  margin-top: 10px;
+  border: 1px solid rgba(232, 248, 255, 0.2);
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(232, 248, 255, 0.8);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.login-form .btn-secondary:hover {
+  border-color: var(--plasma-color, #0ff);
+  color: var(--plasma-color, #0ff);
+}
+
 .login-error {
   margin-top: 14px;
   padding: 10px 12px;
@@ -454,4 +473,179 @@
   border-radius: 8px;
   border-left: 3px solid var(--plasma-color, #0ff);
   color: rgba(232, 248, 255, 0.9);
+}
+
+/* --- Заглушка «Вход по биометрии»: только показывает камеру, без распознавания --- */
+.face-login-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(2, 2, 8, 0.85);
+  backdrop-filter: blur(4px);
+}
+
+.face-login-modal {
+  position: relative;
+  width: min(380px, 100%);
+  padding: 28px 24px;
+  border-radius: 16px;
+  text-align: center;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--plasma-color, #0ff) 10%, #171b30) 0%, color-mix(in srgb, var(--plasma-color, #0ff) 4%, #11101f) 100%);
+  border: 1px solid var(--plasma-color, rgba(0, 255, 255, 0.4));
+  box-shadow: 0 0 30px color-mix(in srgb, var(--plasma-color, #0ff) 30%, transparent);
+}
+
+.face-login-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(232, 248, 255, 0.25);
+  background: rgba(5, 5, 16, 0.6);
+  color: rgba(232, 248, 255, 0.8);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.face-login-close:hover {
+  border-color: var(--plasma-color, #0ff);
+  transform: scale(1.1);
+}
+
+.face-login-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--plasma-color, #0ff);
+  text-shadow: 0 0 6px color-mix(in srgb, var(--plasma-color, #0ff) 50%, transparent);
+  margin-bottom: 18px;
+}
+
+.face-login-frame {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  margin: 0 auto 18px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: rgba(5, 5, 16, 0.6);
+  border: 2px solid color-mix(in srgb, var(--plasma-color, #0ff) 50%, transparent);
+}
+
+.face-login-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.face-login-scan-ring {
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: var(--plasma-color, #0ff);
+  animation: faceLoginScan 1.6s linear infinite;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.face-login-frame.is-success .face-login-scan-ring {
+  opacity: 0;
+}
+
+@keyframes faceLoginScan {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Экран «личность подтверждена» — затемняет замороженный кадр видео и рисует галочку. */
+.face-login-success {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5, 8, 16, 0.55);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+
+.face-login-frame.is-success .face-login-success {
+  opacity: 1;
+}
+
+.face-login-check {
+  width: 76px;
+  height: 76px;
+}
+
+.face-login-check-circle {
+  stroke: #6ee7a0;
+  stroke-width: 2;
+  stroke-dasharray: 151;
+  stroke-dashoffset: 151;
+}
+
+.face-login-check-mark {
+  stroke: #6ee7a0;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 40;
+  stroke-dashoffset: 40;
+}
+
+.face-login-frame.is-success .face-login-check-circle {
+  animation: faceLoginCheckCircle 0.4s ease forwards;
+}
+
+.face-login-frame.is-success .face-login-check-mark {
+  animation: faceLoginCheckMark 0.3s ease 0.35s forwards;
+}
+
+@keyframes faceLoginCheckCircle {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes faceLoginCheckMark {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.face-login-status {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--plasma-color, #0ff);
+  margin-bottom: 10px;
+  min-height: 18px;
+}
+
+.face-login-caption {
+  font-size: 12px;
+  line-height: 1.6;
+  color: rgba(232, 248, 255, 0.6);
+}
+
+.face-login-error {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #ffb3b3;
+  background: rgba(255, 60, 60, 0.1);
+  border: 1px solid rgba(255, 90, 90, 0.35);
 }
