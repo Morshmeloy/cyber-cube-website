@@ -30,8 +30,31 @@ interface Mistake {
   src: string
 }
 
+interface ChatMessage {
+  sender: 'user' | 'bot'
+  text: string
+  /** Короткая метка над сообщением («Вопрос 3», «Вопрос 3 · подробнее») — чтобы не
+   * повторять весь текст вопроса внутри пузыря сплошным абзацем, его и так видно
+   * в списке ошибок сверху; здесь нужна только привязка «это объяснение к чему». */
+  contextLabel: string | null
+  mistakeId: number | null
+  kind: 'explanation' | 'detail' | 'free' | 'error'
+}
+
 const QUESTIONS: (LearningQuestion & { multi: boolean })[] = LEARNING_QUESTIONS.map((q) => ({ ...q, multi: q.a.length > 1 }))
 const PROGRESS_KEY = 'learning_progress'
+const CHAT_HISTORY_KEY = 'learning_chat_history'
+
+/** История диалога с учителем валидна, только пока набор ошибок тот же — иначе после
+ * нового прохождения теста показывался бы разбор для уже неактуальных вопросов. */
+function loadChatHistory(mistakes: Mistake[]): ChatMessage[] {
+  const stored = getData<ChatMessage[]>(CHAT_HISTORY_KEY, [])
+  if (stored.length === 0) return []
+  const storedIds = new Set(stored.filter((m): m is ChatMessage & { mistakeId: number } => m.mistakeId !== null).map((m) => m.mistakeId))
+  const currentIds = new Set(mistakes.map((m) => m.id))
+  const sameSet = storedIds.size === currentIds.size && [...storedIds].every((id) => currentIds.has(id))
+  return sameSet ? stored : []
+}
 
 function emptyState(): QuizState {
   return { mode: 'all', order: [], currentIndex: 0, answers: {} }
@@ -80,6 +103,10 @@ export function createLearningQuiz(): HTMLElement {
     const wrap = document.createElement('div')
     wrap.className = 'lq-start'
     wrap.innerHTML = `
+      <svg class="lq-network-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+      </svg>
       <div class="lq-start-badge">Таненбаум, 6-е изд.</div>
       <h2 class="lq-start-title">Тест по компьютерным сетям</h2>
       <p class="lq-start-desc">${total} вопросов по материалам книги${multiCount > 0 ? '. Вопросы с несколькими правильными ответами отмечены значком ⊞' : ''}.</p>
@@ -457,13 +484,25 @@ export function createLearningQuiz(): HTMLElement {
     }
   }
 
+  /** Разбор ошибок + свободный диалог с учителем — как в teacher/quiz.js: пузыри
+   * сообщений, объяснения по кнопке, свободный вопрос через /api/chat/free, история
+   * диалога хранится в localStorage (lib/storage.ts) и переживает переоткрытие панели,
+   * пока набор вопросов-ошибок не изменился (см. loadChatHistory). */
   async function openTeacherChat(mistakes: Mistake[], wrap: HTMLElement): Promise<void> {
     const panel = wrap.querySelector<HTMLElement>('#lq-chat-panel')!
     panel.style.display = 'block'
-    panel.innerHTML = ''
+    panel.innerHTML = `
+      <h3 class="lq-chat-section-title">Ваши ошибки</h3>
+      <div class="lq-chat-mistakes" id="lq-chat-mistakes-list"></div>
+      <h3 class="lq-chat-section-title">Диалог с учителем</h3>
+      <div class="lq-chat-messages" id="lq-chat-messages"></div>
+      <div class="lq-chat-input-row">
+        <input type="text" class="lq-chat-input" id="lq-chat-input" placeholder="Задайте вопрос учителю…" />
+        <button type="button" class="plasma-cta plasma-cta-primary" id="lq-chat-send">Отправить</button>
+      </div>
+    `
 
-    const mistakesList = document.createElement('div')
-    mistakesList.className = 'lq-chat-mistakes'
+    const mistakesList = panel.querySelector<HTMLElement>('#lq-chat-mistakes-list')!
     for (const m of mistakes) {
       const item = document.createElement('div')
       item.className = 'lq-chat-mistake'
@@ -481,13 +520,129 @@ export function createLearningQuiz(): HTMLElement {
       item.append(q, answers)
       mistakesList.appendChild(item)
     }
-    panel.appendChild(mistakesList)
 
-    const messages = document.createElement('div')
-    messages.className = 'lq-chat-messages'
-    messages.textContent = '⏳ Учитель готовит объяснения…'
-    panel.appendChild(messages)
+    const messages = panel.querySelector<HTMLElement>('#lq-chat-messages')!
+    const input = panel.querySelector<HTMLInputElement>('#lq-chat-input')!
+    const sendBtn = panel.querySelector<HTMLButtonElement>('#lq-chat-send')!
+    const history: ChatMessage[] = loadChatHistory(mistakes)
 
+    function appendMessage(sender: ChatMessage['sender'], text: string, contextLabel?: string | null, detailFor?: Mistake): HTMLElement {
+      const row = document.createElement('div')
+      row.className = `lq-chat-row lq-chat-row--${sender}`
+      const avatar = document.createElement('div')
+      avatar.className = 'lq-chat-avatar'
+      avatar.textContent = sender === 'user' ? '🧑' : '🤖'
+      const bubble = document.createElement('div')
+      bubble.className = 'lq-chat-bubble'
+      if (contextLabel) {
+        const label = document.createElement('div')
+        label.className = 'lq-chat-bubble-context'
+        label.textContent = contextLabel
+        bubble.appendChild(label)
+      }
+      const textEl = document.createElement('div')
+      textEl.className = 'lq-chat-bubble-text'
+      textEl.textContent = text
+      bubble.appendChild(textEl)
+      row.append(avatar, bubble)
+      if (detailFor) {
+        const detailBtn = document.createElement('button')
+        detailBtn.type = 'button'
+        detailBtn.className = 'lq-chat-detail-btn'
+        detailBtn.textContent = '📖 Подробнее'
+        detailBtn.addEventListener('click', () => requestDetail(detailFor, text, detailBtn, row))
+        bubble.appendChild(detailBtn)
+      }
+      messages.appendChild(row)
+      messages.scrollTop = messages.scrollHeight
+      return row
+    }
+
+    async function requestDetail(mistake: Mistake, previousExplanation: string, button: HTMLButtonElement, row: HTMLElement): Promise<void> {
+      button.disabled = true
+      button.textContent = '⏳'
+      try {
+        const res = await fetch(`${TEACHER_API_BASE}/api/chat/detail`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: mistake.id,
+            question: mistake.question,
+            options: mistake.options,
+            correct: mistake.correct,
+            previous_explanation: previousExplanation,
+            src: mistake.src,
+          }),
+        })
+        const data = (await res.json()) as { detail?: string; error?: string }
+        if (data.error || !data.detail) {
+          button.textContent = '📖 Подробнее'
+          button.disabled = false
+          return
+        }
+        const contextLabel = `Вопрос ${mistake.id} · подробнее`
+        history.push({ sender: 'bot', text: data.detail, contextLabel, mistakeId: mistake.id, kind: 'detail' })
+        setData(CHAT_HISTORY_KEY, history)
+        appendMessage('bot', data.detail, contextLabel)
+        row.querySelector('.lq-chat-detail-btn')?.remove()
+      } catch {
+        button.textContent = '📖 Подробнее'
+        button.disabled = false
+      }
+    }
+
+    async function sendFreeQuestion(): Promise<void> {
+      const question = input.value.trim()
+      if (!question) return
+      input.value = ''
+      sendBtn.disabled = true
+      history.push({ sender: 'user', text: question, contextLabel: null, mistakeId: null, kind: 'free' })
+      setData(CHAT_HISTORY_KEY, history)
+      appendMessage('user', question)
+
+      const loadingRow = appendMessage('bot', '⏳ Печатает…')
+      try {
+        const context = history
+          .filter((m) => m.kind === 'free')
+          .slice(-10)
+          .map((m) => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.text }))
+
+        const res = await fetch(`${TEACHER_API_BASE}/api/chat/free`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question, context }),
+        })
+        const data = (await res.json()) as { answer?: string; error?: string }
+        loadingRow.remove()
+        if (data.error || !data.answer) {
+          appendMessage('bot', data.error ?? 'Не удалось получить ответ.')
+        } else {
+          history.push({ sender: 'bot', text: data.answer, contextLabel: null, mistakeId: null, kind: 'free' })
+          setData(CHAT_HISTORY_KEY, history)
+          appendMessage('bot', data.answer)
+        }
+      } catch {
+        loadingRow.remove()
+        appendMessage('bot', 'Ошибка соединения с teacher/server.py (порт 5000).')
+      } finally {
+        sendBtn.disabled = false
+      }
+    }
+
+    sendBtn.addEventListener('click', sendFreeQuestion)
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendFreeQuestion()
+    })
+
+    if (history.length > 0) {
+      for (const msg of history) {
+        const mistake = msg.mistakeId !== null ? mistakes.find((m) => m.id === msg.mistakeId) : undefined
+        appendMessage(msg.sender, msg.text, msg.contextLabel, msg.kind === 'explanation' ? mistake : undefined)
+      }
+      return
+    }
+
+    const loadingRow = appendMessage('bot', '⏳ Учитель готовит объяснения…')
     try {
       const res = await fetch(`${TEACHER_API_BASE}/api/chat`, {
         method: 'POST',
@@ -496,72 +651,21 @@ export function createLearningQuiz(): HTMLElement {
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = (await res.json()) as { explanations?: { id: number; explanation: string }[]; error?: string }
+      loadingRow.remove()
       if (data.error || !data.explanations) {
-        messages.textContent = data.error ?? 'Не удалось получить объяснения.'
+        appendMessage('bot', data.error ?? 'Не удалось получить объяснения.')
         return
       }
-
-      messages.innerHTML = ''
       for (const exp of data.explanations) {
         const mistake = mistakes.find((m) => m.id === exp.id)
-        const block = document.createElement('div')
-        block.className = 'lq-chat-msg'
-        const qLine = document.createElement('div')
-        qLine.className = 'lq-chat-q'
-        qLine.textContent = `❓ ${mistake?.question ?? `Вопрос ${exp.id}`}`
-        const aLine = document.createElement('div')
-        aLine.className = 'lq-chat-a'
-        aLine.textContent = `🤖 ${exp.explanation}`
-        const detailBtn = document.createElement('button')
-        detailBtn.type = 'button'
-        detailBtn.className = 'plasma-cta plasma-cta-outline lq-chat-detail-btn'
-        detailBtn.textContent = '📖 Рассказать подробнее'
-        detailBtn.addEventListener('click', () => requestDetail(mistake, exp.explanation, detailBtn, messages))
-        block.append(qLine, aLine, detailBtn)
-        messages.appendChild(block)
+        const contextLabel = mistake ? `Вопрос ${mistake.id}` : null
+        history.push({ sender: 'bot', text: exp.explanation, contextLabel, mistakeId: exp.id, kind: 'explanation' })
+        appendMessage('bot', exp.explanation, contextLabel, mistake)
       }
+      setData(CHAT_HISTORY_KEY, history)
     } catch {
-      messages.textContent = 'Ошибка соединения с teacher/server.py (порт 5000). Проверьте, что сервис запущен.'
-    }
-  }
-
-  async function requestDetail(mistake: Mistake | undefined, previousExplanation: string, button: HTMLButtonElement, messages: HTMLElement): Promise<void> {
-    if (!mistake) return
-    button.disabled = true
-    button.textContent = '⏳ Готовлю…'
-    try {
-      const res = await fetch(`${TEACHER_API_BASE}/api/chat/detail`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: mistake.id,
-          question: mistake.question,
-          options: mistake.options,
-          correct: mistake.correct,
-          previous_explanation: previousExplanation,
-          src: mistake.src,
-        }),
-      })
-      const data = (await res.json()) as { detail?: string; error?: string }
-      if (data.error || !data.detail) {
-        button.textContent = '📖 Рассказать подробнее'
-        button.disabled = false
-        return
-      }
-      const block = document.createElement('div')
-      block.className = 'lq-chat-msg'
-      const qLine = document.createElement('div')
-      qLine.className = 'lq-chat-q'
-      qLine.textContent = `📚 Подробнее о вопросе ${mistake.id}`
-      const aLine = document.createElement('div')
-      aLine.className = 'lq-chat-a'
-      aLine.textContent = `🤖 ${data.detail}`
-      block.append(qLine, aLine)
-      messages.appendChild(block)
-      button.remove()
-    } catch {
-      button.textContent = '📖 Рассказать подробнее'
-      button.disabled = false
+      loadingRow.remove()
+      appendMessage('bot', 'Ошибка соединения с teacher/server.py (порт 5000). Проверьте, что сервис запущен.')
     }
   }
 

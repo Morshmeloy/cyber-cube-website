@@ -1,191 +1,184 @@
-/* ---------- Модальное окно чата ---------- */
+/* ===== Чат-интерфейс (модальное окно с разбором ошибок и диалогом) ===== */
 .chat-overlay {
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0,0,0,0.7);
     backdrop-filter: blur(8px);
     display: flex;
-    align-items: center;
     justify-content: center;
-    z-index: 1000;
-}
-.chat-modal {
-    background: var(--bg2);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius2);
-    padding: 2rem;
-    max-width: 700px;
-    width: 90%;
-    max-height: 80vh;
-    overflow-y: auto;
-    box-shadow: var(--shadow-md);
-}
-.chat-modal-header {
-    display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.5rem;
-}
-.chat-modal-header h3 {
-    margin: 0;
-    font-size: 1.25rem;
-    color: var(--text);
-}
-.chat-modal-header .btn-close {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    color: var(--text2);
-    cursor: pointer;
-    padding: 0.25rem;
-    line-height: 1;
-}
-.chat-messages {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-.chat-msg {
-    border-bottom: 1px solid var(--glass-border);
-    padding-bottom: 1rem;
-}
-.chat-question {
-    font-weight: 600;
-    color: var(--accent);
-    margin-bottom: 0.5rem;
-}
-.chat-answer {
-    color: var(--text);
-    line-height: 1.6;
-    white-space: pre-wrap;
-}
-.error {
-    color: var(--red);
-}
-
-/* ---------- Полноэкранный чат ---------- */
-.chat-overlay {
-    position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.8);
-    backdrop-filter: blur(10px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
     z-index: 10000;
 }
 .chat-modal {
-    background: var(--bg2);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius2);
-    width: 90%;
-    max-width: 900px;
-    height: 90vh;
+    background: #1a1a2e;
+    border-radius: 16px;
+    width: 95%;
+    max-width: 1000px;
+    max-height: 90vh;
     display: flex;
     flex-direction: column;
-    box-shadow: var(--shadow-md);
+    color: #eee;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+    border: 1px solid #333;
 }
 .chat-modal-header {
-    padding: 1.5rem;
-    border-bottom: 1px solid var(--glass-border);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    padding: 16px 24px;
+    border-bottom: 1px solid #333;
 }
 .chat-modal-header h3 {
     margin: 0;
-    color: var(--accent);
+    color: #5b7fff;
+}
+.btn-close {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 24px;
+    cursor: pointer;
 }
 .chat-body {
     display: flex;
     flex: 1;
     overflow: hidden;
+    padding: 16px;
+    gap: 16px;
 }
-.mistakes-list {
-    width: 40%;
-    padding: 1.5rem;
-    border-right: 1px solid var(--glass-border);
+/* Левая панель со списком ошибок */
+.mistakes-panel {
+    flex: 0 0 300px;
     overflow-y: auto;
-    background: rgba(0,0,0,0.1);
+    border-right: 1px solid #333;
+    padding-right: 16px;
 }
-.mistakes-list h4 {
+.mistakes-panel h4 {
     margin-top: 0;
-    color: var(--text);
+    color: #fff;
 }
 .mistake-item {
-    background: var(--bg3);
-    border-radius: var(--radius);
-    padding: 1rem;
-    margin-bottom: 1rem;
+    background: rgba(255,255,255,0.05);
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 10px;
 }
 .mistake-question {
     font-weight: 600;
-    margin-bottom: 0.5rem;
-    color: var(--text);
+    margin-bottom: 4px;
 }
 .mistake-answers {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
+    gap: 2px;
     font-size: 0.9rem;
 }
-.user-answer strong {
-    color: var(--red);
-}
-.correct-answer strong {
-    color: var(--green);
-}
-.chat-section {
+.user-answer { color: #ff6b6b; }
+.correct-answer { color: #51cf66; }
+
+/* Правая область – диалог */
+.chat-dialog {
     flex: 1;
     display: flex;
     flex-direction: column;
-    padding: 1.5rem;
+    min-height: 400px;
 }
 .chat-messages {
     flex: 1;
     overflow-y: auto;
+    padding-right: 8px;
+    margin-bottom: 12px;
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 12px;
 }
 .chat-msg {
-    background: var(--bg);
-    border-radius: 1rem;
-    padding: 1rem;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
 }
-.chat-question {
-    font-weight: 600;
-    color: var(--accent);
-    margin-bottom: 0.5rem;
+.chat-msg.user {
+    flex-direction: row-reverse;
 }
-.chat-answer {
-    color: var(--text);
-    line-height: 1.6;
-    white-space: pre-wrap;
+.chat-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #2b3a6b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
 }
-.chat-followup {
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid var(--glass-border);
+.chat-bubble {
+    background: rgba(255,255,255,0.08);
+    padding: 10px 16px;
+    border-radius: 12px;
+    max-width: 80%;
+    word-wrap: break-word;
+    color: #eee; /* явно задаём светлый текст */
 }
-.chat-followup input {
-    width: 70%;
-    padding: 0.5rem;
-    border-radius: 0.5rem;
-    border: 1px solid var(--glass-border);
-    background: var(--bg3);
-    color: var(--text);
+.chat-msg.user .chat-bubble {
+    background: #5b7fff;
+    color: #fff;
 }
-.chat-followup button {
-    margin-left: 0.5rem;
-    padding: 0.5rem 1rem;
-}
-.btn-close {
+/* Кнопка "Подробнее" */
+.btn-detail {
+    margin-top: 8px;
     background: none;
+    border: 1px solid #5b7fff;
+    color: #5b7fff;
+    padding: 4px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+.btn-detail:hover {
+    background: #5b7fff;
+    color: #fff;
+}
+/* Поле ввода внизу */
+.chat-input-area {
+    display: flex;
+    gap: 8px;
+    border-top: 1px solid #333;
+    padding-top: 12px;
+}
+.chat-input-area input {
+    flex: 1;
+    padding: 10px 16px;
+    border-radius: 24px;
+    border: 1px solid #444;
+    background: #222;
+    color: #fff;
+}
+.chat-input-area input::placeholder {
+    color: #888;
+}
+.chat-input-area button {
+    padding: 10px 24px;
+    background: #5b7fff;
     border: none;
-    font-size: 1.8rem;
-    color: var(--text2);
+    border-radius: 24px;
+    color: #fff;
     cursor: pointer;
 }
-.error {
-    color: var(--red);
+.chat-input-area button:hover {
+    background: #4a6bd6;
+}
+
+/* Адаптив для мобильных */
+@media (max-width: 768px) {
+    .chat-body {
+        flex-direction: column;
+    }
+    .mistakes-panel {
+        flex: none;
+        border-right: none;
+        border-bottom: 1px solid #333;
+        padding-right: 0;
+        padding-bottom: 16px;
+        max-height: 200px;
+    }
 }

@@ -205,5 +205,58 @@ def serve_quiz_js():
 def serve_styles(filename):
     return flask.send_from_directory('styles', filename)
 
+@app.route('/api/chat/free', methods=['POST'])
+def chat_free():
+    """Свободный диалог с ИИ-агентом с учётом истории сообщений."""
+    if not model_ready:
+        return jsonify({"error": "Модель ещё не загружена"}), 503
+
+    data = request.get_json(silent=True)
+    if not data or 'question' not in data:
+        return jsonify({"error": "Неверный запрос. Ожидается поле 'question'."}), 400
+
+    question = data['question'].strip()
+    if not question:
+        return jsonify({"error": "Вопрос не может быть пустым."}), 400
+
+    # Получаем историю диалога (если передана)
+    context_messages = data.get('context', [])
+    # Формируем историю в виде текста для промпта
+    history_text = ""
+    if context_messages:
+        # Берём последние 5-6 сообщений для контекста
+        recent = context_messages[-6:]
+        history_text = "Предыдущие сообщения:\n"
+        for msg in recent:
+            role = "Пользователь" if msg['role'] == 'user' else "Учитель"
+            history_text += f"{role}: {msg['content']}\n"
+        history_text += "\n"
+
+    # Ищем релевантные фрагменты из книги
+    context = retrieve_context(question, k=4)
+    if not context:
+        context = retrieve_context("компьютерные сети", k=2)
+
+    # Формируем промпт с учётом истории
+    prompt = f"""Ты — преподаватель по компьютерным сетям, эксперт по книге Таненбаума «Компьютерные сети» (6-е издание).
+Твоя задача — отвечать на вопросы пользователя, используя ТОЛЬКО информацию из приведённого ниже контекста.
+Если ответа нет в контексте, так и скажи, не домысливай.
+При ответе учитывай историю диалога, чтобы давать последовательные и релевантные ответы.
+
+{history_text}
+
+Контекст из учебника:
+{context}
+
+Вопрос пользователя: {question}
+
+Ответ (чётко, аргументированно, на русском языке, 3-5 предложений. Если нужно, приведи примеры или аналогии, но только из контекста):"""
+
+    print(f"💬 Свободный вопрос: {question[:50]}...")
+    response = llm(prompt, max_tokens=500, temperature=0.4)
+    answer = response['choices'][0]['text'].strip()
+
+    return jsonify({"answer": answer, "context_used": context[:200] + "..."})
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

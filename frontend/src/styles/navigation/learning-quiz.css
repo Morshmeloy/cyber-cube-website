@@ -2,8 +2,33 @@
    данные из teacher/questions.js, ИИ-объяснения — с teacher/server.py (порт 5000). === */
 
 .lq-root {
+  position: relative;
   display: flex;
   flex-direction: column;
+}
+
+/* Едва заметная сетка-«плата» на фоне всего раздела — тема курса (компьютерные сети),
+   плавно гаснет к краям, чтобы не мешать чтению текста поверх. */
+.lq-root::before {
+  content: '';
+  position: absolute;
+  inset: -24px;
+  z-index: -1;
+  background-image:
+    linear-gradient(90deg, color-mix(in srgb, var(--plasma-color, #0ff) 10%, transparent) 1px, transparent 1px),
+    linear-gradient(color-mix(in srgb, var(--plasma-color, #0ff) 10%, transparent) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: radial-gradient(ellipse 60% 50% at 50% 0%, black 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 60% 50% at 50% 0%, black 30%, transparent 75%);
+  pointer-events: none;
+}
+
+.lq-network-icon {
+  width: 34px;
+  height: 34px;
+  margin: 0 auto 10px;
+  color: var(--plasma-color, #0ff);
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--plasma-color, #0ff) 60%, transparent));
 }
 
 /* --- Общие переиспользуемые кусочки: статистика, стрелка прогресса --- */
@@ -546,6 +571,21 @@
 }
 
 /* --- Чат с объяснением ошибок --- */
+.lq-chat-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--plasma-color, #0ff);
+  margin-bottom: 10px;
+}
+
+.lq-chat-section-title:not(:first-child) {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(232, 248, 255, 0.1);
+}
+
 .lq-chat-mistakes {
   display: flex;
   flex-direction: column;
@@ -578,35 +618,129 @@
 }
 
 .lq-chat-messages {
-  font-size: 13px;
-  color: rgba(232, 248, 255, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 380px;
+  overflow-y: auto;
+  padding-right: 4px;
+  margin-bottom: 14px;
 }
 
-.lq-chat-msg {
-  padding: 12px 0;
-  border-top: 1px solid rgba(232, 248, 255, 0.08);
+.lq-chat-messages::-webkit-scrollbar {
+  width: 6px;
 }
 
-.lq-chat-msg:first-child {
-  border-top: none;
+.lq-chat-messages::-webkit-scrollbar-thumb {
+  background: var(--plasma-color, #0ff);
+  border-radius: 3px;
 }
 
-.lq-chat-q {
-  font-size: 13px;
+.lq-chat-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.lq-chat-row--user {
+  flex-direction: row-reverse;
+}
+
+.lq-chat-avatar {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(232, 248, 255, 0.15);
+}
+
+.lq-chat-row--user .lq-chat-avatar {
+  border-color: color-mix(in srgb, var(--plasma-color, #0ff) 45%, transparent);
+}
+
+.lq-chat-bubble {
+  max-width: 78%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border-top-left-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(232, 248, 255, 0.1);
+}
+
+.lq-chat-bubble-context {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--plasma-color, #0ff);
-  margin-bottom: 6px;
+  opacity: 0.85;
+  margin-bottom: 4px;
 }
 
-.lq-chat-a {
+.lq-chat-bubble-text {
   font-size: 13px;
   line-height: 1.6;
   color: rgba(232, 248, 255, 0.9);
-  margin-bottom: 8px;
+  white-space: pre-wrap;
+}
+
+.lq-chat-row--user .lq-chat-bubble {
+  border-radius: 14px;
+  border-top-right-radius: 4px;
+  background: color-mix(in srgb, var(--plasma-color, #0ff) 14%, transparent);
+  border-color: color-mix(in srgb, var(--plasma-color, #0ff) 35%, transparent);
+}
+
+.lq-chat-row--user .lq-chat-bubble-text {
+  color: #e8f8ff;
 }
 
 .lq-chat-detail-btn {
-  font-size: 12px;
-  padding: 7px 14px;
+  display: block;
+  margin-top: 8px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--plasma-color, #0ff) 40%, transparent);
+  background: transparent;
+  color: var(--plasma-color, #0ff);
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.lq-chat-detail-btn:hover {
+  background: color-mix(in srgb, var(--plasma-color, #0ff) 14%, transparent);
+}
+
+.lq-chat-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.lq-chat-input {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(232, 248, 255, 0.2);
+  background: rgba(10, 12, 24, 0.65);
+  color: #e8f8ff;
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.lq-chat-input::placeholder {
+  color: rgba(232, 248, 255, 0.35);
+}
+
+.lq-chat-input:focus {
+  outline: none;
+  border-color: var(--plasma-color, #0ff);
 }
 
 @media (max-width: 640px) {
