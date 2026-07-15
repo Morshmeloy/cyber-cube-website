@@ -527,7 +527,7 @@ class QuizApp {
                 });
             }
         });
-                const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
+        const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
         let title = 'Тест завершён';
         if (pct >= 90) title = 'Отличный результат!';
         else if (pct >= 70) title = 'Хороший результат';
@@ -573,8 +573,8 @@ class QuizApp {
         const chatBtn = document.getElementById('btn-chat');
         if (chatBtn && mistakesForChat.length > 0) {
             chatBtn.addEventListener('click', () => this.openTeacherChat(mistakesForChat));
-}
-        
+        }
+
 
         this.animTimer = setTimeout(() => {
             const arc = document.getElementById('score-arc');
@@ -634,10 +634,10 @@ class QuizApp {
         }).join('');
     }
 
-        /**
-     * Открывает полноэкранное модальное окно с разбором ошибок и чатом учителя.
-     * @param {Array} mistakes – массив объектов с полями id, question, options, correct, src.
-     */
+    /**
+ * Открывает полноэкранное модальное окно с разбором ошибок и чатом учителя.
+ * @param {Array} mistakes – массив объектов с полями id, question, options, correct, src.
+ */
     async openTeacherChat(mistakes) {
         // 1. Создаём оверлей и модальное окно
         const overlay = document.createElement('div');
@@ -685,7 +685,7 @@ class QuizApp {
 
         // 2. Запрашиваем объяснения у сервера
         try {
-            const response = await fetch('/api/chat', {
+            const response = await fetch('/teacher/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ mistakes })
@@ -703,76 +703,76 @@ class QuizApp {
 
             // 3. Отображаем объяснения в виде диалога
             messagesDiv.innerHTML = '';
-                data.explanations.forEach(exp => {
-                    const q = mistakes.find(m => m.id === exp.id);
-                    const questionText = q ? q.question : `Вопрос ${exp.id}`;
-                    const msgBlock = document.createElement('div');
-                    msgBlock.className = 'chat-msg';
-                    msgBlock.innerHTML = `
+            data.explanations.forEach(exp => {
+                const q = mistakes.find(m => m.id === exp.id);
+                const questionText = q ? q.question : `Вопрос ${exp.id}`;
+                const msgBlock = document.createElement('div');
+                msgBlock.className = 'chat-msg';
+                msgBlock.innerHTML = `
                         <div class="chat-question">❓ ${questionText}</div>
                         <div class="chat-answer">🤖 ${exp.explanation}</div>
                         <button class="btn-detail" data-id="${exp.id}" data-explanation="${this.escapeHtml(exp.explanation)}">📖 Рассказать подробнее</button>
                     `;
-                    messagesDiv.appendChild(msgBlock);
-                });
+                messagesDiv.appendChild(msgBlock);
+            });
 
             messagesDiv.querySelectorAll('.btn-detail').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            const button = e.target;
-            const msgDiv = button.closest('.chat-msg');          // находим родительский блок сообщения
-            const questionId = parseInt(button.dataset.id);
-            const q = mistakes.find(m => m.id === questionId);
-            if (!q) return;
+                btn.addEventListener('click', async (e) => {
+                    const button = e.target;
+                    const msgDiv = button.closest('.chat-msg');          // находим родительский блок сообщения
+                    const questionId = parseInt(button.dataset.id);
+                    const q = mistakes.find(m => m.id === questionId);
+                    if (!q) return;
 
-            // Получаем предыдущее объяснение из элемента .chat-answer
-            const answerEl = msgDiv.querySelector('.chat-answer');
-            const previousExplanation = answerEl ? answerEl.textContent.replace(/^🤖\s*/, '') : '';
+                    // Получаем предыдущее объяснение из элемента .chat-answer
+                    const answerEl = msgDiv.querySelector('.chat-answer');
+                    const previousExplanation = answerEl ? answerEl.textContent.replace(/^🤖\s*/, '') : '';
 
-            // Меняем текст кнопки на время загрузки
-            button.textContent = '⏳ Готовлю...';
-            button.disabled = true;
+                    // Меняем текст кнопки на время загрузки
+                    button.textContent = '⏳ Готовлю...';
+                    button.disabled = true;
 
-            try {
-                const resp = await fetch('/api/chat/detail', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        id: q.id,
-                        question: q.question,
-                        options: q.options,
-                        correct: q.correct,
-                        previous_explanation: previousExplanation
-                    })
-                });
-                const detailData = await resp.json();
-                if (detailData.error) {
-                    alert('Ошибка: ' + detailData.error);
-                    button.textContent = '📖 Рассказать подробнее';
-                    button.disabled = false;
-                    return;
-                }
+                    try {
+                        const resp = await fetch('/teacher/api/chat/detail', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                id: q.id,
+                                question: q.question,
+                                options: q.options,
+                                correct: q.correct,
+                                previous_explanation: previousExplanation
+                            })
+                        });
+                        const detailData = await resp.json();
+                        if (detailData.error) {
+                            alert('Ошибка: ' + detailData.error);
+                            button.textContent = '📖 Рассказать подробнее';
+                            button.disabled = false;
+                            return;
+                        }
 
-                // Добавляем новое сообщение от учителя
-                const detailBlock = document.createElement('div');
-                detailBlock.className = 'chat-msg';
-                detailBlock.innerHTML = `
+                        // Добавляем новое сообщение от учителя
+                        const detailBlock = document.createElement('div');
+                        detailBlock.className = 'chat-msg';
+                        detailBlock.innerHTML = `
                     <div class="chat-question">📚 Подробнее о вопросе ${q.id}</div>
                     <div class="chat-answer">🤖 ${detailData.detail}</div>
                 `;
-                messagesDiv.appendChild(detailBlock);
-                messagesDiv.scrollTop = messagesDiv.scrollHeight; // прокрутка вниз
+                        messagesDiv.appendChild(detailBlock);
+                        messagesDiv.scrollTop = messagesDiv.scrollHeight; // прокрутка вниз
 
-                // Скрываем кнопку, чтобы не плодить одинаковые запросы
-                button.style.display = 'none';
+                        // Скрываем кнопку, чтобы не плодить одинаковые запросы
+                        button.style.display = 'none';
 
-            } catch (err) {
-                console.error(err);
-                button.textContent = '📖 Рассказать подробнее';
-                button.disabled = false;
-            }
-        });
-    });
-                
+                    } catch (err) {
+                        console.error(err);
+                        button.textContent = '📖 Рассказать подробнее';
+                        button.disabled = false;
+                    }
+                });
+            });
+
             // Добавим поле для дополнительных вопросов (заглушка)
             const followup = document.createElement('div');
             followup.className = 'chat-followup';
@@ -791,49 +791,49 @@ class QuizApp {
     }
 }
 // Привязка прогресса к пользователю
-(function() {
-  // Получаем имя пользователя из localStorage
-  let username = 'unknown';
-  try {
-    const u = localStorage.getItem('d4_user');
-    if (u) {
-      const parsed = JSON.parse(u);
-      username = parsed.username || 'unknown';
-    }
-  } catch(e) {}
-
-  // Сохраняем оригинальные методы
-  const origSave = QuizApp.prototype.saveProgress;
-  const origLoad = QuizApp.prototype.loadProgress;
-
-  // Переопределяем saveProgress
-  QuizApp.prototype.saveProgress = function() {
-    if (!this.storageAvailable) return;
+(function () {
+    // Получаем имя пользователя из localStorage
+    let username = 'unknown';
     try {
-      const serializable = {
-        mode: this.state.mode,
-        order: this.state.order,
-        currentIndex: this.state.currentIndex,
-        answers: Array.from(this.state.answers.entries())
-      };
-      localStorage.setItem('quizState_' + username, JSON.stringify(serializable));
-    } catch (e) { console.warn('Не удалось сохранить прогресс.'); }
-  };
+        const u = localStorage.getItem('d4_user');
+        if (u) {
+            const parsed = JSON.parse(u);
+            username = parsed.username || 'unknown';
+        }
+    } catch (e) { }
 
-  // Переопределяем loadProgress
-  QuizApp.prototype.loadProgress = function() {
-    if (!this.storageAvailable) return;
-    try {
-      const saved = localStorage.getItem('quizState_' + username);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        this.state.mode = parsed.mode || 'all';
-        this.state.order = parsed.order || [];
-        this.state.currentIndex = parsed.currentIndex || 0;
-        this.state.answers = new Map(parsed.answers);
-      }
-    } catch (e) { console.warn('Ошибка загрузки прогресса.'); }
-  };
+    // Сохраняем оригинальные методы
+    const origSave = QuizApp.prototype.saveProgress;
+    const origLoad = QuizApp.prototype.loadProgress;
+
+    // Переопределяем saveProgress
+    QuizApp.prototype.saveProgress = function () {
+        if (!this.storageAvailable) return;
+        try {
+            const serializable = {
+                mode: this.state.mode,
+                order: this.state.order,
+                currentIndex: this.state.currentIndex,
+                answers: Array.from(this.state.answers.entries())
+            };
+            localStorage.setItem('quizState_' + username, JSON.stringify(serializable));
+        } catch (e) { console.warn('Не удалось сохранить прогресс.'); }
+    };
+
+    // Переопределяем loadProgress
+    QuizApp.prototype.loadProgress = function () {
+        if (!this.storageAvailable) return;
+        try {
+            const saved = localStorage.getItem('quizState_' + username);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                this.state.mode = parsed.mode || 'all';
+                this.state.order = parsed.order || [];
+                this.state.currentIndex = parsed.currentIndex || 0;
+                this.state.answers = new Map(parsed.answers);
+            }
+        } catch (e) { console.warn('Ошибка загрузки прогресса.'); }
+    };
 })();
 // Запуск приложения после загрузки DOM
 document.addEventListener('DOMContentLoaded', () => { new QuizApp(QUESTIONS); });
