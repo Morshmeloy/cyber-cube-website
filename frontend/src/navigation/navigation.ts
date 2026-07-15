@@ -108,6 +108,7 @@ export function initSiteNavigation(elements: SiteElements): void {
       contentViewport: elements.plasmaContentViewport,
       contentRoot: elements.plasmaContentRoot,
       closeButton: elements.plasmaCloseButton,
+      expandButton: elements.plasmaExpandButton,
       scene: elements.scene,
       ...chrome,
     },

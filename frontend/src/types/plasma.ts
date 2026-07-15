@@ -8,6 +8,7 @@ export interface PlasmaElements extends HeaderChromeElements {
   /** Корневой узел, в который рендерятся блоки текущей страницы. */
   contentRoot: HTMLElement
   closeButton: HTMLButtonElement
+  expandButton: HTMLButtonElement
   /** Контейнер главного куба (.scene) — на время показа сворачивается в иконку внутри экрана. */
   scene: HTMLElement
 }

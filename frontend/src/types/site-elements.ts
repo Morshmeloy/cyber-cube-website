@@ -11,6 +11,7 @@ export interface SiteElements {
   plasmaContentViewport: HTMLElement
   plasmaContentRoot: HTMLElement
   plasmaCloseButton: HTMLButtonElement
+  plasmaExpandButton: HTMLButtonElement
   siteFooterContainer: HTMLElement
   /** Виджет профиля в правом верхнем углу — вне плазменной панели, виден на любом экране. */
   userMenuContainer: HTMLElement

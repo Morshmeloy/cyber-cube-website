@@ -21,6 +21,7 @@ const elements: SiteElements = {
   plasmaContentViewport: requireElement('plasma-content-viewport'),
   plasmaContentRoot: requireElement('plasma-content-root'),
   plasmaCloseButton: requireElement<HTMLButtonElement>('plasma-close'),
+  plasmaExpandButton: requireElement<HTMLButtonElement>('plasma-expand'),
   siteFooterContainer: requireElement('site-footer'),
   userMenuContainer: requireElement('user-menu'),
 }

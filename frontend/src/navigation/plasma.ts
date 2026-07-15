@@ -226,9 +226,25 @@ function createContactForm(heading: string, recipientEmail: string): HTMLElement
   return wrapper
 }
 
+const EXPAND_ICON =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>'
+const COLLAPSE_ICON =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>'
+
+/** Однажды развёрнутая на весь экран панель остаётся такой при каждом следующем открытии —
+ * пока пользователь сам не свернёт её (крестик разворота/Escape). Обычный размер — только
+ * пока предпочтение явно не «расширено». */
+const FULLSCREEN_PREF_KEY = 'd4_plasma_fullscreen'
+function getFullscreenPref(): boolean {
+  return localStorage.getItem(FULLSCREEN_PREF_KEY) === '1'
+}
+function setFullscreenPref(value: boolean): void {
+  localStorage.setItem(FULLSCREEN_PREF_KEY, value ? '1' : '0')
+}
+
 /** Создаёт плазменный информационный экран — полноразмерную панель страницы грани куба. */
 export function createPlasma(elements: PlasmaElements, audio: AudioEngine, callbacks: PlasmaCallbacks): PlasmaController {
-  const { screen, contentViewport, contentRoot, closeButton, scene, neonTitle, headerLogo } = elements
+  const { screen, contentViewport, contentRoot, closeButton, expandButton, scene, neonTitle, headerLogo } = elements
   let openTimer: ReturnType<typeof setTimeout> | null = null
   let flashTimer: ReturnType<typeof setTimeout> | null = null
   /** true с первого кадра show() — раньше, чем DOM получает класс .active — чтобы
@@ -237,6 +253,16 @@ export function createPlasma(elements: PlasmaElements, audio: AudioEngine, callb
   /** Действие крестика для текущего показа — по умолчанию null (обычное hide() к кубу),
    * переопределяется опцией show() (разделы личного кабинета ведут на дашборд). */
   let closeOverride: (() => void) | null = null
+  let isFullscreen = false
+
+  function setFullscreen(value: boolean, persist = true): void {
+    isFullscreen = value
+    screen.classList.toggle('plasma-fullscreen', value)
+    expandButton.innerHTML = value ? COLLAPSE_ICON : EXPAND_ICON
+    expandButton.setAttribute('aria-label', value ? 'Свернуть' : 'На весь экран')
+    if (persist) setFullscreenPref(value)
+  }
+  setFullscreen(getFullscreenPref(), false)
 
   function renderContent(content: PageContent): void {
     contentRoot.innerHTML = ''
@@ -338,6 +364,8 @@ export function createPlasma(elements: PlasmaElements, audio: AudioEngine, callb
     screen.classList.remove('active')
     scene.classList.remove('hidden')
     document.body.classList.remove('plasma-open')
+    // Полноэкранное состояние намеренно не сбрасывается — сохраняется до следующего show()
+    // и переживает закрытие панели (см. FULLSCREEN_PREF_KEY).
 
     headerLogo.classList.add('hidden')
     neonTitle.classList.remove('hidden')
@@ -349,6 +377,14 @@ export function createPlasma(elements: PlasmaElements, audio: AudioEngine, callb
   closeButton.addEventListener('click', () => {
     if (closeOverride) closeOverride()
     else hide()
+  })
+
+  expandButton.addEventListener('click', () => setFullscreen(!isFullscreen))
+
+  // Escape в полноэкранном режиме сворачивает панель обратно, а не закрывает её целиком —
+  // это ожидаемое поведение «выхода из полного экрана», отдельное от крестика.
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && isFullscreen) setFullscreen(false)
   })
 
   return {
