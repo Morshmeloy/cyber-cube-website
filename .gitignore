@@ -17,6 +17,10 @@ downloads/
 eggs/
 .eggs/
 lib/
+# Правило выше предназначено для Python build-артефактов (backend/teacher), но без
+# слэша в начале matчится на любой глубине и случайно исключает frontend/src/lib/
+# (auth.ts, storage.ts и т.п.) — явно возвращаем его в git.
+!frontend/src/lib/
 lib64/
 parts/
 sdist/
