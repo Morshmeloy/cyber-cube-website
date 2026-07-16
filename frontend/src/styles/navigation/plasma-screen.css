@@ -136,6 +136,15 @@
   }
 }
 
+/* Сетка узлов сети — по мотивам #networkCanvas из референса D4NMS. */
+.plasma-network-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  opacity: 0.35;
+  pointer-events: none;
+}
+
 /* Сканлайны */
 .plasma-scanlines {
   position: absolute;
@@ -255,6 +264,13 @@ h3.plasma-heading {
   color: #fff;
 }
 
+/* Выделенный фрагмент посередине абзаца (не ссылка) — бирюзовый акцент D4NMS (pricing-text strong). */
+.plasma-inline-emphasis {
+  color: var(--secondary);
+  font-weight: 700;
+  text-shadow: 0 0 6px color-mix(in srgb, var(--secondary) 50%, transparent);
+}
+
 /* Кнопки-переходы на другие страницы сайта (аналог кнопок на исходном сайте). */
 .plasma-link-buttons {
   display: flex;
@@ -330,11 +346,14 @@ h3.plasma-heading {
   margin-bottom: 18px;
 }
 
+/* Бирюзовая полоса-акцент слева — по мотивам highlight-block из референса D4NMS,
+ * поверх привычной рамки/свечения по цвету страницы. */
 .plasma-card {
   padding: 14px 16px;
   border-radius: 10px;
   border: 1px solid var(--plasma-color, rgba(0, 255, 255, 0.4));
-  background: rgba(0, 0, 0, 0.25);
+  border-left: 3px solid var(--secondary);
+  background: color-mix(in srgb, var(--secondary) 6%, rgba(0, 0, 0, 0.25));
   box-shadow: 0 0 16px color-mix(in srgb, var(--plasma-color, #0ff) 25%, transparent), inset 0 0 20px rgba(0, 0, 0, 0.3);
 }
 

@@ -11,8 +11,8 @@
   position: absolute;
   top: -10%;
   width: 1px;
-  background: linear-gradient(transparent, rgba(0, 255, 255, 0.5));
-  box-shadow: 0 0 6px rgba(0, 255, 255, 0.4);
+  background: linear-gradient(transparent, color-mix(in srgb, var(--primary) 50%, transparent));
+  box-shadow: 0 0 6px color-mix(in srgb, var(--primary) 40%, transparent);
   opacity: 0;
   animation: fall linear infinite;
 }
@@ -21,8 +21,8 @@
   position: absolute;
   top: -5%;
   width: 1px;
-  background: linear-gradient(transparent, rgba(255, 0, 255, 0.35));
-  box-shadow: 0 0 4px rgba(255, 0, 255, 0.3);
+  background: linear-gradient(transparent, color-mix(in srgb, var(--gradient-neon-5) 40%, transparent));
+  box-shadow: 0 0 4px color-mix(in srgb, var(--gradient-neon-5) 35%, transparent);
   opacity: 0;
   animation: fall linear infinite;
 }

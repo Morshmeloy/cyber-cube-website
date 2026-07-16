@@ -96,7 +96,8 @@
 .lq-start-title {
   font-size: clamp(20px, 3vw, 28px);
   font-weight: 800;
-  color: #e8f8ff;
+  color: var(--plasma-color, #e8f8ff);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--plasma-color, #0ff) 40%, transparent);
   margin-bottom: 8px;
 }
 
@@ -233,6 +234,7 @@
   border-radius: 12px;
   background: color-mix(in srgb, var(--plasma-color, #0ff) 6%, #171b30);
   border: 1px solid color-mix(in srgb, var(--plasma-color, #0ff) 18%, transparent);
+  border-left: 3px solid var(--secondary);
   margin-bottom: 16px;
 }
 
@@ -460,7 +462,8 @@
 .lq-results-title {
   font-size: clamp(19px, 2.6vw, 24px);
   font-weight: 800;
-  color: #e8f8ff;
+  color: var(--plasma-color, #e8f8ff);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--plasma-color, #0ff) 40%, transparent);
   margin-bottom: 4px;
 }
 
@@ -596,7 +599,8 @@
 .lq-chat-mistake {
   padding: 10px 14px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.04);
+  border-left: 3px solid var(--secondary);
+  background: color-mix(in srgb, var(--secondary) 6%, rgba(255, 255, 255, 0.04));
 }
 
 .lq-chat-mistake-q {

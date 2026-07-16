@@ -1,0 +1,158 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+@import '@fontsource/orbitron/400.css';
+@import '@fontsource/orbitron/700.css';
+@import '@fontsource/orbitron/900.css';
+@import '@fontsource-variable/geist';
+
+/* Единственная тема сайта — тёмный неоновый кибер-стиль (никогда не переключается
+ * на светлую), поэтому в отличие от стандартного shadcn-пресета здесь нет .dark
+ * класса и custom-variant — это была бы неиспользуемая инфраструктура. */
+@theme inline {
+  --font-heading: 'Orbitron', Arial, sans-serif;
+  --font-sans: 'Geist Variable', sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Цвета граней куба — те же, что и в текущей vanilla-версии (settings/navigation/faces.ts) */
+  --color-face-front: var(--face-front);
+  --color-face-back: var(--face-back);
+  --color-face-right: var(--face-right);
+  --color-face-left: var(--face-left);
+  --color-face-top: var(--face-top);
+  --color-face-bottom: var(--face-bottom);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+}
+
+:root {
+  /* Тёмная кибер-база, как в текущей версии (styles/base/base.css: #050510) */
+  --background: #050510;
+  --foreground: #e0ffff;
+  --card: #0a0a1c;
+  --card-foreground: #e0ffff;
+  --popover: #0a0a1c;
+  --popover-foreground: #e0ffff;
+
+  /* Акцент — неоновый циан, тот же язык, что faceColors.front (#0ff) и D4NMS (#00d4ff) */
+  --primary: #00d4ff;
+  --primary-foreground: #001318;
+  /* Второй акцент — бирюзовый хайлайт из референса D4NMS (highlight-block) */
+  --secondary: #4ecdc4;
+  --secondary-foreground: #001a18;
+  --muted: #10101f;
+  --muted-foreground: #8b93b8;
+  --accent: #4ecdc4;
+  --accent-foreground: #001a18;
+  --destructive: #ff5470;
+
+  --border: rgba(0, 212, 255, 0.18);
+  --input: rgba(0, 212, 255, 0.12);
+  --ring: rgba(0, 212, 255, 0.5);
+  --radius: 0.75rem;
+
+  --face-front: #0ff;
+  --face-back: #f0f;
+  --face-right: #0f8;
+  --face-left: #f80;
+  --face-top: #80f;
+  --face-bottom: #08f;
+
+  /* Градиентная палитра неоновых заголовков — из референса D4NMS (hero-title) */
+  --gradient-neon-1: #00d4ff;
+  --gradient-neon-2: #ff6b6b;
+  --gradient-neon-3: #ffd93d;
+  --gradient-neon-4: #6bcf7f;
+  --gradient-neon-5: #9c27b0;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html,
+  body {
+    @apply bg-background text-foreground font-sans;
+    cursor: grab;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-heading;
+  }
+}
+
+@layer utilities {
+  /* Неоновое свечение текста (заголовок «Д4 Технологии» и т.п.) */
+  .text-glow-cyan {
+    text-shadow:
+      0 0 10px rgba(0, 255, 255, 1),
+      0 0 25px rgba(0, 255, 255, 0.8),
+      0 0 50px rgba(0, 255, 255, 0.6),
+      0 0 100px rgba(0, 255, 255, 0.4);
+  }
+
+  /* Перетекающий неоновый градиент по тексту — из референса D4NMS (hero-title/download-title) */
+  .text-gradient-neon {
+    background: linear-gradient(90deg, var(--gradient-neon-1), var(--gradient-neon-2), var(--gradient-neon-3), var(--gradient-neon-4), var(--gradient-neon-5), var(--gradient-neon-1));
+    background-size: 300% 100%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    animation:
+      gradient-move 3s linear infinite,
+      hue-shift 6s linear infinite;
+  }
+
+  /* Сетка на фоне поверх подложки (как в текущей версии, styles/base/base.css) */
+  .bg-grid-cyan {
+    background-image:
+      linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+}
+
+@keyframes gradient-move {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 300% 50%;
+  }
+}
+
+@keyframes hue-shift {
+  0% {
+    filter: hue-rotate(0deg) brightness(1.2);
+  }
+  50% {
+    filter: hue-rotate(180deg) brightness(1.4);
+  }
+  100% {
+    filter: hue-rotate(360deg) brightness(1.2);
+  }
+}

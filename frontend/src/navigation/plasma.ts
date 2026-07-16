@@ -52,6 +52,17 @@ function renderBlock(block: PageBlock, navigateTo: (target: PageNavigationTarget
       el.append(document.createTextNode(block.after))
       return el
     }
+    case 'paragraphEmphasis': {
+      const el = document.createElement('p')
+      el.className = 'plasma-block plasma-paragraph'
+      el.append(document.createTextNode(block.before))
+      const strong = document.createElement('strong')
+      strong.className = 'plasma-inline-emphasis'
+      strong.textContent = block.emphasisText
+      el.appendChild(strong)
+      el.append(document.createTextNode(block.after))
+      return el
+    }
     case 'linkButtons': {
       const el = document.createElement('div')
       el.className = 'plasma-block plasma-link-buttons'

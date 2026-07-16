@@ -1,3 +1,4 @@
+import axios from 'axios'
 import { LEARNING_QUESTIONS, type LearningQuestion } from '../settings/navigation/pages/private/learning-questions.ts'
 import { getData, setData } from '../lib/storage.ts'
 
@@ -145,9 +146,8 @@ export function createLearningQuiz(): HTMLElement {
 
   async function checkModelStatus(el: HTMLElement): Promise<void> {
     try {
-      const res = await fetch(`${TEACHER_API_BASE}/api/model_status`)
-      if (!res.ok) throw new Error()
-      const data = (await res.json()) as { ready: boolean }
+      const res = await axios.get<{ ready: boolean }>(`${TEACHER_API_BASE}/api/model_status`)
+      const data = res.data
       el.textContent = data.ready ? '🟢 ИИ-помощник готов объяснять ошибки' : '🟡 ИИ-помощник ещё загружается — объяснения появятся чуть позже'
       el.classList.toggle('lq-model-status--ok', data.ready)
     } catch {
@@ -567,19 +567,15 @@ export function createLearningQuiz(): HTMLElement {
       button.disabled = true
       button.textContent = '⏳'
       try {
-        const res = await fetch(`${TEACHER_API_BASE}/api/chat/detail`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id: mistake.id,
-            question: mistake.question,
-            options: mistake.options,
-            correct: mistake.correct,
-            previous_explanation: previousExplanation,
-            src: mistake.src,
-          }),
+        const res = await axios.post<{ detail?: string; error?: string }>(`${TEACHER_API_BASE}/api/chat/detail`, {
+          id: mistake.id,
+          question: mistake.question,
+          options: mistake.options,
+          correct: mistake.correct,
+          previous_explanation: previousExplanation,
+          src: mistake.src,
         })
-        const data = (await res.json()) as { detail?: string; error?: string }
+        const data = res.data
         if (data.error || !data.detail) {
           button.textContent = '📖 Подробнее'
           button.disabled = false
@@ -613,12 +609,8 @@ export function createLearningQuiz(): HTMLElement {
           .slice(-10)
           .map((m) => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.text }))
 
-        const res = await fetch(`${TEACHER_API_BASE}/api/chat/free`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ question, context }),
-        })
-        const data = (await res.json()) as { answer?: string; error?: string }
+        const res = await axios.post<{ answer?: string; error?: string }>(`${TEACHER_API_BASE}/api/chat/free`, { question, context })
+        const data = res.data
         loadingRow.remove()
         if (data.error || !data.answer) {
           appendMessage('bot', data.error ?? 'Не удалось получить ответ.')
@@ -650,13 +642,8 @@ export function createLearningQuiz(): HTMLElement {
 
     const loadingRow = appendMessage('bot', '⏳ Учитель готовит объяснения…')
     try {
-      const res = await fetch(`${TEACHER_API_BASE}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mistakes }),
-      })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const data = (await res.json()) as { explanations?: { id: number; explanation: string }[]; error?: string }
+      const res = await axios.post<{ explanations?: { id: number; explanation: string }[]; error?: string }>(`${TEACHER_API_BASE}/api/chat`, { mistakes })
+      const data = res.data
       loadingRow.remove()
       if (data.error || !data.explanations) {
         appendMessage('bot', data.error ?? 'Не удалось получить объяснения.')

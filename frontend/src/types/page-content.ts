@@ -17,6 +17,9 @@ export type PageBlock =
   | { kind: 'paragraph'; text: string }
   /** Абзац с одной встроенной ссылкой посередине текста — переход на другую страницу сайта. */
   | { kind: 'paragraphLink'; before: string; linkText: string; after: string; target: PageLinkTarget }
+  /** Абзац с одним выделенным фрагментом посередине текста (не ссылка) — например,
+   * номер лицензии/сертификата, который нужно подчеркнуть визуально. */
+  | { kind: 'paragraphEmphasis'; before: string; emphasisText: string; after: string }
   | { kind: 'list'; items: string[] }
   /** text — один абзац; items — то же самое, но каждый пункт с новой строки (для перечислений
    * вида «label — описание»); tags — короткие бейджи под текстом (коды ОКВЭД и т.п.). */

@@ -1,23 +1,12 @@
-/* === Сброс отступов и базовые стили страницы === */
+/* Fon/шрифт/курсор уже заданы в src/index.css (@layer base) — здесь только то, что
+ * не покрывает Tailwind preflight и тема: тап-хайлайt на мобильных, плавное
+ * появление страницы и сетка-канва поверх фона. */
 *,
 *::before,
 *::after {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
   /* На мобильных браузерах (Chrome/Safari) тап по любому кликабельному элементу
      иначе на мгновение подсвечивает его полупрозрачным синим прямоугольником. */
   -webkit-tap-highlight-color: transparent;
-}
-
-body,
-html {
-  width: 100%;
-  min-height: 100%;
-  overflow-x: hidden;
-  background: #050510;
-  font-family: 'Orbitron', Arial, sans-serif;
-  cursor: grab;
 }
 
 body {
@@ -45,14 +34,14 @@ body {
   }
 }
 
-/* Сетка на фоне (поверх подложки, под контентом) */
+/* Сетка на фоне (поверх подложки, под контентом) — акцент по основному неоновому цвету темы. */
 body::after {
   content: '';
   position: fixed;
   inset: 0;
   background-image:
-    linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
+    linear-gradient(color-mix(in srgb, var(--primary) 4%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--primary) 4%, transparent) 1px, transparent 1px);
   background-size: 60px 60px;
   z-index: -1;
   pointer-events: none;

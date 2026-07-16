@@ -124,7 +124,8 @@
 .dashboard-greeting {
   font-size: clamp(20px, 3vw, 28px);
   font-weight: 800;
-  color: #e8f8ff;
+  color: var(--plasma-color, #e8f8ff);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--plasma-color, #0ff) 40%, transparent);
   margin-bottom: 4px;
 }
 

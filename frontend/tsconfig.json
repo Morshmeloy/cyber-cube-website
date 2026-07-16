@@ -14,6 +14,14 @@
     "moduleDetection": "force",
     "noEmit": true,
 
+    /* React */
+    "jsx": "react-jsx",
+
+    /* Пути */
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+
     /* Linting */
     "noUnusedLocals": true,
     "noUnusedParameters": true,
