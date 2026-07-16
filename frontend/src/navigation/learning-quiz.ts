@@ -44,6 +44,7 @@ interface ChatMessage {
 const QUESTIONS: (LearningQuestion & { multi: boolean })[] = LEARNING_QUESTIONS.map((q) => ({ ...q, multi: q.a.length > 1 }))
 const PROGRESS_KEY = 'learning_progress'
 const CHAT_HISTORY_KEY = 'learning_chat_history'
+const CHAT_DRAFT_KEY = 'learning_chat_draft'
 
 /** История диалога с учителем валидна, только пока набор ошибок тот же — иначе после
  * нового прохождения теста показывался бы разбор для уже неактуальных вопросов. */
@@ -526,6 +527,10 @@ export function createLearningQuiz(): HTMLElement {
     const sendBtn = panel.querySelector<HTMLButtonElement>('#lq-chat-send')!
     const history: ChatMessage[] = loadChatHistory(mistakes)
 
+    // Черновик недописанного вопроса — чтобы не терять его при закрытии кабинета до отправки.
+    input.value = getData<string>(CHAT_DRAFT_KEY, '')
+    input.addEventListener('input', () => setData(CHAT_DRAFT_KEY, input.value))
+
     function appendMessage(sender: ChatMessage['sender'], text: string, contextLabel?: string | null, detailFor?: Mistake): HTMLElement {
       const row = document.createElement('div')
       row.className = `lq-chat-row lq-chat-row--${sender}`
@@ -595,6 +600,7 @@ export function createLearningQuiz(): HTMLElement {
       const question = input.value.trim()
       if (!question) return
       input.value = ''
+      setData(CHAT_DRAFT_KEY, '')
       sendBtn.disabled = true
       history.push({ sender: 'user', text: question, contextLabel: null, mistakeId: null, kind: 'free' })
       setData(CHAT_HISTORY_KEY, history)

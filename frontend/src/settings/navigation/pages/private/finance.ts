@@ -11,6 +11,13 @@ interface Expense {
   receipt?: string
 }
 
+interface FinanceDraft {
+  amount: string
+  description: string
+}
+
+const EMPTY_DRAFT: FinanceDraft = { amount: '', description: '' }
+
 function renderFinance(): HTMLElement {
   const user = getUser()
   const currentUser = user?.username ?? 'unknown'
@@ -58,6 +65,17 @@ function renderFinance(): HTMLElement {
     receiptNameEl.textContent = receiptInput.files?.[0]?.name ?? 'Файл не выбран'
   })
 
+  // Черновик формы: чтобы не терять введённое при закрытии кабинета до отправки чека.
+  const draft = getData<FinanceDraft>('finance_draft', EMPTY_DRAFT)
+  amountInput.value = draft.amount
+  descInput.value = draft.description
+
+  function saveDraft(): void {
+    setData('finance_draft', { amount: amountInput.value, description: descInput.value })
+  }
+  amountInput.addEventListener('input', saveDraft)
+  descInput.addEventListener('input', saveDraft)
+
   function renderTable(): void {
     const data = getData<Expense[]>('finance', [])
     const filtered = isAdmin ? data : data.filter((item) => item.username === currentUser)
@@ -95,6 +113,7 @@ function renderFinance(): HTMLElement {
         setData('finance', data)
         renderTable()
         form.reset()
+        setData('finance_draft', EMPTY_DRAFT)
         receiptNameEl.textContent = 'Файл не выбран'
       }
       reader.readAsDataURL(file)

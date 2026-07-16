@@ -1,4 +1,5 @@
 import type { PageContent } from '../../../../types/page-content.ts'
+import { getData, setData } from '../../../../lib/storage.ts'
 
 interface WarehouseItem {
   id: number
@@ -8,6 +9,15 @@ interface WarehouseItem {
   date: string
   person: string
 }
+
+interface WarehouseDraft {
+  name: string
+  quantity: string
+  type: 'in' | 'out'
+  person: string
+}
+
+const EMPTY_DRAFT: WarehouseDraft = { name: '', quantity: '', type: 'in', person: '' }
 
 const STORAGE_KEY = 'd4_warehouse'
 
@@ -79,6 +89,26 @@ function renderWarehouse(): HTMLElement {
   const tbody = tableWrapper.querySelector('#warehouse-tbody')!
   const summaryTbody = tableWrapper.querySelector('#warehouse-summary-tbody')!
 
+  // Черновик формы: чтобы не терять введённое при закрытии кабинета до отправки записи.
+  const draft = getData<WarehouseDraft>('warehouse_draft', EMPTY_DRAFT)
+  nameInput.value = draft.name
+  quantityInput.value = draft.quantity
+  typeSelect.value = draft.type
+  personInput.value = draft.person
+
+  function saveDraft(): void {
+    setData<WarehouseDraft>('warehouse_draft', {
+      name: nameInput.value,
+      quantity: quantityInput.value,
+      type: typeSelect.value as 'in' | 'out',
+      person: personInput.value,
+    })
+  }
+  nameInput.addEventListener('input', saveDraft)
+  quantityInput.addEventListener('input', saveDraft)
+  typeSelect.addEventListener('change', saveDraft)
+  personInput.addEventListener('input', saveDraft)
+
   function renderTables(): void {
     const items = getItems()
     tbody.innerHTML = items
@@ -120,6 +150,7 @@ function renderWarehouse(): HTMLElement {
     setItems(items)
     renderTables()
     form.reset()
+    setData('warehouse_draft', EMPTY_DRAFT)
   })
 
   renderTables()
