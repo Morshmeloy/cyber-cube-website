@@ -63,20 +63,25 @@ function renderBlock(block: PageBlock, navigateTo: (target: PageNavigationTarget
           {block.text}
         </p>
       )
-    case 'paragraphLink':
+    case 'paragraphLink': {
+      const linkClassName = 'cursor-pointer font-semibold text-[var(--plasma-color)] underline [text-shadow:0_0_6px_color-mix(in_srgb,var(--plasma-color)_50%,transparent)] hover:text-white'
+      const target = block.target
       return (
         <p key={key} style={style} className={`${appear} mb-3.5 max-w-[860px] text-[clamp(14px,1.6vw,17px)] leading-[1.7] text-[#e8f8ff]/90`}>
           {block.before}
-          <button
-            type="button"
-            onClick={() => !('href' in block.target) && navigateTo(block.target)}
-            className={`cursor-pointer font-semibold text-[var(--plasma-color)] underline [text-shadow:0_0_6px_color-mix(in_srgb,var(--plasma-color)_50%,transparent)] hover:text-white`}
-          >
-            {block.linkText}
-          </button>
+          {'href' in target ? (
+            <a href={target.href} target="_blank" rel="noopener" className={linkClassName}>
+              {block.linkText}
+            </a>
+          ) : (
+            <button type="button" onClick={() => navigateTo(target)} className={linkClassName}>
+              {block.linkText}
+            </button>
+          )}
           {block.after}
         </p>
       )
+    }
     case 'paragraphEmphasis':
       return (
         <p key={key} style={style} className={`${appear} mb-3.5 max-w-[860px] text-[clamp(14px,1.6vw,17px)] leading-[1.7] text-[#e8f8ff]/90`}>

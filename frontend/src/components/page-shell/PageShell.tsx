@@ -112,11 +112,18 @@ export function PageShell({ target, navigateTo, audio, onDefaultClose }: PageShe
     <div
       style={rootStyle}
       data-plasma-panel
-      className={`relative z-11 mt-[clamp(8px,1.2vh,16px)] w-[min(calc(100vw-32px),1600px)] overflow-hidden rounded-xl border transition-[height,transform,filter,opacity,border-color,box-shadow] duration-600 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+      className={`${isFullscreen && isActive ? 'fixed' : 'relative'} z-11 mt-[clamp(8px,1.2vh,16px)] w-[min(calc(100vw-32px),1600px)] overflow-hidden rounded-xl border transition-[height,transform,filter,opacity,border-color,box-shadow] duration-600 ease-[cubic-bezier(0.16,1,0.3,1)] ${
         isActive
           ? 'h-[min(78vh,900px)] scale-100 translate-y-0 border-[var(--plasma-color)] opacity-100 shadow-[0_0_12px_var(--plasma-color),0_0_30px_color-mix(in_srgb,var(--plasma-color)_50%,transparent),inset_0_0_20px_rgba(0,0,0,0.6)] blur-none'
           : 'h-0 scale-[0.92] translate-y-[28px] border-transparent opacity-0 blur-[6px]'
-      } ${isFullscreen && isActive ? 'fixed inset-0 z-[400] h-screen w-screen max-w-none rounded-none' : ''}`}
+      } ${
+        // relative/fixed вынесены в начало как взаимоисключающие (см. выше) — если оба класса
+        // присутствуют одновременно, Tailwind резолвит конфликт по порядку правил в
+        // сгенерированном CSS (а не по порядку классов в JSX), и .relative там идёт позже
+        // .fixed, поэтому position:fixed вообще не применялся, пока класс relative был
+        // на элементе всегда, а fixed — лишь добавлялся поверх.
+        isFullscreen && isActive ? 'inset-0 z-[400] h-screen w-screen max-w-none rounded-none' : ''
+      }`}
     >
       <div
         className="absolute inset-0 rounded-[inherit]"

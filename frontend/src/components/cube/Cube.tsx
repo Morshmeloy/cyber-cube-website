@@ -24,40 +24,43 @@ interface CubeProps {
 /** Визуальные параметры каждой грани — фиксированные брендовые цвета/градиенты (не тема,
  * не должны течь через дизайн-токены), поэтому заданы как данные, а не Tailwind-классы:
  * многостоповые градиенты и 3D-transform с CSS-переменной размера читаемее как объект стилей,
- * чем как одна строка произвольного Tailwind-класса. */
+ * чем как одна строка произвольного Tailwind-класса. Альфа-канал background — 0.9 (почти
+ * непрозрачно, чуть светлее и лёгкий эффект стекла): полностью прозрачным (альфа < ~0.85)
+ * быть не должно — сквозь грань просвечивает фон страницы позади всей сцены куба (грани —
+ * это отдельные плоскости без непрозрачной "начинки", не закрытый со всех сторон объём). */
 const FACE_VISUALS: Record<FaceName, { background: string; boxShadow: string; transform: string; color: string }> = {
   front: {
-    background: 'linear-gradient(135deg, rgba(0, 255, 255, 0.7), rgba(0, 80, 80, 0.85))',
+    background: 'linear-gradient(135deg, rgba(0, 255, 255, 0.9), rgba(0, 110, 110, 0.9))',
     boxShadow: '0 0 25px rgba(0, 255, 255, 0.25), inset 0 0 40px rgba(0, 255, 255, 0.08)',
     transform: 'translateZ(var(--cube-half))',
     color: faceColors.front,
   },
   back: {
-    background: 'linear-gradient(135deg, rgba(255, 0, 255, 0.7), rgba(80, 0, 80, 0.85))',
+    background: 'linear-gradient(135deg, rgba(255, 0, 255, 0.9), rgba(110, 0, 110, 0.9))',
     boxShadow: '0 0 25px rgba(255, 0, 255, 0.25), inset 0 0 40px rgba(255, 0, 255, 0.08)',
     transform: 'rotateY(180deg) translateZ(var(--cube-half))',
     color: faceColors.back,
   },
   right: {
-    background: 'linear-gradient(135deg, rgba(0, 255, 136, 0.7), rgba(0, 80, 40, 0.85))',
+    background: 'linear-gradient(135deg, rgba(0, 255, 136, 0.9), rgba(0, 110, 60, 0.9))',
     boxShadow: '0 0 25px rgba(0, 255, 136, 0.25), inset 0 0 40px rgba(0, 255, 136, 0.08)',
     transform: 'rotateY(90deg) translateZ(var(--cube-half))',
     color: faceColors.right,
   },
   left: {
-    background: 'linear-gradient(135deg, rgba(255, 136, 0, 0.7), rgba(80, 40, 0, 0.85))',
+    background: 'linear-gradient(135deg, rgba(255, 136, 0, 0.9), rgba(110, 60, 0, 0.9))',
     boxShadow: '0 0 25px rgba(255, 136, 0, 0.25), inset 0 0 40px rgba(255, 136, 0, 0.08)',
     transform: 'rotateY(-90deg) translateZ(var(--cube-half))',
     color: faceColors.left,
   },
   top: {
-    background: 'linear-gradient(135deg, rgba(136, 0, 255, 0.7), rgba(50, 0, 100, 0.85))',
+    background: 'linear-gradient(135deg, rgba(136, 0, 255, 0.9), rgba(60, 0, 110, 0.9))',
     boxShadow: '0 0 25px rgba(136, 0, 255, 0.25), inset 0 0 40px rgba(136, 0, 255, 0.08)',
     transform: 'rotateX(90deg) translateZ(var(--cube-half))',
     color: faceColors.top,
   },
   bottom: {
-    background: 'linear-gradient(135deg, rgba(0, 136, 255, 0.7), rgba(0, 40, 80, 0.85))',
+    background: 'linear-gradient(135deg, rgba(0, 136, 255, 0.9), rgba(0, 60, 110, 0.9))',
     boxShadow: '0 0 25px rgba(0, 136, 255, 0.25), inset 0 0 40px rgba(0, 136, 255, 0.08)',
     transform: 'rotateX(-90deg) translateZ(var(--cube-half))',
     color: faceColors.bottom,
@@ -69,6 +72,10 @@ const SCENE_STYLE: CSSProperties = {
   '--cube-half': 'calc(var(--cube-size) / 2)',
   width: 'var(--cube-size)',
   height: 'var(--cube-size)',
+  // Без perspective все translateZ() у граней (FACE_VISUALS) — no-op: грани не
+  // расходятся по глубине и складываются друг на друга в одной плоскости, из-за
+  // чего несколько полупрозрачных слоёв накладываются и куб выглядит «прозрачным».
+  perspective: '900px',
 } as CSSProperties
 
 const FACE_ICON_FILTER: CSSProperties = {
@@ -116,7 +123,10 @@ export const Cube = forwardRef<CubeHandle, CubeProps>(function Cube({ audio, onF
             <div
               key={face.name}
               style={{ background: visuals.background, boxShadow: visuals.boxShadow, transform: visuals.transform, color: visuals.color }}
-              className="absolute inset-0 flex items-center justify-center overflow-hidden rounded-xl border border-white/18 backdrop-blur-[2px] before:absolute before:inset-0 before:rounded-xl before:bg-[inherit] before:opacity-15"
+              // Без backdrop-blur: в паре с transform-style:preserve-3d у родителя Chromium
+              // некорректно компонует размытие на повёрнутых гранях — собственный
+              // background грани будто не рисуется, сквозь неё виден резкий фон страницы.
+              className="absolute inset-0 flex items-center justify-center overflow-hidden rounded-xl border border-white/18 before:absolute before:inset-0 before:rounded-xl before:bg-[inherit] before:opacity-15"
             >
               <a
                 href={`#${face.name}`}

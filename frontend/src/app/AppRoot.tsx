@@ -135,7 +135,11 @@ export function AppRoot() {
       <div className="relative flex min-h-screen w-full flex-col items-center justify-start gap-[1vh] pt-[1vh]">
         <h1
           data-text="Д4 Технологии"
-          className={`relative z-[100] text-center text-[clamp(18px,3.5vw,36px)] font-bold tracking-[0.2em] text-[#e0ffff] uppercase [animation:neonTitlePulse_2s_ease-in-out_infinite_alternate,glitch_5s_infinite] [text-shadow:0_0_10px_rgba(0,255,255,1),0_0_25px_rgba(0,255,255,0.8),0_0_50px_rgba(0,255,255,0.6),0_0_100px_rgba(0,255,255,0.4)] before:absolute before:inset-0 before:-z-10 before:text-[#f0f] before:content-[attr(data-text)] before:[animation:glitchLayer1_5s_infinite] after:absolute after:inset-0 after:-z-10 after:text-[#0ff] after:content-[attr(data-text)] after:[animation:glitchLayer2_5s_infinite] ${target ? 'hidden' : ''}`}
+          // pointer-events-none + select-none: чисто декоративный заголовок визуально
+          // перекрывается кубом (z-[100] выше z-10 куба) — без этого драг мышью,
+          // начатый на буквах заголовка, запускал нативное выделение/перетаскивание
+          // текста браузером вместо вращения куба под ним.
+          className={`relative z-[100] pointer-events-none text-center text-[clamp(18px,3.5vw,36px)] font-bold tracking-[0.2em] text-[#e0ffff] uppercase select-none [animation:neonTitlePulse_2s_ease-in-out_infinite_alternate,glitch_5s_infinite] [text-shadow:0_0_10px_rgba(0,255,255,1),0_0_25px_rgba(0,255,255,0.8),0_0_50px_rgba(0,255,255,0.6),0_0_100px_rgba(0,255,255,0.4)] before:absolute before:inset-0 before:-z-10 before:text-[#f0f] before:content-[attr(data-text)] before:[animation:glitchLayer1_5s_infinite] after:absolute after:inset-0 after:-z-10 after:text-[#0ff] after:content-[attr(data-text)] after:[animation:glitchLayer2_5s_infinite] ${target ? 'hidden' : ''}`}
         >
           Д4 Технологии
         </h1>

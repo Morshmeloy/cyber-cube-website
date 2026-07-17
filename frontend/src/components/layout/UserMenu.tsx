@@ -19,7 +19,7 @@ export function UserMenu({ user, navigateTo, onLoggedOut }: UserMenuProps) {
 
   return (
     <div className="fixed top-[clamp(10px,2vh,20px)] right-[clamp(10px,2vw,24px)] z-[600]">
-      <DropdownMenu>
+      <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <button
             type="button"
