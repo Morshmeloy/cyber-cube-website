@@ -1,10 +1,10 @@
 import { Toaster } from '@/components/ui/sonner'
-import { AppShell } from './AppShell.tsx'
+import { AppRoot } from './AppRoot.tsx'
 
 export function App() {
   return (
     <>
-      <AppShell />
+      <AppRoot />
       <Toaster />
     </>
   )
