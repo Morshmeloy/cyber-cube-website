@@ -30,7 +30,7 @@ export function FinancePage() {
   const isAdmin = user?.role === 'admin' || user?.role === 'accountant'
 
   const [items, setItems] = useState<Expense[]>(() => getData<Expense[]>('finance', []))
-  const draft0 = getData<FinanceDraft>('finance_draft', EMPTY_DRAFT)
+  const [draft0] = useState<FinanceDraft>(() => getData<FinanceDraft>('finance_draft', EMPTY_DRAFT))
   const [amount, setAmount] = useState(draft0.amount)
   const [description, setDescription] = useState(draft0.description)
   const [receiptName, setReceiptName] = useState('Файл не выбран')
