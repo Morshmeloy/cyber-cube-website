@@ -37,10 +37,10 @@ components/
   cube/            Cube.tsx — главный 3D-куб навигации
   layout/          SiteFooter.tsx, UserMenu.tsx
   page-shell/       PageShell.tsx, PageRenderer.tsx, CertificateCarousel.tsx
-  private/          DashboardPage.tsx, DocsPage.tsx, FinancePage.tsx, WarehousePage.tsx, learning/
+  private/          DashboardPage.tsx, DocsPage.tsx, FinancePage.tsx, WarehousePage.tsx, AdminPage.tsx, learning/
   ui/              shadcn-примитивы
 hooks/            useCube.tsx, useLumaKeyCutout.tsx, useNetworkCanvas.tsx
-lib/              http-client.tsx, auth.tsx, storage.tsx, utils.tsx, audio-engine.tsx
+lib/              http-client.tsx, auth.tsx, storage.tsx, utils.tsx, audio-engine.tsx, router.tsx, admin-api.tsx
 data/             контент и константы сайта (переименовано из бывшего settings/ на этапе финальной реструктуризации): navigation/{faces,cube,carousel,private,pages/*}, site/{site,footer}, audio/audio, background/{luma-key,rain,slideshow}
 types/            audio.tsx, navigation.tsx, page-content.tsx
 index.css         Tailwind-вход: тема (@theme), @layer base (сброс, body-фон, сетка), все @keyframes
@@ -51,6 +51,15 @@ index.css         Tailwind-вход: тема (@theme), @layer base (сброс,
 `index.html` → `<div id="root">` + `<script src="/src/main.tsx">` → `main.tsx` монтирует `<App/>` (`src/app/App.tsx`) → `App` рендерит `<AppRoot/>` (`src/app/AppRoot.tsx`) + `<Toaster/>` (sonner).
 
 `AppRoot.tsx` — корень приложения и единственный владелец навигационного состояния: `target: PageShellTarget | null` (какая страница открыта и чем закрывается), `cubeVisual: CubeVisualState` (визуальное состояние куба — `visible`/`closing`/`hidden`), плюс `user`. Диспетчер `navigateTo(target: PageNavigationTarget)` — переход по грани куба, по «Правовая информация» или по разделу личного кабинета; при первом открытии панели проигрывает короткую вспышку/сжатие куба (450 мс) перед тем, как показать панель, при переключении между уже открытыми страницами — просто меняет контент (кросс-фейд в `PageShell`). Фоновые слои (`BackgroundSlideshow`, `Rain`) и логотип шапки (`useLumaKeyCutout`) — самостоятельные компонент/хук, монтируются прямо в JSX, без ручной оркестрации через `useEffect`.
+
+## URL-роутинг (`src/lib/router.tsx`)
+
+Адресная строка синхронизирована с открытой страницей через нативный History API (`pushState`/`popstate`) — без `react-router-dom`, вся навигация и так стекается в один диспетчер `navigateTo()`. `router.tsx` — чистые функции `pathForRoute`/`routeForPath`, единственный источник истины для соответствия «путь ↔ грань/раздел» (`/about`, `/services`, `/software`, `/support`, `/contacts`, `/login`, `/legal`, `/dashboard`, `/learning`, `/warehouse`, `/docs`, `/finance`, `/admin`). В `AppRoot.tsx`:
+- `syncUrl()` вызывается из `navigateTo()`/`hideToCube()`/`openAdminPage()` после того, как решено, что реально показать (учитывает редиректы — например, неавторизованный переход в приватный раздел всегда синхронизирует URL на `/login`, а не на запрошенный путь);
+- при монтировании URL разбирается один раз (deep link — прямой заход/обновление страницы на любом пути открывает сразу нужный раздел);
+- `popstate` (кнопки «назад»/«вперёд» браузера) пересобирает состояние из нового `location.pathname`.
+
+Незнакомый путь тихо трактуется как куб — без отдельной 404-страницы.
 
 ## Куб (`src/components/cube/Cube.tsx`, `src/hooks/useCube.tsx`)
 
@@ -76,6 +85,12 @@ index.css         Tailwind-вход: тема (@theme), @layer base (сброс,
 | bottom | `contacts.tsx` — «Контакты» |
 
 `legal.tsx` — «Правовая информация» — вне этой таблицы, без грани; открывается только по ссылке в футере.
+
+## Скрытая страница `/admin` (`src/components/private/AdminPage.tsx`, `src/lib/admin-api.tsx`)
+
+Управление пользователями — список всех пользователей, смена роли, блокировка (`isActive`), удаление. На неё нет ссылок нигде в интерфейсе — доступна только прямым переходом на `/admin`. Доступ проверяется в `AppRoot.tsx::openAdminPage()`: неавторизованный → `/login`, авторизованный без роли `admin` → `/dashboard`, `admin` → сама страница.
+
+`lib/admin-api.tsx` — заглушка: реального бэкенд-эндпоинта для управления пользователями пока нет (`backend/` умеет только регистрацию/логин/`/auth/me`). Данные живут в памяти модуля (сбрасываются при перезагрузке страницы), но каждая функция оформлена как настоящий асинхронный запрос (`setTimeout`-задержка) — сигнатуры уже соответствуют будущему REST-контракту, замена на реальные вызовы `apiClient` не потребует переписывать `AdminPage.tsx`.
 
 ## Личный кабинет (`src/components/private/`, `src/lib/`)
 

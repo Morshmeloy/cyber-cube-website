@@ -137,6 +137,12 @@ export const Cube = forwardRef<CubeHandle, CubeProps>(function Cube({ audio, onF
                 // mousemove-события — куб переставал вращаться после первого пикселя драга.
                 draggable={false}
                 onDragStart={(e) => e.preventDefault()}
+                // Клик по грани обрабатывается через bubbling на самой сцене (см.
+                // onSceneClick в useCube.ts) — она решает, что реально открыть, и сама
+                // синхронизирует URL через History API (см. lib/router.ts). Без этого
+                // браузер ПАРАЛЛЕЛЬНО ещё и честно переходил по нативному href="#front",
+                // приклеивая хэш поверх пути, который только что задал pushState().
+                onClick={(e) => e.preventDefault()}
                 className={`flex h-full w-full cursor-pointer flex-col items-center justify-center rounded-xl text-inherit no-underline transition-colors duration-300 ${face.name === 'front' ? 'gap-0 p-0' : 'gap-3.5'} ${isTopOrBottom ? '' : ''}`}
               >
                 {face.name === 'front' ? (

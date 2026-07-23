@@ -15,15 +15,26 @@ import { PRIVATE_PAGE_COLORS } from '@/data/navigation/private.tsx'
 import { LOGO_IMAGE_PATH } from '@/data/site/site.tsx'
 import { getUser, isAuthenticated, logout } from '@/lib/auth.tsx'
 import { setSessionExpiredHandler } from '@/lib/http-client.tsx'
+import { pathForRoute, routeForPath, type AppRoute } from '@/lib/router.tsx'
 import { AuthScreen } from '@/components/auth/AuthScreen.tsx'
 import { DashboardPage } from '@/components/private/DashboardPage.tsx'
 import { DocsPage } from '@/components/private/DocsPage.tsx'
 import { WarehousePage } from '@/components/private/WarehousePage.tsx'
 import { FinancePage } from '@/components/private/FinancePage.tsx'
+import { AdminPage } from '@/components/private/AdminPage.tsx'
 import { LearningQuiz } from '@/components/private/learning/LearningQuiz.tsx'
 import type { PageContent, PageNavigationTarget, PrivatePageKey } from '@/types/page-content.tsx'
 
 const audio = createAudioEngine()
+
+/** Скрытая служебная страница — не PrivatePageKey специально: на неё нет ссылок в
+ * интерфейсе (см. lib/router.ts), только прямой переход по /admin. Цвет — отдельный,
+ * сигнальный (не из палитры обычных разделов кабинета). */
+const ADMIN_COLOR = '#ff4757'
+
+function adminPageContent(): PageContent {
+  return { title: 'Администрирование пользователей', blocks: [{ kind: 'component', render: () => createElement(AdminPage) }] }
+}
 
 /** Грань «Авторизация» — вход/регистрация (components/auth/AuthScreen.tsx) + биометрия-заглушка. */
 function authPageContent(): PageContent {
@@ -80,6 +91,14 @@ export function AppRoot() {
     return () => setSessionExpiredHandler(null)
   })
 
+  // Синхронизация адресной строки с фактически открытой страницей (см. lib/router.ts).
+  // Не создаёт новую запись истории, если браузер уже стоит на этом пути — именно так
+  // сюда естественно попадают события popstate (назад/вперёд), не порождая дублей.
+  function syncUrl(route: AppRoute): void {
+    const path = pathForRoute(route)
+    if (window.location.pathname !== path) window.history.pushState(null, '', path)
+  }
+
   function showPage(color: string, content: PageContent, onClose?: () => void): void {
     window.scrollTo({ top: 0, behavior: 'smooth' })
     if (target === null) {
@@ -103,6 +122,7 @@ export function AppRoot() {
     setCubeVisual('visible')
     cubeHandleRef.current?.resetRotation()
     cubeHandleRef.current?.scheduleAutoRotation()
+    syncUrl({ kind: 'cube' })
   }
 
   /** Общий диспетчер навигации — переход по грани/легальной странице/разделу кабинета,
@@ -110,12 +130,14 @@ export function AppRoot() {
   function navigateTo(navTarget: PageNavigationTarget): void {
     if ('legal' in navTarget) {
       showPage(legalPageColor, legalPageContent)
+      syncUrl({ kind: 'nav', target: navTarget })
       setUser(getUser())
       return
     }
     if ('private' in navTarget) {
       if (!isAuthenticated()) {
         showPage(faceColors.front, authPageContent())
+        syncUrl({ kind: 'nav', target: { face: 'front' } })
         setUser(getUser())
         return
       }
@@ -124,17 +146,64 @@ export function AppRoot() {
       } else {
         showPage(PRIVATE_PAGE_COLORS[navTarget.private], PRIVATE_PAGE_CONTENT[navTarget.private], () => navigateTo({ private: 'dashboard' }))
       }
+      syncUrl({ kind: 'nav', target: navTarget })
       setUser(getUser())
       return
     }
     if (navTarget.face === 'front' && isAuthenticated()) {
       showPage(PRIVATE_PAGE_COLORS.dashboard, dashboardPageContent())
+      syncUrl({ kind: 'nav', target: { private: 'dashboard' } })
       setUser(getUser())
       return
     }
     showPage(faceColors[navTarget.face], navTarget.face === 'front' ? authPageContent() : pageContentByFace[navTarget.face as Exclude<typeof navTarget.face, 'front'>])
+    syncUrl({ kind: 'nav', target: navTarget })
     setUser(getUser())
   }
+
+  /** Скрытая страница /admin (см. lib/router.ts) — нет ссылок в интерфейсе, только прямой
+   * URL. Неавторизованных отправляет на вход, авторизованных без роли admin — на дашборд. */
+  function openAdminPage(): void {
+    if (!isAuthenticated()) {
+      navigateTo({ face: 'front' })
+      return
+    }
+    if (getUser()?.role !== 'admin') {
+      navigateTo({ private: 'dashboard' })
+      return
+    }
+    showPage(ADMIN_COLOR, adminPageContent(), () => navigateTo({ private: 'dashboard' }))
+    syncUrl({ kind: 'admin' })
+    setUser(getUser())
+  }
+
+  // Разбор URL при первой загрузке страницы (прямой переход/обновление по /about,
+  // /dashboard, /admin и т.п. — «deep link»). Выполняется один раз при монтировании.
+  // queueMicrotask: setState нельзя вызывать синхронно из тела эффекта
+  // (react-hooks/set-state-in-effect) — navigateTo/openAdminPage делают это внутри себя.
+  useEffect(() => {
+    queueMicrotask(() => {
+      const route = routeForPath(window.location.pathname)
+      if (route.kind === 'admin') openAdminPage()
+      else if (route.kind === 'nav') navigateTo(route.target)
+      // route.kind === 'cube' — уже и так начальное состояние, ничего делать не нужно.
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- должно выполниться один раз при монтировании
+  }, [])
+
+  // Кнопки "назад"/"вперёд" браузера — пересобираем на каждый рендер (не [] deps), чтобы
+  // замыкание всегда видело актуальные navigateTo/hideToCube/openAdminPage (тот же приём,
+  // что и у обработчика истёкшей сессии выше).
+  useEffect(() => {
+    function onPopState(): void {
+      const route = routeForPath(window.location.pathname)
+      if (route.kind === 'admin') openAdminPage()
+      else if (route.kind === 'nav') navigateTo(route.target)
+      else hideToCube()
+    }
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  })
 
   return (
     <>
