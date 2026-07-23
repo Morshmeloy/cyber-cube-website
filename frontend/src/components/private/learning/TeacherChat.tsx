@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import axios from 'axios'
 import { getData, setData } from '@/lib/storage.tsx'
 import type { ChatMessage, Mistake } from './types.tsx'
 import { CTA_PRIMARY } from './cta.tsx'
+import { Spinner } from '@/components/ui/spinner.tsx'
+import { mistakesKey, teacherExplainMistakes, requestMistakeDetail, sendFreeQuestion as sendFreeQuestionRequest, getPendingInteraction } from '@/lib/teacher-api.tsx'
 
-const TEACHER_API_BASE = 'http://localhost:5000'
 const CHAT_HISTORY_KEY = 'learning_chat_history'
 const CHAT_DRAFT_KEY = 'learning_chat_draft'
 
@@ -27,13 +27,15 @@ interface TeacherChatProps {
  * диалог с учителем (teacher/server.py). История в localStorage переживает переоткрытие
  * панели, пока набор вопросов-ошибок не изменился. */
 export function TeacherChat({ mistakes }: TeacherChatProps) {
+  const chatKey = mistakesKey(mistakes)
   const [history, setHistory] = useState<ChatMessage[]>(() => loadChatHistory(mistakes))
   const [input, setInput] = useState(() => getData<string>(CHAT_DRAFT_KEY, ''))
-  // Изначально true, только если истории ещё нет — тогда эффект ниже сразу запросит
-  // объяснения (setLoading(true) внутри эффекта запрещён новым правилом react-hooks/set-state-in-effect).
-  const [loading, setLoading] = useState(() => loadChatHistory(mistakes).length === 0)
+  // Изначально true, если истории ещё нет (эффект ниже сразу запросит объяснения) — либо
+  // если на момент монтирования уже есть чужое незавершённое взаимодействие (см. ниже).
+  // setLoading(true) внутри эффекта запрещён правилом react-hooks/set-state-in-effect,
+  // поэтому оба случая учтены сразу в ленивом инициализаторе.
+  const [loading, setLoading] = useState(() => loadChatHistory(mistakes).length === 0 || !!getPendingInteraction(mistakesKey(mistakes)))
   const [loadingDetailIndex, setLoadingDetailIndex] = useState<number | null>(null)
-  const [hiddenDetailButtons, setHiddenDetailButtons] = useState<Set<number>>(new Set())
   const messagesRef = useRef<HTMLDivElement>(null)
   const didFetchInitial = useRef(false)
 
@@ -48,10 +50,8 @@ export function TeacherChat({ mistakes }: TeacherChatProps) {
     didFetchInitial.current = true
     if (history.length > 0) return
 
-    axios
-      .post<{ explanations?: { id: number; explanation: string }[]; error?: string }>(`${TEACHER_API_BASE}/api/chat`, { mistakes })
-      .then((res) => {
-        const data = res.data
+    teacherExplainMistakes(mistakes)
+      .then((data) => {
         if (data.error || !data.explanations) {
           persistHistory([{ sender: 'bot', text: data.error ?? 'Не удалось получить объяснения.', contextLabel: null, mistakeId: null, kind: 'error' }])
           return
@@ -69,6 +69,19 @@ export function TeacherChat({ mistakes }: TeacherChatProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mistakes стабилен для времени жизни компонента
   }, [])
 
+  // «Подробнее»/свободный вопрос — одноразовые запросы без своего эффекта-перезапуска
+  // (см. lib/teacher-api.ts): если пользователь успел свернуть чат и открыть заново, пока
+  // ответ ещё генерировался, этот эффект подхватывает уже идущее взаимодействие вместо
+  // того, чтобы молча его не заметить — показывает "Печатает…" и дочитывает результат,
+  // который teacher-api.ts тем временем допишет в localStorage независимо от того, жив
+  // ли инициировавший запрос компонент.
+  useEffect(() => {
+    const pending = getPendingInteraction(chatKey)
+    if (!pending) return
+    pending.then(() => setHistory(loadChatHistory(mistakes))).finally(() => setLoading(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- chatKey/mistakes стабильны для времени жизни компонента
+  }, [])
+
   useEffect(() => {
     messagesRef.current?.scrollTo({ top: messagesRef.current.scrollHeight })
   }, [history, loading])
@@ -81,7 +94,7 @@ export function TeacherChat({ mistakes }: TeacherChatProps) {
   async function requestDetail(mistake: Mistake, previousExplanation: string, index: number): Promise<void> {
     setLoadingDetailIndex(index)
     try {
-      const res = await axios.post<{ detail?: string; error?: string }>(`${TEACHER_API_BASE}/api/chat/detail`, {
+      await requestMistakeDetail(chatKey, {
         id: mistake.id,
         question: mistake.question,
         options: mistake.options,
@@ -89,13 +102,7 @@ export function TeacherChat({ mistakes }: TeacherChatProps) {
         previous_explanation: previousExplanation,
         src: mistake.src,
       })
-      const data = res.data
-      if (data.error || !data.detail) return
-
-      const contextLabel = `Вопрос ${mistake.id} · подробнее`
-      const next = [...history, { sender: 'bot' as const, text: data.detail, contextLabel, mistakeId: mistake.id, kind: 'detail' as const }]
-      persistHistory(next)
-      setHiddenDetailButtons((prev) => new Set(prev).add(index))
+      setHistory(loadChatHistory(mistakes))
     } finally {
       setLoadingDetailIndex(null)
     }
@@ -111,21 +118,14 @@ export function TeacherChat({ mistakes }: TeacherChatProps) {
     const withUserMsg = [...history, { sender: 'user' as const, text: question, contextLabel: null, mistakeId: null, kind: 'free' as const }]
     persistHistory(withUserMsg)
 
-    try {
-      const context = withUserMsg
-        .filter((m) => m.kind === 'free')
-        .slice(-10)
-        .map((m) => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.text }))
+    const context = withUserMsg
+      .filter((m) => m.kind === 'free')
+      .slice(-10)
+      .map((m) => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.text }))
 
-      const res = await axios.post<{ answer?: string; error?: string }>(`${TEACHER_API_BASE}/api/chat/free`, { question, context })
-      const data = res.data
-      if (data.error || !data.answer) {
-        persistHistory([...withUserMsg, { sender: 'bot', text: data.error ?? 'Не удалось получить ответ.', contextLabel: null, mistakeId: null, kind: 'error' }])
-      } else {
-        persistHistory([...withUserMsg, { sender: 'bot', text: data.answer, contextLabel: null, mistakeId: null, kind: 'free' }])
-      }
-    } catch {
-      persistHistory([...withUserMsg, { sender: 'bot', text: 'Ошибка соединения с teacher/server.py (порт 5000).', contextLabel: null, mistakeId: null, kind: 'error' }])
+    try {
+      await sendFreeQuestionRequest(chatKey, question, context)
+      setHistory(loadChatHistory(mistakes))
     } finally {
       setLoading(false)
     }
@@ -155,7 +155,7 @@ export function TeacherChat({ mistakes }: TeacherChatProps) {
           <ChatRow
             key={i}
             msg={msg}
-            showDetailButton={msg.kind === 'explanation' && !hiddenDetailButtons.has(i)}
+            showDetailButton={msg.kind === 'explanation' && !history.some((h) => h.kind === 'detail' && h.mistakeId === msg.mistakeId)}
             detailLoading={loadingDetailIndex === i}
             onRequestDetail={() => {
               const mistake = msg.mistakeId !== null ? mistakes.find((m) => m.id === msg.mistakeId) : undefined
@@ -163,7 +163,15 @@ export function TeacherChat({ mistakes }: TeacherChatProps) {
             }}
           />
         ))}
-        {loading && <ChatRow msg={{ sender: 'bot', text: '⏳ Печатает…', contextLabel: null, mistakeId: null, kind: 'error' }} showDetailButton={false} detailLoading={false} onRequestDetail={() => {}} />}
+        {loading && (
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#e8f8ff]/15 bg-white/5 text-sm">🤖</div>
+            <div className="flex items-center gap-2 rounded-2xl rounded-tl-[4px] border border-[#e8f8ff]/10 bg-white/5 px-3.5 py-2.5 text-[13px] text-[#e8f8ff]/70">
+              <Spinner className="h-3.5 w-3.5" />
+              Печатает…
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex gap-2">
@@ -177,7 +185,8 @@ export function TeacherChat({ mistakes }: TeacherChatProps) {
           placeholder="Задайте вопрос учителю…"
           className="flex-1 rounded-lg border border-[#e8f8ff]/20 bg-[#0a0c18a6] px-3 py-2.5 text-[13px] text-[#e8f8ff] placeholder:text-[#e8f8ff]/35 focus:border-[var(--plasma-color)] focus:outline-none"
         />
-        <button type="button" disabled={loading} onClick={() => void sendFreeQuestion()} className={CTA_PRIMARY}>
+        <button type="button" disabled={loading} onClick={() => void sendFreeQuestion()} className={`${CTA_PRIMARY} flex items-center gap-1.5`}>
+          {loading && <Spinner className="h-3.5 w-3.5" />}
           Отправить
         </button>
       </div>
@@ -220,10 +229,11 @@ function ChatRow({
             type="button"
             disabled={detailLoading}
             onClick={onRequestDetail}
-            className="mt-2 block rounded-md border px-2.5 py-1.5 text-[11px] text-[var(--plasma-color)] transition-colors hover:bg-[color-mix(in_srgb,var(--plasma-color)_14%,transparent)] disabled:opacity-60"
+            className="mt-2 flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[11px] text-[var(--plasma-color)] transition-colors hover:bg-[color-mix(in_srgb,var(--plasma-color)_14%,transparent)] disabled:opacity-60"
             style={{ borderColor: 'color-mix(in srgb, var(--plasma-color) 40%, transparent)' }}
           >
-            {detailLoading ? '⏳' : '📖 Подробнее'}
+            {detailLoading && <Spinner className="h-3 w-3" />}
+            {detailLoading ? 'Загрузка…' : '📖 Подробнее'}
           </button>
         )}
       </div>

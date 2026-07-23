@@ -8,6 +8,7 @@ import { emptyQuizState, type AnswerState, type Mistake, type Mode, type Questio
 
 const QUESTIONS: QuestionWithMulti[] = LEARNING_QUESTIONS.map((q) => ({ ...q, multi: q.a.length > 1 }))
 const PROGRESS_KEY = 'learning_progress'
+const RESULTS_KEY = 'learning_results'
 
 function shuffle<T>(items: T[]): T[] {
   const copy = [...items]
@@ -37,11 +38,20 @@ interface FinishedResults {
 export function LearningQuiz() {
   const [state, setState] = useState<QuizState>(() => getData<QuizState>(PROGRESS_KEY, emptyQuizState()))
   const [wrongIds, setWrongIds] = useState<number[]>([])
-  const [results, setResults] = useState<FinishedResults | null>(null)
+  // Результаты последнего пройденного теста переживают закрытие/повторное открытие
+  // раздела «Обучение» — без этого случайно закрытая панель отрезала путь назад к уже
+  // пройденному тесту и его чату с ИИ, который тем временем мог продолжать генерироваться
+  // на сервере (см. lib/teacher-api.ts — запрос переживает размонтирование компонента).
+  const [results, setResultsState] = useState<FinishedResults | null>(() => getData<FinishedResults | null>(RESULTS_KEY, null))
 
   function save(next: QuizState): void {
     setState(next)
     setData(PROGRESS_KEY, next)
+  }
+
+  function setResults(next: FinishedResults | null): void {
+    setResultsState(next)
+    setData(RESULTS_KEY, next)
   }
 
   function countDone(s: QuizState): number {

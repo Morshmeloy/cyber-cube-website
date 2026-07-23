@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
+import { getData, setData } from '@/lib/storage.tsx'
 import type { AnswerState, Mistake, QuestionWithMulti } from './types.tsx'
 import { CTA_OUTLINE, CTA_PRIMARY } from './cta.tsx'
 import { TeacherChat } from './TeacherChat.tsx'
+
+const CHAT_OPEN_KEY = 'learning_chat_open'
 
 interface QuizResultsProps {
   total: number
@@ -26,7 +29,13 @@ const CIRCUMFERENCE = 314
 export function QuizResults({ total, done, correct, skipped, wrong, pct, mistakes, finishedOrder, finishedAnswers, resolveQuestion, canRetryWrong, onRestart, onRetryWrong }: QuizResultsProps) {
   const [dashOffset, setDashOffset] = useState(CIRCUMFERENCE)
   const [showBreakdown, setShowBreakdown] = useState(false)
-  const [showChat, setShowChat] = useState(false)
+  // Открыт ли чат с учителем — переживает закрытие/повторное открытие раздела (вместе
+  // с самими результатами, см. LearningQuiz.tsx), чтобы можно было вернуться и увидеть
+  // объяснение, которое всё это время продолжало генерироваться на сервере.
+  const [showChat, setShowChat] = useState(() => getData<boolean>(CHAT_OPEN_KEY, false))
+  // «Пройти заново»/«Повторить ошибки» стирают текущие результаты безвозвратно — один
+  // случайный клик уже не даст сюда вернуться, поэтому оба действия требуют подтверждения.
+  const [pendingAction, setPendingAction] = useState<'restart' | 'retryWrong' | null>(null)
 
   let title = 'Нужно повторить материал'
   if (pct >= 90) title = 'Отличный результат!'
@@ -37,6 +46,33 @@ export function QuizResults({ total, done, correct, skipped, wrong, pct, mistake
     const id = requestAnimationFrame(() => setDashOffset(CIRCUMFERENCE - (CIRCUMFERENCE * pct) / 100))
     return () => cancelAnimationFrame(id)
   }, [pct])
+
+  // «Подробный разбор» и «Объяснить ошибки» — взаимоисключающиеся блоки: открытие одного
+  // прячет другой (будто предыдущий сам закрылся), а не накапливается под ним. Диалог с
+  // ИИ при этом не обрывается по-настоящему — TeacherChat размонтируется, но запрос к
+  // teacher/server.py продолжает жить в общей очереди (см. lib/teacher-api.ts) и корректно
+  // переиспользуется/дорисовывается, если чат открыть снова (см. persist showChat выше).
+  function toggleChat(): void {
+    setShowBreakdown(false)
+    setShowChat((visible) => {
+      const next = !visible
+      setData(CHAT_OPEN_KEY, next)
+      return next
+    })
+  }
+
+  function toggleBreakdown(): void {
+    setShowChat(false)
+    setData(CHAT_OPEN_KEY, false)
+    setShowBreakdown((visible) => !visible)
+  }
+
+  function confirmPendingAction(): void {
+    setData(CHAT_OPEN_KEY, false)
+    if (pendingAction === 'restart') onRestart()
+    else if (pendingAction === 'retryWrong') onRetryWrong()
+    setPendingAction(null)
+  }
 
   return (
     <div className="mx-auto max-w-[640px] text-center">
@@ -71,22 +107,37 @@ export function QuizResults({ total, done, correct, skipped, wrong, pct, mistake
         <Stat value={total} label="Всего" />
       </div>
 
-      <div className="mt-4.5 flex flex-wrap justify-center gap-2.5">
-        <button type="button" onClick={onRestart} className={CTA_PRIMARY}>
-          Пройти заново
-        </button>
-        <button type="button" disabled={!canRetryWrong} onClick={onRetryWrong} className={CTA_OUTLINE}>
-          Повторить ошибки
-        </button>
-        {mistakes.length > 0 && (
-          <button type="button" onClick={() => setShowChat((v) => !v)} className={CTA_OUTLINE}>
-            🧑‍🏫 Объяснить ошибки
+      {pendingAction ? (
+        <div className="mt-4.5 flex flex-wrap items-center justify-center gap-3 rounded-xl border border-[#f0c95f4d] bg-[#f0c95f14] px-4 py-3">
+          <span className="text-[13px] text-[#f0c95f]">
+            Текущие результаты и чат с ИИ будут скрыты (но диалог, если он ещё генерируется, доучится в фоне). Точно{' '}
+            {pendingAction === 'restart' ? 'начать заново' : 'повторить ошибки'}?
+          </span>
+          <button type="button" onClick={confirmPendingAction} className={CTA_PRIMARY}>
+            Да, продолжить
           </button>
-        )}
-        <button type="button" onClick={() => setShowBreakdown((v) => !v)} className={CTA_OUTLINE}>
-          Подробный разбор
-        </button>
-      </div>
+          <button type="button" onClick={() => setPendingAction(null)} className={CTA_OUTLINE}>
+            Отмена
+          </button>
+        </div>
+      ) : (
+        <div className="mt-4.5 flex flex-wrap justify-center gap-2.5">
+          <button type="button" onClick={() => setPendingAction('restart')} className={CTA_PRIMARY}>
+            Пройти заново
+          </button>
+          <button type="button" disabled={!canRetryWrong} onClick={() => setPendingAction('retryWrong')} className={CTA_OUTLINE}>
+            Повторить ошибки
+          </button>
+          {mistakes.length > 0 && (
+            <button type="button" onClick={toggleChat} className={CTA_OUTLINE}>
+              🧑‍🏫 {showChat ? 'Скрыть диалог с ИИ' : 'Объяснить ошибки'}
+            </button>
+          )}
+          <button type="button" onClick={toggleBreakdown} className={CTA_OUTLINE}>
+            {showBreakdown ? 'Скрыть разбор' : 'Подробный разбор'}
+          </button>
+        </div>
+      )}
 
       {showBreakdown && (
         <div

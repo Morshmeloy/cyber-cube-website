@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react'
-import axios from 'axios'
 import type { Mode } from './types.tsx'
 import { CTA_PRIMARY } from './cta.tsx'
-
-const TEACHER_API_BASE = 'http://localhost:5000'
+import { Spinner } from '@/components/ui/spinner.tsx'
+import { teacherModelStatus } from '@/lib/teacher-api.tsx'
 
 interface QuizStartProps {
   total: number
@@ -16,6 +15,7 @@ const modeLabels: Record<Mode, string> = { all: 'Все вопросы', random:
 
 export function QuizStart({ total, multiCount, hasWrongIds, onStart }: QuizStartProps) {
   const [selectedMode, setSelectedMode] = useState<Mode>('all')
+  const [isChecking, setIsChecking] = useState(true)
   const [status, setStatus] = useState<{ text: string; variant: 'neutral' | 'ok' | 'error' }>({
     text: 'Проверяем доступность ИИ-помощника…',
     variant: 'neutral',
@@ -23,18 +23,20 @@ export function QuizStart({ total, multiCount, hasWrongIds, onStart }: QuizStart
 
   useEffect(() => {
     let cancelled = false
-    axios
-      .get<{ ready: boolean }>(`${TEACHER_API_BASE}/api/model_status`)
-      .then((res) => {
+    teacherModelStatus()
+      .then((data) => {
         if (cancelled) return
         setStatus(
-          res.data.ready
+          data.ready
             ? { text: '🟢 ИИ-помощник готов объяснять ошибки', variant: 'ok' }
             : { text: '🟡 ИИ-помощник ещё загружается — объяснения появятся чуть позже', variant: 'neutral' },
         )
       })
       .catch(() => {
         if (!cancelled) setStatus({ text: '🔴 Сервис teacher/server.py недоступен (порт 5000) — объяснения ошибок будут недоступны, тест по-прежнему работает', variant: 'error' })
+      })
+      .finally(() => {
+        if (!cancelled) setIsChecking(false)
       })
     return () => {
       cancelled = true
@@ -90,7 +92,10 @@ export function QuizStart({ total, multiCount, hasWrongIds, onStart }: QuizStart
         </div>
       </div>
 
-      <div className={`my-3.5 rounded-lg bg-white/5 px-3 py-2 text-xs ${status.variant === 'ok' ? 'text-[#6ee7a0]' : status.variant === 'error' ? 'text-[#ff9a9a]' : 'text-[#e8f8ff]/65'}`}>
+      <div
+        className={`my-3.5 flex items-center justify-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-xs ${status.variant === 'ok' ? 'text-[#6ee7a0]' : status.variant === 'error' ? 'text-[#ff9a9a]' : 'text-[#e8f8ff]/65'}`}
+      >
+        {isChecking && <Spinner className="h-3.5 w-3.5" />}
         {status.text}
       </div>
 

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { register, type RegisterError, type UserRole } from '@/lib/auth.tsx'
+import { Spinner } from '@/components/ui/spinner.tsx'
 import type { PageNavigationTarget } from '@/types/page-content.tsx'
 
 interface RegisterFormProps {
@@ -107,8 +108,9 @@ export function RegisterForm({ navigateTo, onSwitchToLogin }: RegisterFormProps)
         <button
           type="submit"
           disabled={isSubmitting}
-          className="mt-1 w-full rounded-lg border border-cyan-400 bg-cyan-400 py-3.5 text-[15px] font-bold text-[#050510] shadow-[0_0_16px_rgba(0,255,255,0.45)] transition-all hover:-translate-y-0.5 hover:shadow-[0_0_24px_rgba(0,255,255,0.65)] disabled:opacity-60"
+          className="mt-1 flex w-full items-center justify-center gap-2 rounded-lg border border-cyan-400 bg-cyan-400 py-3.5 text-[15px] font-bold text-[#050510] shadow-[0_0_16px_rgba(0,255,255,0.45)] transition-all hover:-translate-y-0.5 hover:shadow-[0_0_24px_rgba(0,255,255,0.65)] disabled:opacity-60"
         >
+          {isSubmitting && <Spinner />}
           {isSubmitting ? 'Регистрация…' : 'Зарегистрироваться'}
         </button>
         <button
