@@ -68,7 +68,7 @@ export function BiometricLogin({ navigateTo, onClose }: BiometricLoginProps) {
       }
 
       setPhase('scanning')
-      setError(result.error === 'server-unreachable' ? 'Сервер авторизации недоступен. Убедитесь, что backend запущен (порт 9000).' : 'Не удалось выполнить демо-вход.')
+      setError(result.error === 'server-unreachable' ? 'Сервер авторизации недоступен. Убедитесь, что backend запущен (порт 8000).' : 'Не удалось выполнить демо-вход (аккаунт admin/admin должен существовать в базе).')
     }
 
     return () => {

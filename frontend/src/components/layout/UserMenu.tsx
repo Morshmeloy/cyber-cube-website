@@ -29,7 +29,7 @@ export function UserMenu({ user, navigateTo, onLoggedOut }: UserMenuProps) {
               <img src={LOGO_MARK_IMAGE_PATH} alt={SITE_NAME} className="h-[70%] w-[70%] object-contain drop-shadow-[0_0_4px_rgba(0,255,255,0.6)]" />
             </span>
             <span className="hidden flex-col items-start text-left leading-tight sm:flex">
-              <span className="max-w-[210px] overflow-hidden text-lg font-bold text-ellipsis whitespace-nowrap">{user.username}</span>
+              <span className="max-w-[210px] overflow-hidden text-lg font-bold text-ellipsis whitespace-nowrap">{user.fullName || user.username}</span>
               <span className="text-base text-[#e8f8ff]/55">{ROLE_LABELS[user.role]}</span>
             </span>
             <ChevronDown className="h-5.5 w-5.5 text-[#e8f8ff]/60 transition-transform data-[state=open]:rotate-180" />

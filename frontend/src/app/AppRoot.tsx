@@ -13,8 +13,9 @@ import { pageContentByFace } from '@/data/navigation/pages/index.tsx'
 import { legalPageColor, legalPageContent } from '@/data/navigation/pages/legal.tsx'
 import { PRIVATE_PAGE_COLORS } from '@/data/navigation/private.tsx'
 import { LOGO_IMAGE_PATH } from '@/data/site/site.tsx'
-import { getUser, isAuthenticated } from '@/lib/auth.tsx'
-import { LoginForm } from '@/components/auth/LoginForm.tsx'
+import { getUser, isAuthenticated, logout } from '@/lib/auth.tsx'
+import { setSessionExpiredHandler } from '@/lib/http-client.tsx'
+import { AuthScreen } from '@/components/auth/AuthScreen.tsx'
 import { DashboardPage } from '@/components/private/DashboardPage.tsx'
 import { DocsPage } from '@/components/private/DocsPage.tsx'
 import { WarehousePage } from '@/components/private/WarehousePage.tsx'
@@ -24,14 +25,11 @@ import type { PageContent, PageNavigationTarget, PrivatePageKey } from '@/types/
 
 const audio = createAudioEngine()
 
-/** Грань «Авторизация» — форма входа + биометрия-заглушка (components/auth/). */
+/** Грань «Авторизация» — вход/регистрация (components/auth/AuthScreen.tsx) + биометрия-заглушка. */
 function authPageContent(): PageContent {
   return {
     title: 'Вход в личный кабинет',
-    blocks: [
-      { kind: 'component', render: ({ navigateTo }) => createElement(LoginForm, { navigateTo }) },
-      { kind: 'paragraph', text: 'Для демонстрации используйте один из логинов: admin/admin, engineer/eng, accountant/acc, employee/emp.' },
-    ],
+    blocks: [{ kind: 'component', render: ({ navigateTo }) => createElement(AuthScreen, { navigateTo }) }],
   }
 }
 
@@ -68,6 +66,19 @@ export function AppRoot() {
   useEffect(() => {
     document.body.style.cursor = target ? 'auto' : ''
   }, [target])
+
+  // Если refresh-токен истёк/невалиден (см. lib/http-client.ts), сервер больше не
+  // принимает access-токен ни на одном защищённом эндпоинте — разлогиниваем и
+  // возвращаем на форму входа. Без deps-массива: navigateTo должен быть всегда
+  // актуальным на момент реального вызова (а не тем, что был на старте).
+  useEffect(() => {
+    setSessionExpiredHandler(() => {
+      logout()
+      setUser(null)
+      navigateTo({ face: 'front' })
+    })
+    return () => setSessionExpiredHandler(null)
+  })
 
   function showPage(color: string, content: PageContent, onClose?: () => void): void {
     window.scrollTo({ top: 0, behavior: 'smooth' })

@@ -12,12 +12,12 @@ export const PRIVATE_PAGE_COLORS: Record<PrivatePageKey, string> = {
   finance: '#8f4b6e',
 }
 
-/** Человекочитаемая подпись роли — для дашборда и виджета профиля. */
+/** Человекочитаемая подпись роли — для дашборда и виджета профиля. Роли — ровно
+ * те, что знает бэкенд (backend/src/models/user.py::UserRole): admin/engineer/accountant. */
 export const ROLE_LABELS: Record<User['role'], string> = {
   admin: 'Администратор',
   engineer: 'Инженер',
   accountant: 'Бухгалтер',
-  employee: 'Сотрудник',
 }
 
 /** Карточки-разделы личного кабинета: цвет (см. выше), иконка и переход по клику. */

@@ -5,12 +5,12 @@ import type { PageNavigationTarget } from '@/types/page-content.tsx'
 
 interface LoginFormProps {
   navigateTo: (target: PageNavigationTarget) => void
+  onSwitchToRegister: () => void
 }
 
-/** React-порт renderLoginForm из settings/navigation/pages/auth.ts — вход проверяется
- * реальным бэкендом (POST http://localhost:9000/api/login, см. lib/auth.ts), а не
- * локально зашитыми учётками. */
-export function LoginForm({ navigateTo }: LoginFormProps) {
+/** Вход через реальный бэкенд (POST /api/auth/login, см. lib/auth.ts) — JWT
+ * access/refresh-токены, а не локально зашитые демо-учётки. */
+export function LoginForm({ navigateTo, onSwitchToRegister }: LoginFormProps) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -32,8 +32,8 @@ export function LoginForm({ navigateTo }: LoginFormProps) {
 
     setError(
       result.error === 'server-unreachable'
-        ? 'Сервер авторизации недоступен. Убедитесь, что backend запущен (порт 9000).'
-        : 'Неверный логин или пароль. Демо-доступ: admin/admin, engineer/eng, accountant/acc, employee/emp',
+        ? 'Сервер авторизации недоступен. Убедитесь, что backend запущен (порт 8000).'
+        : 'Неверный логин или пароль.',
     )
   }
 
@@ -72,6 +72,13 @@ export function LoginForm({ navigateTo }: LoginFormProps) {
             className="mt-2.5 w-full rounded-lg border border-[#e8f8ff]/20 bg-transparent py-2.5 text-[13px] text-[#e8f8ff]/80 transition-colors hover:border-cyan-400 hover:text-cyan-300"
           >
             📷 Вход по биометрии (демо)
+          </button>
+          <button
+            type="button"
+            onClick={onSwitchToRegister}
+            className="mt-2.5 w-full rounded-lg border border-transparent bg-transparent py-1.5 text-[13px] text-cyan-300 underline transition-colors hover:text-white"
+          >
+            Нет аккаунта? Зарегистрироваться
           </button>
           {error && <div className="mt-3.5 rounded-lg border border-red-400/35 bg-red-500/10 px-3 py-2.5 text-[13px] leading-[1.5] text-red-300">{error}</div>}
         </form>
