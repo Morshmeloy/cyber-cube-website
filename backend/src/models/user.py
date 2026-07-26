@@ -4,10 +4,12 @@ from sqlalchemy.orm import relationship
 import enum
 from ..core.database import Base
 
+
 class UserRole(str, enum.Enum):
     ADMIN = "admin"
     ENGINEER = "engineer"
     ACCOUNTANT = "accountant"
+
 
 class User(Base):
     __tablename__ = "users"
@@ -21,4 +23,4 @@ class User(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     full_name = Column(String(100), nullable=True)
 
-    warehouse_items = relationship("WarehouseItem", back_populates="user")
+    stock_operations = relationship("StockOperation", back_populates="user")
