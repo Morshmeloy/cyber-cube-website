@@ -1,29 +1,57 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import Optional
-from src.models.warehouse import MovementType
+from typing import Optional, Literal
+from uuid import UUID
 
-class WarehouseItemBase(BaseModel):
-    name: str = Field(..., max_length=100)
-    quantity: float = Field(..., gt=0)
-    movement_type: MovementType
-    person: str = Field(..., max_length=100)
+OperationType = Literal["issue", "return"]
 
-class WarehouseItemCreate(WarehouseItemBase):
-    pass
 
-class WarehouseItemUpdate(BaseModel):
-    name: Optional[str] = Field(None, max_length=100)
-    quantity: Optional[float] = Field(None, gt=0)
-    movement_type: Optional[MovementType] = None
-    person: Optional[str] = Field(None, max_length=100)
-
-class WarehouseItemResponse(WarehouseItemBase):
+class NomenclatureResponse(BaseModel):
     id: int
-    date: datetime
-    user_id: int
+    name: str
+    base_quantity: float
+    portal_quantity: float
+    total_quantity: float
+    base_synced_at: Optional[datetime]
     created_at: datetime
-    updated_at: Optional[datetime]
 
     class Config:
         from_attributes = True
+
+
+class StockOperationCreate(BaseModel):
+    nomenclature_name: str = Field(..., min_length=1, max_length=200)
+    quantity: float = Field(..., gt=0)
+    operation_type: OperationType
+    person: str = Field(..., max_length=150)
+    destination: str = Field(..., max_length=200)
+
+
+class StockOperationUpdate(BaseModel):
+    quantity: Optional[float] = Field(None, gt=0)
+    operation_type: Optional[OperationType] = None
+    person: Optional[str] = Field(None, max_length=150)
+    destination: Optional[str] = Field(None, max_length=200)
+
+
+class StockOperationResponse(BaseModel):
+    id: int
+    uuid: UUID
+    nomenclature_id: int
+    nomenclature_name: str
+    quantity: float
+    operation_type: OperationType
+    person: str
+    destination: str
+    user_id: int
+    username: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ImportResult(BaseModel):
+    added: int
+    updated: int
+    skipped_duplicates: int
