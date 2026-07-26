@@ -2,6 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import Optional, Any
 from src.models.audit import AuditLog
+from sqlalchemy.orm import selectinload
 
 
 class AuditRepository:
@@ -31,6 +32,7 @@ class AuditRepository:
     async def get_all(self, skip: int = 0, limit: int = 200) -> list[AuditLog]:
         result = await self.db.execute(
             select(AuditLog)
+            .options(selectinload(AuditLog.user))
             .order_by(AuditLog.created_at.desc())
             .offset(skip)
             .limit(limit)

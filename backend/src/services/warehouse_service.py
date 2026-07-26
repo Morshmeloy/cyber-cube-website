@@ -10,9 +10,12 @@ from src.schemas.warehouse import (
     StockOperationUpdate,
     NomenclatureResponse,
     ImportResult,
+    StockOperationResponse,
 )
+from src.schemas.audit import AuditLogResponse
 from src.models.user import User, UserRole
 from src.models.warehouse import OperationType, StockOperation
+from src.models.audit import AuditLog
 from src.services.excel_service import (
     parse_balances_xlsx,
     build_balances_export_1c,
@@ -26,6 +29,35 @@ def _require_admin(current_user: User) -> None:
         raise HTTPException(
             status_code=403, detail="Только администратор может выполнять это действие"
         )
+
+
+def _operation_to_response(op: StockOperation) -> StockOperationResponse:
+    return StockOperationResponse(
+        id=op.id,
+        uuid=op.uuid,
+        nomenclature_id=op.nomenclature_id,
+        nomenclature_name=op.nomenclature.name,
+        quantity=op.quantity,
+        operation_type=op.operation_type.value,
+        person=op.person,
+        destination=op.destination,
+        user_id=op.user_id,
+        username=op.user.username,
+        created_at=op.created_at,
+    )
+
+
+def _audit_to_response(entry: AuditLog) -> AuditLogResponse:
+    return AuditLogResponse(
+        id=entry.id,
+        user_id=entry.user_id,
+        username=entry.user.username,
+        action=entry.action,
+        entity_type=entry.entity_type,
+        entity_id=entry.entity_id,
+        details=entry.details,
+        created_at=entry.created_at,
+    )
 
 
 class WarehouseService:
@@ -93,7 +125,7 @@ class WarehouseService:
 
     async def create_operation(
         self, data: StockOperationCreate, current_user: User
-    ) -> StockOperation:
+    ) -> StockOperationResponse:
         _require_admin(current_user)
         nomenclature = await self.nomenclature_repo.get_or_create(
             data.nomenclature_name
@@ -117,14 +149,16 @@ class WarehouseService:
                 "operation_type": data.operation_type,
             },
         )
-        return await self.operation_repo.get_by_id(operation.id)
+        loaded = await self.operation_repo.get_by_id(operation.id)
+        return _operation_to_response(loaded)
 
-    async def list_operations(self) -> list[StockOperation]:
-        return await self.operation_repo.get_all()
+    async def list_operations(self) -> list[StockOperationResponse]:
+        operations = await self.operation_repo.get_all()
+        return [_operation_to_response(op) for op in operations]
 
     async def update_operation(
         self, operation_id: int, data: StockOperationUpdate, current_user: User
-    ) -> StockOperation:
+    ) -> StockOperationResponse:
         _require_admin(current_user)
         before = await self.operation_repo.get_by_id(operation_id)
         if not before:
@@ -135,7 +169,7 @@ class WarehouseService:
             "person": before.person,
             "destination": before.destination,
         }
-        updated = await self.operation_repo.update(
+        await self.operation_repo.update(
             operation_id,
             quantity=data.quantity,
             operation_type=(
@@ -151,7 +185,8 @@ class WarehouseService:
             entity_id=operation_id,
             details={"before": snapshot},
         )
-        return updated
+        updated = await self.operation_repo.get_by_id(operation_id)
+        return _operation_to_response(updated)
 
     async def delete_operation(self, operation_id: int, current_user: User) -> None:
         _require_admin(current_user)
@@ -172,5 +207,6 @@ class WarehouseService:
             },
         )
 
-    async def list_audit_log(self):
-        return await self.audit_repo.get_all()
+    async def list_audit_log(self) -> list[AuditLogResponse]:
+        entries = await self.audit_repo.get_all()
+        return [_audit_to_response(entry) for entry in entries]
