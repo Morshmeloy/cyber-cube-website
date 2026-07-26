@@ -1,0 +1,84 @@
+/* ==========================================================================
+   Адаптивность (мобильные устройства).
+   Содержит медиа-запросы для экранов шириной до 600px.
+   Переопределяет размеры и расположение элементов для удобства
+   использования на сенсорных экранах.
+   Зависимости: должен быть подключён после всех остальных стилей.
+   ========================================================================== */
+
+@media (max-width: 600px) {
+
+    /* Уменьшаем внутренние отступы у карточек */
+    .start-card,
+    .question-card,
+    .results-hero {
+        padding: 1.25rem;
+        border-radius: 1.25rem;
+    }
+
+    /* Компактные варианты ответов */
+    .option {
+        padding: 0.875rem 1rem;
+        border-radius: 0.875rem;
+    }
+
+    /* Основные кнопки чуть меньше */
+    .btn-primary,
+    .btn-check {
+        padding: 0.75rem 1.25rem;
+        font-size: 0.875rem;
+    }
+
+    /* Увеличенные точки карты вопросов (удобнее для пальцев) */
+    .q-dot-button {
+        width: 2.5rem;
+        height: 2.5rem;
+        font-size: 0.75rem;
+    }
+
+    /* Сетки статистики – по 2 элемента в ряд */
+    .start-stats,
+    .results-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    /* Кнопки выбора режима – вертикально и на всю ширину */
+    .mode-btns {
+        flex-direction: column;
+    }
+
+    .mode-btn {
+        width: 100%;
+        text-align: center;
+    }
+
+    /* Шапка – перенос и компактность */
+    .header {
+        flex-wrap: wrap;
+        padding: 0.75rem;
+    }
+
+    .header-right {
+        width: 100%;
+        margin-left: 0;
+        justify-content: space-between;
+    }
+
+    .progress-chip {
+        font-size: 0.625rem;
+    }
+
+    .progress-bar-wrap {
+        flex: 1;
+        min-width: 4rem;
+    }
+
+    /* Кнопки действий – вертикально во всю ширину */
+    .q-actions {
+        flex-direction: column;
+    }
+
+    .q-actions button {
+        width: 100%;
+    }
+}

@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Django
+*.log
+*.pot
+*.pyc
+local_settings.py
+db.sqlite3
+media/
+staticfiles/
+static/
+
+# Environment
+.env
+.env.production
+.env.local
+.env.*.local
+
+# Docker
+docker-compose.override.yml
+*.pid
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets / keys
+*.pem
+*.pub
+*.key
+deploy_key*
+id_*

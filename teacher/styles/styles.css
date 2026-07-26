@@ -1,0 +1,19 @@
+/* ==========================================================================
+   Главный файл стилей (точка входа).
+   Подключает все модули в правильном порядке.
+   Порядок важен: переменные и сброс (base) должны быть первыми,
+   темы и адаптивность — последними.
+   ========================================================================== */
+
+@import "base.css";
+@import "background.css";
+@import "header.css";
+@import "buttons.css";
+@import "cards.css";
+@import "options.css";
+@import "map.css";
+@import "modal.css";
+@import "accessibility.css";
+@import "responsive.css";
+@import "synthwave.css";
+@import url('chat.css');

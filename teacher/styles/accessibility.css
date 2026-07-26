@@ -1,0 +1,102 @@
+/* ==========================================================================
+   Доступность и вспомогательные анимации.
+   Фокус, отключение движения для prefers-reduced-motion, shake и glitch эффекты.
+   Зависимости: нет.
+   ========================================================================== */
+
+/* Чёткий индикатор фокуса для всех интерактивных элементов */
+:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 0.25rem;
+}
+
+/*
+  Мгновенное отключение ВСЕХ анимаций для пользователей,
+  которые предпочитают уменьшенное движение (вестибулярные расстройства).
+  !important оправданы – это требование доступности, которое не должно
+  переопределяться другими стилями.
+*/
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    .gradient-orb,
+    .cyber-grid,
+    .progress-bar-fill::after,
+    .option:hover,
+    .btn-primary:hover,
+    .btn-check:hover {
+        animation: none !important;
+        transform: none !important;
+    }
+}
+
+/* Эффект тряски (можно применить при неверном ответе) */
+.shake-effect {
+    animation: shake 0.2s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes shake {
+    0% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-3px);
+    }
+
+    75% {
+        transform: translateX(3px);
+    }
+
+    100% {
+        transform: translateX(0);
+    }
+}
+
+/* Эффект глитча (можно применить для стилизации ошибки) */
+.glitch-effect {
+    animation: glitch 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+@keyframes glitch {
+
+    0%,
+    100% {
+        transform: translate(0, 0);
+        opacity: 1;
+        filter: blur(0px);
+    }
+
+    20% {
+        transform: translate(-2px, 1px);
+        filter: blur(1px);
+        background: rgba(255, 0, 0, 0.1);
+    }
+
+    40% {
+        transform: translate(2px, -1px);
+        filter: blur(0.5px);
+        background: rgba(0, 255, 255, 0.1);
+    }
+
+    60% {
+        transform: translate(-1px, 1px);
+        filter: blur(0.8px);
+        background: rgba(255, 255, 0, 0.1);
+    }
+
+    80% {
+        transform: translate(1px, -1px);
+        filter: blur(0px);
+        background: transparent;
+    }
+}

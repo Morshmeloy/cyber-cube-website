@@ -1,0 +1,133 @@
+/* ==========================================================================
+   Шапка сайта и прогресс-бар.
+   Содержит стили для закреплённой шапки, логотипа, чипса со счётом
+   и анимированного прогресс-бара с эффектом «шиммера».
+   Зависимости: должен быть подключён после base.css.
+   ========================================================================== */
+
+.header {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    border-bottom: none;
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    transition: var(--transition);
+}
+
+.header-logo {
+    width: 2.5rem;
+    height: 2.5rem;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 1rem;
+    color: #fff;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.header-title {
+    font-family: var(--font-mono);
+    font-size: 0.9375rem;
+    font-weight: 500;
+    letter-spacing: -0.3px;
+    color: var(--text);
+}
+
+.header-sub {
+    font-size: 0.75rem;
+    color: var(--text2);
+    margin-top: 0.125rem;
+}
+
+.header-right {
+    margin-left: auto;
+    /* прижимает правую группу к краю */
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+/* Чипс со счётом (например, "5 верно / 10 отвечено") */
+.progress-chip {
+    font-size: 0.6875rem;
+    font-family: var(--font-mono);
+    color: var(--text2);
+    background: var(--bg3);
+    border: 1px solid var(--glass-border);
+    border-radius: 2rem;
+    padding: 0.25rem 0.75rem;
+    white-space: nowrap;
+}
+
+.progress-chip .score-num {
+    font-weight: 700;
+}
+
+.progress-chip .score-num--ok {
+    color: var(--green);
+}
+
+.progress-chip .score-num--done {
+    color: var(--accent);
+}
+
+/* Контейнер прогресс-бара */
+.progress-bar-wrap {
+    width: 7.5rem;
+    height: 0.375rem;
+    background: var(--bg3);
+    border-radius: 1rem;
+    overflow: hidden;
+}
+
+/*
+   Заполнение прогресс-бара.
+   Фиксированные цвета градиента (не через переменные) выбраны намеренно:
+   они создают узнаваемый «переливающийся» эффект, который не зависит
+   от выбранной темы. При кастомизации темы эти цвета нужно менять вручную.
+*/
+.progress-bar-fill {
+    height: 100%;
+    border-radius: 1rem;
+    background: linear-gradient(90deg, #3B82F6, #06B6D4, #8B5CF6, #3B82F6);
+    position: relative;
+    transition: width 0.4s ease;
+    overflow: hidden;
+}
+
+/* При наведении анимация блика ускоряется */
+.progress-bar-wrap:hover .progress-bar-fill::after {
+    animation-duration: 1s;
+}
+
+/* Блик (shimmer), бегущий по прогресс-бару */
+.progress-bar-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    100% {
+        transform: translateX(100%);
+    }
+}
