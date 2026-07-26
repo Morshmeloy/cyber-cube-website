@@ -67,6 +67,16 @@ class NomenclatureRepository:
         await self.db.commit()
         return added, updated
 
+    async def portal_quantity_for(self, nomenclature_id: int) -> float:
+        """Движение через портал по ОДНОЙ конкретной номенклатуре."""
+        result = await self.db.execute(
+            select(StockOperation).where(StockOperation.nomenclature_id == nomenclature_id)
+        )
+        total = 0.0
+        for op_row in result.scalars().all():
+            total += op_row.quantity if op_row.operation_type == OperationType.RETURN else -op_row.quantity
+        return total
+
     async def portal_quantity_map(self) -> dict[int, float]:
         """{nomenclature_id: сумма возвратов минус выдач через портал}"""
         result = await self.db.execute(select(StockOperation))

@@ -130,6 +130,14 @@ class WarehouseService:
         nomenclature = await self.nomenclature_repo.get_or_create(
             data.nomenclature_name
         )
+        if data.operation_type == "issue":
+            portal_qty = await self.nomenclature_repo.portal_quantity_for(nomenclature.id)
+            available = nomenclature.base_quantity + portal_qty
+            if data.quantity > available:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"Недостаточно товара на складе: доступно {available}, запрошено {data.quantity}",
+                )
         operation = await self.operation_repo.create(
             nomenclature_id=nomenclature.id,
             quantity=data.quantity,
@@ -163,7 +171,24 @@ class WarehouseService:
         before = await self.operation_repo.get_by_id(operation_id)
         if not before:
             raise HTTPException(status_code=404, detail="Операция не найдена")
+
+        new_quantity = data.quantity if data.quantity is not None else before.quantity
+        new_type = (
+            OperationType(data.operation_type) if data.operation_type else before.operation_type
+        )
+        portal_qty = await self.nomenclature_repo.portal_quantity_for(before.nomenclature_id)
+        old_effect = before.quantity if before.operation_type == OperationType.RETURN else -before.quantity
+        new_effect = new_quantity if new_type == OperationType.RETURN else -new_quantity
+        nomenclature = await self.nomenclature_repo.get_by_id(before.nomenclature_id)
+        total_after = nomenclature.base_quantity + portal_qty - old_effect + new_effect
+        if total_after < 0:
+            raise HTTPException(
+                status_code=422,
+                detail=f"После изменения остаток станет отрицательным ({total_after}).",
+            )
+
         snapshot = {
+            "nomenclature": nomenclature.name,
             "quantity": before.quantity,
             "operation_type": before.operation_type.value,
             "person": before.person,
@@ -190,6 +215,20 @@ class WarehouseService:
 
     async def delete_operation(self, operation_id: int, current_user: User) -> None:
         _require_admin(current_user)
+        before = await self.operation_repo.get_by_id(operation_id)
+        if not before:
+            raise HTTPException(status_code=404, detail="Операция не найдена")
+
+        portal_qty = await self.nomenclature_repo.portal_quantity_for(before.nomenclature_id)
+        old_effect = before.quantity if before.operation_type == OperationType.RETURN else -before.quantity
+        nomenclature = await self.nomenclature_repo.get_by_id(before.nomenclature_id)
+        total_after = nomenclature.base_quantity + portal_qty - old_effect
+        if total_after < 0:
+            raise HTTPException(
+                status_code=422,
+                detail="Нельзя удалить: без этой операции остаток товара станет отрицательным.",
+            )
+
         deleted = await self.operation_repo.delete(operation_id)
         if not deleted:
             raise HTTPException(status_code=404, detail="Операция не найдена")
@@ -199,7 +238,7 @@ class WarehouseService:
             entity_type="stock_operation",
             entity_id=operation_id,
             details={
-                "nomenclature_id": deleted.nomenclature_id,
+                "nomenclature": nomenclature.name,
                 "quantity": deleted.quantity,
                 "operation_type": deleted.operation_type.value,
                 "person": deleted.person,
