@@ -1,66 +1,214 @@
 import { apiClient } from './http-client.tsx'
 
-export type MovementType = 'in' | 'out'
+export type OperationType = 'issue' | 'return'
 
-export interface WarehouseItem {
+export interface Nomenclature {
   id: number
   name: string
+  baseQuantity: number
+  portalQuantity: number
+  totalQuantity: number
+  baseSyncedAt: string | null
+  createdAt: string
+}
+
+export interface StockOperation {
+  id: number
+  uuid: string
+  nomenclatureId: number
+  nomenclatureName: string
   quantity: number
-  movementType: MovementType
+  operationType: OperationType
   person: string
-  date: string
+  destination: string
   userId: number
+  username: string
+  createdAt: string
 }
 
-interface WarehouseItemDto {
+export interface ImportResult {
+  added: number
+  updated: number
+  skippedDuplicates: number
+}
+
+export interface AuditLogEntry {
+  id: number
+  userId: number
+  username: string
+  action: string
+  entityType: string
+  entityId: number | null
+  details: Record<string, unknown> | null
+  createdAt: string
+}
+
+interface NomenclatureDto {
   id: number
   name: string
-  quantity: number
-  movement_type: MovementType
-  person: string
-  date: string
-  user_id: number
+  base_quantity: number
+  portal_quantity: number
+  total_quantity: number
+  base_synced_at: string | null
+  created_at: string
 }
 
-function fromDto(dto: WarehouseItemDto): WarehouseItem {
+interface StockOperationDto {
+  id: number
+  uuid: string
+  nomenclature_id: number
+  nomenclature_name: string
+  quantity: number
+  operation_type: OperationType
+  person: string
+  destination: string
+  user_id: number
+  username: string
+  created_at: string
+}
+
+interface ImportResultDto {
+  added: number
+  updated: number
+  skipped_duplicates: number
+}
+
+interface AuditLogDto {
+  id: number
+  user_id: number
+  username: string
+  action: string
+  entity_type: string
+  entity_id: number | null
+  details: Record<string, unknown> | null
+  created_at: string
+}
+
+function fromNomenclatureDto(dto: NomenclatureDto): Nomenclature {
   return {
     id: dto.id,
     name: dto.name,
-    quantity: dto.quantity,
-    movementType: dto.movement_type,
-    person: dto.person,
-    date: dto.date,
-    userId: dto.user_id,
+    baseQuantity: dto.base_quantity,
+    portalQuantity: dto.portal_quantity,
+    totalQuantity: dto.total_quantity,
+    baseSyncedAt: dto.base_synced_at,
+    createdAt: dto.created_at,
   }
 }
 
-export async function fetchWarehouseItems(): Promise<WarehouseItem[]> {
-  const response = await apiClient.get<WarehouseItemDto[]>('/warehouse/')
-  return response.data.map(fromDto)
+function fromOperationDto(dto: StockOperationDto): StockOperation {
+  return {
+    id: dto.id,
+    uuid: dto.uuid,
+    nomenclatureId: dto.nomenclature_id,
+    nomenclatureName: dto.nomenclature_name,
+    quantity: dto.quantity,
+    operationType: dto.operation_type,
+    person: dto.person,
+    destination: dto.destination,
+    userId: dto.user_id,
+    username: dto.username,
+    createdAt: dto.created_at,
+  }
 }
 
-export async function fetchWarehouseBalances(): Promise<Record<string, number>> {
-  const response = await apiClient.get<Record<string, number>>('/warehouse/balances')
-  return response.data
+function fromAuditDto(dto: AuditLogDto): AuditLogEntry {
+  return {
+    id: dto.id,
+    userId: dto.user_id,
+    username: dto.username,
+    action: dto.action,
+    entityType: dto.entity_type,
+    entityId: dto.entity_id,
+    details: dto.details,
+    createdAt: dto.created_at,
+  }
 }
 
-export interface WarehouseItemDraft {
-  name: string
-  quantity: number
-  movementType: MovementType
-  person: string
+export async function fetchNomenclature(): Promise<Nomenclature[]> {
+  const response = await apiClient.get<NomenclatureDto[]>('/warehouse/nomenclature')
+  return response.data.map(fromNomenclatureDto)
 }
 
-export async function createWarehouseItem(draft: WarehouseItemDraft): Promise<WarehouseItem> {
-  const response = await apiClient.post<WarehouseItemDto>('/warehouse/', {
-    name: draft.name,
-    quantity: draft.quantity,
-    movement_type: draft.movementType,
-    person: draft.person,
+export async function importNomenclature(file: File): Promise<ImportResult> {
+  const formData = new FormData()
+  formData.append('file', file)
+  const response = await apiClient.post<ImportResultDto>('/warehouse/nomenclature/import', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
   })
-  return fromDto(response.data)
+  return { added: response.data.added, updated: response.data.updated, skippedDuplicates: response.data.skipped_duplicates }
 }
 
-export async function deleteWarehouseItem(id: number): Promise<void> {
-  await apiClient.delete(`/warehouse/${id}`)
+function downloadBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
+
+export async function exportBalances(variant: '1c' | 'report'): Promise<void> {
+  const response = await apiClient.get('/warehouse/nomenclature/export', {
+    params: { variant },
+    responseType: 'blob',
+  })
+  downloadBlob(response.data as Blob, variant === '1c' ? 'ostatki_1c.xlsx' : 'otchet_ostatki.xlsx')
+}
+
+export async function exportOperations(): Promise<void> {
+  const response = await apiClient.get('/warehouse/operations/export', { responseType: 'blob' })
+  downloadBlob(response.data as Blob, 'operacii.xlsx')
+}
+
+export async function fetchOperations(): Promise<StockOperation[]> {
+  const response = await apiClient.get<StockOperationDto[]>('/warehouse/operations')
+  return response.data.map(fromOperationDto)
+}
+
+export interface StockOperationDraft {
+  nomenclatureName: string
+  quantity: number
+  operationType: OperationType
+  person: string
+  destination: string
+}
+
+export async function createOperation(draft: StockOperationDraft): Promise<StockOperation> {
+  const response = await apiClient.post<StockOperationDto>('/warehouse/operations', {
+    nomenclature_name: draft.nomenclatureName,
+    quantity: draft.quantity,
+    operation_type: draft.operationType,
+    person: draft.person,
+    destination: draft.destination,
+  })
+  return fromOperationDto(response.data)
+}
+
+export interface StockOperationEditDraft {
+  quantity: number
+  operationType: OperationType
+  person: string
+  destination: string
+}
+
+export async function updateOperation(id: number, draft: StockOperationEditDraft): Promise<StockOperation> {
+  const response = await apiClient.put<StockOperationDto>(`/warehouse/operations/${id}`, {
+    quantity: draft.quantity,
+    operation_type: draft.operationType,
+    person: draft.person,
+    destination: draft.destination,
+  })
+  return fromOperationDto(response.data)
+}
+
+export async function deleteOperation(id: number): Promise<void> {
+  await apiClient.delete(`/warehouse/operations/${id}`)
+}
+
+export async function fetchAuditLog(): Promise<AuditLogEntry[]> {
+  const response = await apiClient.get<AuditLogDto[]>('/warehouse/audit-log')
+  return response.data.map(fromAuditDto)
 }
