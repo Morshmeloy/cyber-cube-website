@@ -44,7 +44,7 @@ except Exception as e:
 
 print("⏳ Подключение к ChromaDB...")
 try:
-    chroma_client = chromadb.PersistentClient(path=CHROMA_DIR)
+    chroma_client = chroma_db.PersistentClient(path=CHROMA_DIR)
     collection = chroma_client.get_collection(name=COLLECTION_NAME)
     doc_count = collection.count()
     print(f"✅ Коллекция '{COLLECTION_NAME}', документов: {doc_count}")
