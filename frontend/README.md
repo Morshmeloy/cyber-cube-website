@@ -32,7 +32,7 @@ npm run format     # Prettier по всему проекту
 ```
 app/            AppRoot.tsx (корень приложения), App.tsx
 components/
-  auth/           AuthScreen.tsx, LoginForm.tsx, RegisterForm.tsx, BiometricLogin.tsx
+  auth/           AuthScreen.tsx, LoginForm.tsx, RegisterForm.tsx
   background/      BackgroundSlideshow.tsx, Rain.tsx — декоративные фоновые слои
   cube/            Cube.tsx — главный 3D-куб навигации
   layout/          SiteFooter.tsx, UserMenu.tsx
@@ -77,7 +77,7 @@ index.css         Tailwind-вход: тема (@theme), @layer base (сброс,
 
 | Грань | Контент |
 |---|---|
-| front | вход/регистрация (`components/auth/AuthScreen.tsx`) + биометрия-заглушка, собирается прямо в `AppRoot.tsx` |
+| front | вход/регистрация (`components/auth/AuthScreen.tsx`), собирается прямо в `AppRoot.tsx` |
 | back | `about.tsx` — «О нас» (сертификаты/партнёрства, соответствие требованиям КИИ) |
 | right | `services.tsx` — «Решения и услуги» |
 | left | `software.tsx` — «Программное обеспечение» (D4NMS) |
@@ -97,7 +97,6 @@ index.css         Tailwind-вход: тема (@theme), @layer base (сброс,
 - **`lib/http-client.tsx`** — общий `axios`-инстанс (`baseURL: http://localhost:8000/api`) с двумя перехватчиками: request-интерцептор добавляет `Authorization: Bearer <access_token>` ко всем запросам, кроме `/auth/login`, `/auth/register`, `/auth/refresh`; response-интерцептор на `401` один раз запрашивает новый access-токен через `POST /auth/refresh` (несколько параллельных 401 переиспользуют один и тот же промис обновления, не плодя параллельных refresh-запросов) и повторяет исходный запрос с новым токеном. Если refresh тоже упал — токены очищаются и вызывается подписчик `setSessionExpiredHandler` (в `AppRoot.tsx` — разлогинивает и возвращает на форму входа). Access/refresh-токены хранятся в `localStorage` (`d4_access_token`/`d4_refresh_token`) — **осознанный риск для MVP** (доступно любому XSS-скрипту на странице), для продакшена нужно перейти на HttpOnly-cookie.
 - **`lib/auth.tsx`** — `login()`/`register()`/`fetchMe()`/`logout()`/`isAuthenticated()` поверх `http-client.tsx` и реального бэкенда (`backend/`, FastAPI, JWT). `register()` сам не логинит (бэкенд не возвращает токены из `/auth/register`) — после успешной регистрации фронтенд сразу вызывает `login()` тем же логином/паролем. `fetchMe()` — `GET /auth/me`, канонический профиль (`id`/`username`/`email`/`role`/`fullName`/`isActive`), кэшируется в `localStorage` (`d4_user`) и используется дашбордом/виджетом профиля.
 - **`components/auth/AuthScreen.tsx`** — переключатель между `LoginForm.tsx` и `RegisterForm.tsx` на одной и той же грани «Авторизация» (локальный state, без отдельной грани/маршрута). `RegisterForm.tsx` — username/email/password/полное имя (необязательно)/роль (`admin`/`engineer`/`accountant`, по умолчанию `engineer` — ровно роли, которые знает бэкенд, `employee` в проекте больше нет).
-- **`components/auth/BiometricLogin.tsx`** — заглушка «Вход по биометрии»: камера через `getUserMedia`, анимация сканирования, затем вход как `admin` через тот же `lib/auth.tsx::login()` — без реальной привязки к лицу, только демонстрация UX (аккаунт `admin/admin` должен существовать в базе).
 - **`lib/storage.tsx`** — обёртка над `localStorage`, данные каждого раздела хранятся с префиксом по имени текущего пользователя (`d4_<prefix>_<username>`). Черновики форм (сумма/описание в «Финансах», товар/кол-во/тип/ФИО в «Складе», недописанный вопрос в чате «Обучения») сохраняются на каждое изменение и переживают закрытие кабинета до отправки.
 - **`DashboardPage.tsx`** — приветствие + ряд разворачивающихся по наведению карточек-переходов в разделы.
 - **`components/private/learning/`** — тест на 100 вопросов по книге Таненбаума, разбит на `LearningQuiz.tsx` (оркестратор состояния — `state`/`wrongIds`/`results`, все изменения иммутабельны), `QuizStart.tsx`, `QuizQuestion.tsx`, `QuizResults.tsx`, `TeacherChat.tsx` (разбор ошибок и свободный диалог с учителем — `POST /api/chat`, `/api/chat/detail`, `/api/chat/free`, `GET /api/model_status`, всё через `axios` на `teacher/server.py`, порт 5000). Прогресс теста, история чата и черновик вопроса — в `localStorage`, переживают перезагрузку страницы.
@@ -123,7 +122,7 @@ index.css         Tailwind-вход: тема (@theme), @layer base (сброс,
 
 ## Известные ограничения
 
-- Личный кабинет работает только при запущенных рядом сервисах: `backend/` (FastAPI + PostgreSQL, порт 8000 — логин/регистрация/`/auth/me`, требует применённых alembic-миграций — таблица `users`) и `teacher/server.py` (Flask, порт 5000 — раздел «Обучение»). Без них форма входа/биометрия покажут «сервер недоступен» — это ожидаемо, не баг фронтенда.
+- Личный кабинет работает только при запущенных рядом сервисах: `backend/` (FastAPI + PostgreSQL, порт 8000 — логин/регистрация/`/auth/me`, требует применённых alembic-миграций — таблица `users`) и `teacher/server.py` (Flask, порт 5000 — раздел «Обучение»). Без них форма входа покажет «сервер недоступен» — это ожидаемо, не баг фронтенда.
 - Оба адреса захардкожены (`lib/http-client.tsx`, `components/private/learning/TeacherChat.tsx`, `QuizStart.tsx`) — без `.env`.
 - Реального роутинга (`react-router-dom`) нет — переходы между «страницами» только внутреннее состояние панели (`PageNavigationTarget`), URL не меняется.
 - «Склад»/«Финансы» продолжают хранить данные в `localStorage`, не на сервере (нет соответствующих эндпоинтов в бэкенде).

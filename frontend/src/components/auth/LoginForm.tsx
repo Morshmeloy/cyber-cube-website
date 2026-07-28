@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { login } from '@/lib/auth.tsx'
-import { BiometricLogin } from './BiometricLogin.tsx'
 import { Spinner } from '@/components/ui/spinner.tsx'
 import type { PageNavigationTarget } from '@/types/page-content.tsx'
 
@@ -16,7 +15,6 @@ export function LoginForm({ navigateTo, onSwitchToRegister }: LoginFormProps) {
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [showBiometric, setShowBiometric] = useState(false)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>): Promise<void> {
     e.preventDefault()
@@ -70,13 +68,6 @@ export function LoginForm({ navigateTo, onSwitchToRegister }: LoginFormProps) {
           </button>
           <button
             type="button"
-            onClick={() => setShowBiometric(true)}
-            className="mt-2.5 w-full rounded-lg border border-[#e8f8ff]/20 bg-transparent py-2.5 text-[13px] text-[#e8f8ff]/80 transition-colors hover:border-cyan-400 hover:text-cyan-300"
-          >
-            📷 Вход по биометрии (демо)
-          </button>
-          <button
-            type="button"
             onClick={onSwitchToRegister}
             className="mt-2.5 w-full rounded-lg border border-transparent bg-transparent py-1.5 text-[13px] text-cyan-300 underline transition-colors hover:text-white"
           >
@@ -85,7 +76,6 @@ export function LoginForm({ navigateTo, onSwitchToRegister }: LoginFormProps) {
           {error && <div className="mt-3.5 rounded-lg border border-red-400/35 bg-red-500/10 px-3 py-2.5 text-[13px] leading-[1.5] text-red-300">{error}</div>}
         </form>
       </div>
-      {showBiometric && <BiometricLogin navigateTo={navigateTo} onClose={() => setShowBiometric(false)} />}
     </>
   )
 }

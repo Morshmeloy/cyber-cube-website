@@ -36,7 +36,7 @@ function adminPageContent(): PageContent {
   return { title: 'Администрирование пользователей', blocks: [{ kind: 'component', render: () => createElement(AdminPage) }] }
 }
 
-/** Грань «Авторизация» — вход/регистрация (components/auth/AuthScreen.tsx) + биометрия-заглушка. */
+/** Грань «Авторизация» — вход/регистрация (components/auth/AuthScreen.tsx). */
 function authPageContent(): PageContent {
   return {
     title: 'Вход в личный кабинет',
