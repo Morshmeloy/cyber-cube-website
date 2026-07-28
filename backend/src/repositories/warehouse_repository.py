@@ -43,38 +43,20 @@ class NomenclatureRepository:
         await self.db.refresh(item)
         return item
 
-    async def upsert_from_import(
-        self, rows: list[tuple[str, float]]
-    ) -> tuple[int, int]:
-        """rows: [(название, количество), ...]. Возвращает (added, updated)."""
-        added = 0
-        updated = 0
-        for name, quantity in rows:
-            existing = await self.find_by_name(name)
-            if existing:
-                existing.base_quantity = quantity
-                existing.base_synced_at = func.now()
-                updated += 1
-            else:
-                self.db.add(
-                    Nomenclature(
-                        name=name.strip(),
-                        base_quantity=quantity,
-                        base_synced_at=func.now(),
-                    )
-                )
-                added += 1
-        await self.db.commit()
-        return added, updated
-
     async def portal_quantity_for(self, nomenclature_id: int) -> float:
         """Движение через портал по ОДНОЙ конкретной номенклатуре."""
         result = await self.db.execute(
-            select(StockOperation).where(StockOperation.nomenclature_id == nomenclature_id)
+            select(StockOperation).where(
+                StockOperation.nomenclature_id == nomenclature_id
+            )
         )
         total = 0.0
         for op_row in result.scalars().all():
-            total += op_row.quantity if op_row.operation_type == OperationType.RETURN else -op_row.quantity
+            total += (
+                op_row.quantity
+                if op_row.operation_type == OperationType.RETURN
+                else -op_row.quantity
+            )
         return total
 
     async def portal_quantity_map(self) -> dict[int, float]:
@@ -91,6 +73,39 @@ class NomenclatureRepository:
                 totals.get(op_row.nomenclature_id, 0) + delta
             )
         return totals
+
+    async def find_by_guid(self, source_guid: str) -> Optional[Nomenclature]:
+        result = await self.db.execute(
+            select(Nomenclature).where(Nomenclature.source_guid == source_guid)
+        )
+        return result.scalar_one_or_none()
+
+    async def upsert_from_sync(
+        self, items: list[tuple[str, str]], balances: dict[str, float]
+    ) -> tuple[int, int]:
+        """items: [(guid, название), ...] из Catalog_Номенклатура. Возвращает (added, updated)."""
+        added = 0
+        updated = 0
+        for guid, name in items:
+            quantity = balances.get(guid, 0)
+            existing = await self.find_by_guid(guid)
+            if existing:
+                existing.name = name
+                existing.base_quantity = quantity
+                existing.base_synced_at = func.now()
+                updated += 1
+            else:
+                self.db.add(
+                    Nomenclature(
+                        name=name,
+                        source_guid=guid,
+                        base_quantity=quantity,
+                        base_synced_at=func.now(),
+                    )
+                )
+                added += 1
+        await self.db.commit()
+        return added, updated
 
 
 class StockOperationRepository:
