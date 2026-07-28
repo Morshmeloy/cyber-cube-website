@@ -11,7 +11,7 @@ class AuditRepository:
 
     async def log(
         self,
-        user_id: int,
+        user_id: Optional[int],
         action: str,
         entity_type: str,
         entity_id: Optional[int] = None,
@@ -38,3 +38,12 @@ class AuditRepository:
             .limit(limit)
         )
         return result.scalars().all()
+
+    async def get_latest_by_action(self, action: str) -> Optional[AuditLog]:
+        result = await self.db.execute(
+            select(AuditLog)
+            .where(AuditLog.action == action)
+            .order_by(AuditLog.created_at.desc())
+            .limit(1)
+        )
+        return result.scalar_one_or_none()
