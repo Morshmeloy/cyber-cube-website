@@ -25,6 +25,7 @@ class Nomenclature(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(200), unique=True, nullable=False, index=True)
+    source_guid = Column(String(36), unique=True, nullable=True, index=True)
     base_quantity = Column(Float, nullable=False, default=0)
     base_synced_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
