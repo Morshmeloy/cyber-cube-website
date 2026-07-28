@@ -9,19 +9,16 @@ from src.schemas.warehouse import (
     StockOperationCreate,
     StockOperationUpdate,
     NomenclatureResponse,
-    ImportResult,
+    SyncResult,
     StockOperationResponse,
 )
 from src.schemas.audit import AuditLogResponse
+from src.schemas.onec import SyncStatusResponse
 from src.models.user import User, UserRole
 from src.models.warehouse import OperationType, StockOperation
 from src.models.audit import AuditLog
-from src.services.excel_service import (
-    parse_balances_xlsx,
-    build_balances_export_1c,
-    build_balances_export_report,
-    build_operations_export,
-)
+from src.services.excel_service import build_operations_export
+from src.services.onec_client import fetch_nomenclature, fetch_balances
 
 
 def _require_admin(current_user: User) -> None:
@@ -51,7 +48,7 @@ def _audit_to_response(entry: AuditLog) -> AuditLogResponse:
     return AuditLogResponse(
         id=entry.id,
         user_id=entry.user_id,
-        username=entry.user.username,
+        username=entry.user.username if entry.user else "система",
         action=entry.action,
         entity_type=entry.entity_type,
         entity_id=entry.entity_id,
@@ -83,34 +80,25 @@ class WarehouseService:
             for item in items
         ]
 
-    async def import_nomenclature(
-        self, file_bytes: bytes, current_user: User
-    ) -> ImportResult:
+    async def sync_from_1c(self, current_user: User) -> SyncResult:
         _require_admin(current_user)
-        rows = parse_balances_xlsx(file_bytes)
-        added, updated = await self.nomenclature_repo.upsert_from_import(rows)
-        await self.audit_repo.log(
-            user_id=current_user.id,
-            action="nomenclature_imported",
-            entity_type="nomenclature",
-            details={"added": added, "updated": updated, "rows": len(rows)},
-        )
-        return ImportResult(added=added, updated=updated, skipped_duplicates=0)
+        return await self._perform_sync(user_id=current_user.id)
 
-    async def export_balances(self, variant: str, current_user: User) -> bytes:
-        items = await self.list_nomenclature()
-        content = (
-            build_balances_export_report(items)
-            if variant == "report"
-            else build_balances_export_1c(items)
-        )
+    async def _perform_sync(self, user_id: int | None = None) -> SyncResult:
+        items = await fetch_nomenclature()
+        balances = await fetch_balances()
+        added, updated = await self.nomenclature_repo.upsert_from_sync(items, balances)
         await self.audit_repo.log(
-            user_id=current_user.id,
-            action="nomenclature_exported",
+            user_id=user_id,
+            action="nomenclature_synced",
             entity_type="nomenclature",
-            details={"variant": variant},
+            details={"added": added, "updated": updated, "total": len(items)},
         )
-        return content
+        return SyncResult(added=added, updated=updated)
+
+    async def get_sync_status(self) -> SyncStatusResponse:
+        latest = await self.audit_repo.get_latest_by_action("nomenclature_synced")
+        return SyncStatusResponse(last_synced_at=latest.created_at if latest else None)
 
     async def export_operations(self, current_user: User) -> bytes:
         operations = await self.operation_repo.get_all(limit=10000)
