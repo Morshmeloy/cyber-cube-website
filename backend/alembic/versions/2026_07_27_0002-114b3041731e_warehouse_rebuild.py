@@ -76,6 +76,7 @@ def upgrade() -> None:
     op.drop_index(op.f("ix_warehouse_items_id"), table_name="warehouse_items")
     op.drop_index(op.f("ix_warehouse_items_name"), table_name="warehouse_items")
     op.drop_table("warehouse_items")
+    sa.Enum(name="movementtype").drop(op.get_bind(), checkfirst=True)
 
 
 def downgrade() -> None:
