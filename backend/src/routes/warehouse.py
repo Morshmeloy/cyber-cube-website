@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, UploadFile, File, Query, Response
+from fastapi import APIRouter, Depends, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 from src.core.database import get_db
@@ -10,9 +10,10 @@ from src.schemas.warehouse import (
     StockOperationCreate,
     StockOperationUpdate,
     StockOperationResponse,
-    ImportResult,
+    SyncResult,
 )
 from src.schemas.audit import AuditLogResponse
+from src.schemas.onec import SyncStatusResponse
 
 router = APIRouter(prefix="/warehouse", tags=["warehouse"])
 
@@ -28,31 +29,22 @@ async def get_nomenclature(
     return await service.list_nomenclature()
 
 
-@router.post("/nomenclature/import", response_model=ImportResult)
-async def import_nomenclature(
-    file: UploadFile = File(...),
+@router.post("/onec/sync", response_model=SyncResult)
+async def sync_nomenclature(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     service = WarehouseService(db)
-    content = await file.read()
-    return await service.import_nomenclature(content, current_user)
+    return await service.sync_from_1c(current_user)
 
 
-@router.get("/nomenclature/export")
-async def export_nomenclature(
-    variant: str = Query("1c", pattern="^(1c|report)$"),
+@router.get("/onec/sync-status", response_model=SyncStatusResponse)
+async def get_sync_status(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     service = WarehouseService(db)
-    content = await service.export_balances(variant, current_user)
-    filename = "ostatki_1c.xlsx" if variant == "1c" else "otchet_ostatki.xlsx"
-    return Response(
-        content=content,
-        media_type=XLSX_MEDIA_TYPE,
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
-    )
+    return await service.get_sync_status()
 
 
 @router.get("/operations/export")
