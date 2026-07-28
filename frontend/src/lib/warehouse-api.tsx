@@ -26,10 +26,13 @@ export interface StockOperation {
   createdAt: string
 }
 
-export interface ImportResult {
+export interface SyncResult {
   added: number
   updated: number
-  skippedDuplicates: number
+}
+
+export interface SyncStatus {
+  lastSyncedAt: string | null
 }
 
 export interface AuditLogEntry {
@@ -67,10 +70,13 @@ interface StockOperationDto {
   created_at: string
 }
 
-interface ImportResultDto {
+interface SyncResultDto {
   added: number
   updated: number
-  skipped_duplicates: number
+}
+
+interface SyncStatusDto {
+  last_synced_at: string | null
 }
 
 interface AuditLogDto {
@@ -130,13 +136,14 @@ export async function fetchNomenclature(): Promise<Nomenclature[]> {
   return response.data.map(fromNomenclatureDto)
 }
 
-export async function importNomenclature(file: File): Promise<ImportResult> {
-  const formData = new FormData()
-  formData.append('file', file)
-  const response = await apiClient.post<ImportResultDto>('/warehouse/nomenclature/import', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  })
-  return { added: response.data.added, updated: response.data.updated, skippedDuplicates: response.data.skipped_duplicates }
+export async function syncFrom1c(): Promise<SyncResult> {
+  const response = await apiClient.post<SyncResultDto>('/warehouse/onec/sync')
+  return { added: response.data.added, updated: response.data.updated }
+}
+
+export async function fetchSyncStatus(): Promise<SyncStatus> {
+  const response = await apiClient.get<SyncStatusDto>('/warehouse/onec/sync-status')
+  return { lastSyncedAt: response.data.last_synced_at }
 }
 
 function downloadBlob(blob: Blob, filename: string): void {
@@ -148,14 +155,6 @@ function downloadBlob(blob: Blob, filename: string): void {
   link.click()
   link.remove()
   URL.revokeObjectURL(url)
-}
-
-export async function exportBalances(variant: '1c' | 'report'): Promise<void> {
-  const response = await apiClient.get('/warehouse/nomenclature/export', {
-    params: { variant },
-    responseType: 'blob',
-  })
-  downloadBlob(response.data as Blob, variant === '1c' ? 'ostatki_1c.xlsx' : 'otchet_ostatki.xlsx')
 }
 
 export async function exportOperations(): Promise<void> {

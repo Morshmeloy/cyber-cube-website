@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import axios from 'axios'
 import { toast } from 'sonner'
 import { getUser } from '@/lib/auth.tsx'
@@ -10,8 +10,8 @@ import {
   createOperation,
   updateOperation,
   deleteOperation,
-  importNomenclature,
-  exportBalances,
+  syncFrom1c,
+  fetchSyncStatus,
   exportOperations,
   type Nomenclature,
   type StockOperation,
@@ -30,6 +30,20 @@ function formatDate(iso: string): string {
   const d = new Date(iso)
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+/** Устаревание данных (п. 5.4.2 ТЗ) показываем не порогом/предупреждением, а самим
+ * прошедшим временем — пользователь сам решает, насколько это давно. */
+function formatSyncStatus(lastSyncedAt: string | null): string {
+  if (!lastSyncedAt) return 'Ещё не синхронизировано с 1С'
+  const diffMs = Date.now() - new Date(lastSyncedAt).getTime()
+  const minutes = Math.floor(diffMs / 60000)
+  if (minutes < 1) return 'Последняя синхронизация: меньше минуты назад'
+  if (minutes < 60) return `Последняя синхронизация: ${minutes} мин. назад`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `Последняя синхронизация: ${hours} ч. назад`
+  const days = Math.floor(hours / 24)
+  return `Последняя синхронизация: ${days} дн. назад`
 }
 
 function operationLabel(type: OperationType): string {
@@ -62,11 +76,10 @@ function extractErrorMessage(error: unknown, fallback: string): string {
 function describeAuditEntry(entry: AuditLogEntry): string {
   const details = (entry.details ?? {}) as Record<string, unknown>
   switch (entry.action) {
-    case 'nomenclature_imported':
-      return `Импортировал остатки из 1С — добавлено ${details.added ?? 0}, обновлено ${details.updated ?? 0} (в файле ${details.rows ?? 0} строк).`
+    case 'nomenclature_synced':
+      return `Синхронизировал номенклатуру и остатки с 1С — добавлено ${details.added ?? 0}, обновлено ${details.updated ?? 0} (всего в 1С: ${details.total ?? 0}).`
     case 'nomenclature_exported':
-      if (entry.entityType === 'stock_operation') return `Экспортировал историю операций (${details.count ?? 0} записей).`
-      return `Экспортировал остатки — ${details.variant === 'report' ? 'вариант «отчёт»' : 'формат «для 1С»'}.`
+      return `Экспортировал историю операций (${details.count ?? 0} записей).`
     case 'operation_created':
       return `Добавил операцию: ${operationTypeWord(details.operation_type)} «${details.nomenclature ?? '—'}», ${details.quantity ?? '?'} шт.`
     case 'operation_updated': {
@@ -103,16 +116,16 @@ interface EditDraft {
  * у остальных ролей — чтение и экспорт (см. src/services/warehouse_service.py). */
 export function WarehousePage() {
   const isAdmin = getUser()?.role === 'admin'
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [nomenclature, setNomenclature] = useState<Nomenclature[] | null>(null)
   const [operations, setOperations] = useState<StockOperation[] | null>(null)
   const [auditLog, setAuditLog] = useState<AuditLogEntry[] | null>(null)
   const [showAudit, setShowAudit] = useState(false)
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null)
 
   const [refreshing, setRefreshing] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [importing, setImporting] = useState(false)
+  const [syncing, setSyncing] = useState(false)
   const [exportingKey, setExportingKey] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [savingEditId, setSavingEditId] = useState<number | null>(null)
@@ -124,9 +137,14 @@ export function WarehousePage() {
   async function loadData(): Promise<void> {
     setRefreshing(true)
     try {
-      const [nextNomenclature, nextOperations] = await Promise.all([fetchNomenclature(), fetchOperations()])
+      const [nextNomenclature, nextOperations, nextSyncStatus] = await Promise.all([
+        fetchNomenclature(),
+        fetchOperations(),
+        fetchSyncStatus(),
+      ])
       setNomenclature(nextNomenclature)
       setOperations(nextOperations)
+      setLastSyncedAt(nextSyncStatus.lastSyncedAt)
     } catch (error) {
       toast.error(extractErrorMessage(error, 'Не удалось загрузить данные склада.'))
     } finally {
@@ -175,30 +193,16 @@ export function WarehousePage() {
     }
   }
 
-  async function handleImportChange(e: React.ChangeEvent<HTMLInputElement>): Promise<void> {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setImporting(true)
+  async function handleSync(): Promise<void> {
+    setSyncing(true)
     try {
-      const result = await importNomenclature(file)
-      toast.success(`Импорт завершён: добавлено ${result.added}, обновлено ${result.updated}.`)
+      const result = await syncFrom1c()
+      toast.success(`Синхронизация завершена: добавлено ${result.added}, обновлено ${result.updated}.`)
       await loadData()
     } catch (error) {
-      toast.error(extractErrorMessage(error, 'Не удалось импортировать файл.'))
+      toast.error(extractErrorMessage(error, 'Не удалось синхронизироваться с 1С.'))
     } finally {
-      setImporting(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
-    }
-  }
-
-  async function handleExportBalances(variant: '1c' | 'report'): Promise<void> {
-    setExportingKey(variant)
-    try {
-      await exportBalances(variant)
-    } catch (error) {
-      toast.error(extractErrorMessage(error, 'Не удалось выгрузить файл.'))
-    } finally {
-      setExportingKey(null)
+      setSyncing(false)
     }
   }
 
@@ -368,42 +372,26 @@ export function WarehousePage() {
         </form>
       )}
 
-      {isAdmin && (
-        <div
-          className="mb-5.5 rounded-xl border p-4.5"
-          style={{ background: 'color-mix(in srgb, var(--plasma-color) 6%, #14172c)', borderColor: 'color-mix(in srgb, var(--plasma-color) 16%, transparent)' }}
-        >
-          <h3 className="mb-3 text-sm font-bold text-[var(--plasma-color)]">Импорт остатков из 1С</h3>
-          <p className="mb-3 text-[12px] text-[#e8f8ff]/60">Загрузи файл экспорта отчёта «Остатки товаров» из 1С:Фреш (.xlsx).</p>
-          <label
-            className={`flex w-fit cursor-pointer items-center gap-2 rounded-lg border border-[var(--plasma-color)] px-4 py-2 text-[13px] font-bold text-[var(--plasma-color)] transition-colors hover:bg-[color-mix(in_srgb,var(--plasma-color)_14%,transparent)] ${importing ? 'pointer-events-none opacity-60' : ''}`}
-          >
-            {importing && <Spinner className="h-4 w-4" />}
-            Выбрать файл и импортировать
-            <input ref={fileInputRef} type="file" accept=".xlsx" onChange={(e) => void handleImportChange(e)} disabled={importing} className="hidden" />
-          </label>
-        </div>
-      )}
-
       <div
         className="mb-5.5 overflow-x-auto rounded-xl border p-4"
         style={{ background: 'color-mix(in srgb, var(--plasma-color) 6%, #14172c)', borderColor: 'color-mix(in srgb, var(--plasma-color) 16%, transparent)' }}
       >
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-sm font-bold text-[var(--plasma-color)]">Остатки по номенклатуре</h3>
+          <div>
+            <h3 className="text-sm font-bold text-[var(--plasma-color)]">Остатки по номенклатуре</h3>
+            <p className="text-[11px] text-[#e8f8ff]/50">{formatSyncStatus(lastSyncedAt)}</p>
+          </div>
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => void loadData()} disabled={refreshing} className={secondaryButtonClass}>
               {refreshing && <Spinner className="h-3.5 w-3.5" />}
               Обновить
             </button>
-            <button type="button" onClick={() => void handleExportBalances('1c')} disabled={exportingKey === '1c'} className={secondaryButtonClass}>
-              {exportingKey === '1c' && <Spinner className="h-3.5 w-3.5" />}
-              Экспорт для 1С
-            </button>
-            <button type="button" onClick={() => void handleExportBalances('report')} disabled={exportingKey === 'report'} className={secondaryButtonClass}>
-              {exportingKey === 'report' && <Spinner className="h-3.5 w-3.5" />}
-              Экспорт-отчёт
-            </button>
+            {isAdmin && (
+              <button type="button" onClick={() => void handleSync()} disabled={syncing} className={secondaryButtonClass}>
+                {syncing && <Spinner className="h-3.5 w-3.5" />}
+                Обновить данные из 1С
+              </button>
+            )}
           </div>
         </div>
 
@@ -435,7 +423,7 @@ export function WarehousePage() {
               {nomenclature.length === 0 && (
                 <tr>
                   <td colSpan={4} className="px-2.5 py-4 text-center text-[#e8f8ff]/50">
-                    Номенклатуры пока нет — импортируй остатки из 1С.
+                    Номенклатуры пока нет — нажми «Обновить данные из 1С».
                   </td>
                 </tr>
               )}
