@@ -51,7 +51,6 @@ class StockOperationResponse(BaseModel):
         from_attributes = True
 
 
-class ImportResult(BaseModel):
+class SyncResult(BaseModel):
     added: int
     updated: int
-    skipped_duplicates: int
