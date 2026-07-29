@@ -13,6 +13,9 @@ import {
   syncFrom1c,
   fetchSyncStatus,
   exportOperations,
+  confirmOperationsIn1c,
+  confirmAllExportedIn1c,
+  unconfirmOperationIn1c,
   type Nomenclature,
   type StockOperation,
   type AuditLogEntry,
@@ -112,6 +115,10 @@ function describeAuditEntry(entry: AuditLogEntry): string {
     case 'operations_exported':
     case 'nomenclature_exported':
       return `Экспортировал историю операций (${details.count ?? 0} записей${details.mode === 'all' ? ', включая ранее экспортированные' : ''}).`
+    case 'operations_confirmed_in_1c':
+      return `Подтвердил перенос в 1С для ${details.count ?? 0} операций.`
+    case 'operation_unconfirmed_in_1c':
+      return 'Отменил подтверждение переноса операции в 1С.'
     case 'operation_created':
       return `Добавил операцию: ${operationTypeWord(details.operation_type)} «${details.nomenclature ?? '—'}», ${details.quantity ?? '?'} шт.`
     case 'operation_updated': {
@@ -161,6 +168,8 @@ export function WarehousePage() {
   const [exportingKey, setExportingKey] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [savingEditId, setSavingEditId] = useState<number | null>(null)
+  const [confirmingId, setConfirmingId] = useState<number | null>(null)
+  const [bulkConfirming, setBulkConfirming] = useState(false)
 
   const [draft, setDraft] = useState<OperationDraft>(EMPTY_DRAFT)
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -264,6 +273,43 @@ export function WarehousePage() {
       toast.error(extractErrorMessage(error, 'Не удалось выгрузить файл.'))
     } finally {
       setExportingKey(null)
+    }
+  }
+
+  async function handleConfirmOperation(id: number): Promise<void> {
+    setConfirmingId(id)
+    try {
+      await confirmOperationsIn1c([id])
+      await loadData()
+    } catch (error) {
+      toast.error(extractErrorMessage(error, 'Не удалось подтвердить перенос операции в 1С.'))
+    } finally {
+      setConfirmingId(null)
+    }
+  }
+
+  async function handleUnconfirmOperation(id: number): Promise<void> {
+    setConfirmingId(id)
+    try {
+      await unconfirmOperationIn1c(id)
+      await loadData()
+    } catch (error) {
+      toast.error(extractErrorMessage(error, 'Не удалось отменить подтверждение.'))
+    } finally {
+      setConfirmingId(null)
+    }
+  }
+
+  async function handleConfirmAllExported(): Promise<void> {
+    setBulkConfirming(true)
+    try {
+      const result = await confirmAllExportedIn1c()
+      toast.success(`Подтверждён перенос ${result.count} операций.`)
+      await loadData()
+    } catch (error) {
+      toast.error(extractErrorMessage(error, 'Не удалось подтвердить перенос операций.'))
+    } finally {
+      setBulkConfirming(false)
     }
   }
 
@@ -551,6 +597,15 @@ export function WarehousePage() {
                 {exportingKey === 'operations-all' && <Spinner className="h-3.5 w-3.5" />}
                 Выгрузить все (включая экспортированные)
               </button>
+              <button
+                type="button"
+                onClick={() => void handleConfirmAllExported()}
+                disabled={bulkConfirming}
+                className={secondaryButtonClass}
+              >
+                {bulkConfirming && <Spinner className="h-3.5 w-3.5" />}
+                Подтвердить перенос всех выгруженных
+              </button>
             </div>
           )}
         </div>
@@ -564,7 +619,7 @@ export function WarehousePage() {
           <table className="w-full min-w-[820px] border-collapse text-[13px] text-[#e8f8ff]/85">
             <thead>
               <tr>
-                {['Дата', 'Номенклатура', 'Тип', 'Кол-во', 'ФИО', 'Адрес/место назначения', 'Кто ввёл', ...(isAdmin ? ['Экспорт', 'Действия'] : [])].map((h) => (
+                {['Дата', 'Номенклатура', 'Тип', 'Кол-во', 'ФИО', 'Адрес/место назначения', 'Кто ввёл', ...(isAdmin ? ['Экспорт', 'Подтверждено в 1С', 'Действия'] : [])].map((h) => (
                   <th key={h} className="bg-white/6 px-2.5 py-2 text-left font-bold text-[var(--plasma-color)]">
                     {h}
                   </th>
@@ -635,6 +690,11 @@ export function WarehousePage() {
                       </td>
                     )}
                     {isAdmin && (
+                      <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2 whitespace-nowrap text-[11px]">
+                        {op.confirmedIn1cAt ? formatDate(op.confirmedIn1cAt) : <span className="text-[#e8f8ff]/40">—</span>}
+                      </td>
+                    )}
+                    {isAdmin && (
                       <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">
                         {isEditing ? (
                           <div className="flex gap-1.5">
@@ -656,7 +716,7 @@ export function WarehousePage() {
                             </button>
                           </div>
                         ) : (
-                          <div className="flex gap-1.5">
+                          <div className="flex flex-wrap gap-1.5">
                             <button
                               type="button"
                               onClick={() => startEdit(op)}
@@ -673,6 +733,27 @@ export function WarehousePage() {
                               {deletingId === op.id && <Spinner className="h-3 w-3" />}
                               Удалить
                             </button>
+                            {op.confirmedIn1cAt ? (
+                              <button
+                                type="button"
+                                disabled={confirmingId === op.id}
+                                onClick={() => void handleUnconfirmOperation(op.id)}
+                                className="flex items-center gap-1.5 rounded-md border border-[#e8f8ff]/20 px-2.5 py-1 text-[11px] text-[#e8f8ff]/80 transition-colors hover:bg-white/6 disabled:opacity-50"
+                              >
+                                {confirmingId === op.id && <Spinner className="h-3 w-3" />}
+                                Отменить подтверждение
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled={confirmingId === op.id}
+                                onClick={() => void handleConfirmOperation(op.id)}
+                                className="flex items-center gap-1.5 rounded-md border border-emerald-400/35 px-2.5 py-1 text-[11px] text-emerald-300 transition-colors hover:bg-emerald-500/15 disabled:opacity-50"
+                              >
+                                {confirmingId === op.id && <Spinner className="h-3 w-3" />}
+                                Подтвердить в 1С
+                              </button>
+                            )}
                           </div>
                         )}
                       </td>
@@ -682,7 +763,7 @@ export function WarehousePage() {
               })}
               {operations.length === 0 && (
                 <tr>
-                  <td colSpan={isAdmin ? 9 : 7} className="px-2.5 py-4 text-center text-[#e8f8ff]/50">
+                  <td colSpan={isAdmin ? 10 : 7} className="px-2.5 py-4 text-center text-[#e8f8ff]/50">
                     Операций пока нет.
                   </td>
                 </tr>
