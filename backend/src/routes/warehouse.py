@@ -11,6 +11,8 @@ from src.schemas.warehouse import (
     StockOperationUpdate,
     StockOperationResponse,
     SyncResult,
+    ConfirmOperationsRequest,
+    ConfirmResult,
 )
 from src.schemas.audit import AuditLogResponse
 from src.schemas.onec import SyncStatusResponse
@@ -103,6 +105,37 @@ async def delete_operation(
     service = WarehouseService(db)
     await service.delete_operation(operation_id, current_user)
     return {"message": "Операция удалена"}
+
+
+@router.post("/operations/confirm-in-1c", response_model=ConfirmResult)
+async def confirm_operations_in_1c(
+    data: ConfirmOperationsRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    service = WarehouseService(db)
+    return await service.confirm_operations_in_1c(data.ids, current_user)
+
+
+@router.post("/operations/confirm-all-exported", response_model=ConfirmResult)
+async def confirm_all_exported(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    service = WarehouseService(db)
+    return await service.confirm_all_exported_in_1c(current_user)
+
+
+@router.post(
+    "/operations/{operation_id}/unconfirm-in-1c", response_model=StockOperationResponse
+)
+async def unconfirm_operation_in_1c(
+    operation_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    service = WarehouseService(db)
+    return await service.unconfirm_operation_in_1c(operation_id, current_user)
 
 
 @router.get("/audit-log", response_model=List[AuditLogResponse])
