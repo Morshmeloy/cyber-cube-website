@@ -43,6 +43,29 @@ class NomenclatureRepository:
         await self.db.refresh(item)
         return item
 
+    async def get_unexported(self, limit: int = 10000) -> List[StockOperation]:
+        result = await self.db.execute(
+            select(StockOperation)
+            .options(
+                selectinload(StockOperation.nomenclature),
+                selectinload(StockOperation.user),
+            )
+            .where(StockOperation.exported_at.is_(None))
+            .order_by(StockOperation.created_at.desc())
+            .limit(limit)
+        )
+        return result.scalars().all()
+
+    async def mark_exported(self, ids: list[int]) -> None:
+        if not ids:
+            return
+        result = await self.db.execute(
+            select(StockOperation).where(StockOperation.id.in_(ids))
+        )
+        for op_row in result.scalars().all():
+            op_row.exported_at = func.now()
+        await self.db.commit()
+
     async def portal_quantity_for(self, nomenclature_id: int) -> float:
         """Движение через портал по ОДНОЙ конкретной номенклатуре."""
         result = await self.db.execute(
