@@ -14,6 +14,7 @@ class NomenclatureResponse(BaseModel):
     total_quantity: float
     base_synced_at: Optional[datetime]
     created_at: datetime
+    exported_at: Optional[datetime]
 
     class Config:
         from_attributes = True
