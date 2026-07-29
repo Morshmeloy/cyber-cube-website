@@ -24,6 +24,7 @@ export interface StockOperation {
   userId: number
   username: string
   createdAt: string
+  exportedAt: string | null
 }
 
 export interface SyncResult {
@@ -68,6 +69,7 @@ interface StockOperationDto {
   user_id: number
   username: string
   created_at: string
+  exported_at: string | null
 }
 
 interface SyncResultDto {
@@ -115,6 +117,7 @@ function fromOperationDto(dto: StockOperationDto): StockOperation {
     userId: dto.user_id,
     username: dto.username,
     createdAt: dto.created_at,
+    exportedAt: dto.exported_at,
   }
 }
 
@@ -157,8 +160,11 @@ function downloadBlob(blob: Blob, filename: string): void {
   URL.revokeObjectURL(url)
 }
 
-export async function exportOperations(): Promise<void> {
-  const response = await apiClient.get('/warehouse/operations/export', { responseType: 'blob' })
+export async function exportOperations(includeExported = false): Promise<void> {
+  const response = await apiClient.get('/warehouse/operations/export', {
+    responseType: 'blob',
+    params: { include_exported: includeExported },
+  })
   downloadBlob(response.data as Blob, 'operacii.xlsx')
 }
 
