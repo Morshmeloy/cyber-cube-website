@@ -14,7 +14,6 @@ class NomenclatureResponse(BaseModel):
     total_quantity: float
     base_synced_at: Optional[datetime]
     created_at: datetime
-    exported_at: Optional[datetime]
 
     class Config:
         from_attributes = True
@@ -47,6 +46,8 @@ class StockOperationResponse(BaseModel):
     user_id: int
     username: str
     created_at: datetime
+    exported_at: Optional[datetime]
+    confirmed_in_1c_at: Optional[datetime]
 
     class Config:
         from_attributes = True
@@ -55,3 +56,11 @@ class StockOperationResponse(BaseModel):
 class SyncResult(BaseModel):
     added: int
     updated: int
+
+
+class ConfirmOperationsRequest(BaseModel):
+    ids: list[int]
+
+
+class ConfirmResult(BaseModel):
+    count: int
