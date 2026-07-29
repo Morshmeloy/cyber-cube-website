@@ -11,6 +11,7 @@ from src.schemas.warehouse import (
     NomenclatureResponse,
     SyncResult,
     StockOperationResponse,
+    ConfirmResult,
 )
 from src.schemas.audit import AuditLogResponse
 from src.schemas.onec import SyncStatusResponse
@@ -42,6 +43,7 @@ def _operation_to_response(op: StockOperation) -> StockOperationResponse:
         username=op.user.username,
         created_at=op.created_at,
         exported_at=op.exported_at,
+        confirmed_in_1c_at=op.confirmed_in_1c_at,
     )
 
 
@@ -261,6 +263,49 @@ class WarehouseService:
                 "destination": deleted.destination,
             },
         )
+
+    async def confirm_operations_in_1c(
+        self, ids: list[int], current_user: User
+    ) -> ConfirmResult:
+        _require_admin(current_user)
+        count = await self.operation_repo.set_confirmed(ids, True)
+        await self.audit_repo.log(
+            user_id=current_user.id,
+            action="operations_confirmed_in_1c",
+            entity_type="stock_operation",
+            details={"ids": ids, "count": count},
+        )
+        return ConfirmResult(count=count)
+
+    async def confirm_all_exported_in_1c(self, current_user: User) -> ConfirmResult:
+        _require_admin(current_user)
+        pending = await self.operation_repo.get_exported_unconfirmed()
+        ids = [op.id for op in pending]
+        count = await self.operation_repo.set_confirmed(ids, True)
+        await self.audit_repo.log(
+            user_id=current_user.id,
+            action="operations_confirmed_in_1c",
+            entity_type="stock_operation",
+            details={"ids": ids, "count": count, "mode": "bulk"},
+        )
+        return ConfirmResult(count=count)
+
+    async def unconfirm_operation_in_1c(
+        self, operation_id: int, current_user: User
+    ) -> StockOperationResponse:
+        _require_admin(current_user)
+        count = await self.operation_repo.set_confirmed([operation_id], False)
+        if not count:
+            raise HTTPException(status_code=404, detail="Операция не найдена")
+        await self.audit_repo.log(
+            user_id=current_user.id,
+            action="operation_unconfirmed_in_1c",
+            entity_type="stock_operation",
+            entity_id=operation_id,
+            details={},
+        )
+        updated = await self.operation_repo.get_by_id(operation_id)
+        return _operation_to_response(updated)
 
     async def list_audit_log(self) -> list[AuditLogResponse]:
         entries = await self.audit_repo.get_all()
