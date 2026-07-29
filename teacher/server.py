@@ -1,287 +1,1704 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 """
 Сервер учителя для теста по Таненбауму.
-Загружает LLM и ChromaDB, предоставляет эндпоинт для объяснения ошибок.
+
+Полная версия с:
+- RAG через ChromaDB
+- локальная LLM llama.cpp
+- SSE потоковая генерация
+- история диалогов
+- тестовые объяснения
 """
 
-import os
 import json
+import sys
+import signal
 import traceback
-from flask import Flask, request, jsonify, render_template
+import threading
+
+from collections import defaultdict, deque
+
+from flask import (
+    Flask,
+    request,
+    jsonify,
+    Response,
+    stream_with_context,
+)
+
 from flask_cors import CORS
-import chroma_db
+
+import chromadb
+
 from llama_cpp import Llama
 
-# ==================== КОНФИГУРАЦИЯ ====================
-MODEL_PATH = "models/saiga_mistral_7b.Q4_K_M.gguf"
-CHROMA_DIR = "chroma_db"
-COLLECTION_NAME = "tanenbaum_networks"
-LLAMA_CONTEXT_SIZE = 2048
-LLAMA_GPU_LAYERS = -1  # 0 - CPU
 
-# ==================== ИНИЦИАЛИЗАЦИЯ FLASK ====================
-app = Flask(__name__, static_folder="static", template_folder="templates")
+# ==========================================================
+# CONFIGURATION
+# ==========================================================
+
+
+MODEL_PATH = (
+    "models/saiga_mistral_7b.Q4_K_M.gguf"
+)
+
+
+CHROMA_DIR = (
+    "chroma_db"
+)
+
+
+COLLECTION_NAME = (
+    "tanenbaum_networks"
+)
+
+
+# Размер контекста модели
+LLAMA_CONTEXT_SIZE = 4096
+
+
+# GPU layers
+# -1 = все доступные слои
+LLAMA_GPU_LAYERS = -1
+
+
+# Размер batch
+LLAMA_BATCH = 256
+
+# Параметры генерации
+LLAMA_TOP_P = 0.8
+LLAMA_TOP_K = 30
+LLAMA_REPEAT_PENALTY = 1.1
+LLAMA_TEMPERATURE_EXPLANATION = 0.25
+LLAMA_TEMPERATURE_DETAIL = 0.35
+LLAMA_TEMPERATURE_FREE = 0.35
+
+MAX_TOKENS_EXPLANATION = 280
+MAX_TOKENS_DETAIL = 360
+MAX_TOKENS_FREE = 420
+
+RAG_K_EXPLANATION = 2
+RAG_K_DETAIL = 2
+RAG_K_FREE = 3
+
+STOP_SEQUENCES = [
+    "\nВопрос:",
+    "\nПравильный ответ:",
+    "\nКонтекст:",
+    "\nПодробное объяснение:",
+    "\nОтвет:",
+]
+
+# Максимальная история чата
+HISTORY_MAXLEN = 12
+
+
+# ==========================================================
+# FLASK INIT
+# ==========================================================
+
+
+app = Flask(
+    __name__,
+    static_folder="static",
+    template_folder="templates"
+)
+
+
 CORS(app)
 
-# ==================== ГЛОБАЛЬНЫЕ КОМПОНЕНТЫ ====================
-model_ready = False
+
+
+# ==========================================================
+# GLOBAL STATE
+# ==========================================================
+
+
 llm = None
+
+
 collection = None
 
-# ==================== ЗАГРУЗКА МОДЕЛИ И БД ====================
-print("⏳ Загрузка LLM...")
-try:
-    llm = Llama(
-        model_path=MODEL_PATH,
-        n_ctx=LLAMA_CONTEXT_SIZE,
-        n_gpu_layers=LLAMA_GPU_LAYERS,
-        verbose=False,  # убираем лишний шум
-        seed=42,
+
+model_ready = False
+
+
+
+# llama.cpp не является полностью потокобезопасным.
+# Один генератор одновременно.
+
+llm_lock = threading.Lock()
+
+
+
+# История свободного чата
+
+conversation_store = defaultdict(
+    lambda: deque(
+        maxlen=HISTORY_MAXLEN
     )
-    print("✅ LLM готова.")
-except Exception as e:
-    print(f"❌ Ошибка загрузки LLM: {e}")
-    llm = None
-
-print("⏳ Подключение к ChromaDB...")
-try:
-    chroma_client = chroma_db.PersistentClient(path=CHROMA_DIR)
-    collection = chroma_client.get_collection(name=COLLECTION_NAME)
-    doc_count = collection.count()
-    print(f"✅ Коллекция '{COLLECTION_NAME}', документов: {doc_count}")
-except Exception as e:
-    print(f"❌ Ошибка ChromaDB: {e}")
-    collection = None
-
-model_ready = llm is not None and collection is not None
+)
 
 
-# ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
-def retrieve_context(query, k=3):
-    """Ищет в ChromaDB чанки, релевантные запросу."""
-    if collection is None:
-        return ""
-    try:
-        results = collection.query(query_texts=[query], n_results=k)
-        docs = results["documents"][0] if results["documents"] else []
-        return "\n\n".join(docs)
-    except Exception as e:
-        print(f"Ошибка поиска в ChromaDB: {e}")
-        return ""
+conversation_store_lock = threading.Lock()
 
+
+
+# Кеш объяснений
 
 explanation_cache = {}
 
 
-def generate_explanation(mistake):
-    q_id = mistake.get("id")
-    if q_id in explanation_cache:
-        print(f"✅ Объяснение для ID={q_id} взято из кеша.")
-        return explanation_cache[q_id]
-    query = f"{mistake.get('question', '')} {mistake.get('src', '')}"
-    context = retrieve_context(query, k=2)
-    if not context:
-        context = retrieve_context("компьютерные сети", k=2)
 
-    # Вычисляем правильный ответ (текст)
+# ==========================================================
+# LOAD COMPONENTS
+# ==========================================================
+
+
+def load_components():
+
+    """
+    Загрузка:
+    1. LLM
+    2. ChromaDB
+    """
+
+    global llm
+    global collection
+    global model_ready
+
+
+    print(
+        "⏳ Загрузка LLM...",
+        flush=True
+    )
+
+
+    try:
+
+        llm = Llama(
+
+            model_path=MODEL_PATH,
+
+            n_ctx=LLAMA_CONTEXT_SIZE,
+
+            n_gpu_layers=LLAMA_GPU_LAYERS,
+
+            n_batch=LLAMA_BATCH,
+
+            verbose=False,
+
+            seed=42
+        )
+
+
+        print(
+            "✅ LLM загружена",
+            flush=True
+        )
+
+
+    except Exception as e:
+
+
+        print(
+            f"❌ Ошибка LLM: {e}",
+            flush=True
+        )
+
+
+        llm = None
+
+
+
+    print(
+        "⏳ Подключение ChromaDB...",
+        flush=True
+    )
+
+
+    try:
+
+
+        chroma_client = (
+            chromadb.PersistentClient(
+                path=CHROMA_DIR
+            )
+        )
+
+
+        collection = (
+            chroma_client.get_collection(
+                name=COLLECTION_NAME
+            )
+        )
+
+
+        print(
+            f"✅ ChromaDB подключена. "
+            f"Документов: {collection.count()}",
+            flush=True
+        )
+
+
+    except Exception as e:
+
+
+        print(
+            f"❌ Ошибка ChromaDB: {e}",
+            flush=True
+        )
+
+
+        collection = None
+
+
+
+    model_ready = (
+        llm is not None
+        and collection is not None
+    )
+
+
+
+load_components()
+
+
+
+# ==========================================================
+# SIGNALS
+# ==========================================================
+
+
+def signal_handler(sig, frame):
+
+    print(
+        "\n⏳ Завершение сервера...",
+        flush=True
+    )
+
+    sys.exit(0)
+
+
+
+signal.signal(
+    signal.SIGINT,
+    signal_handler
+)
+
+
+signal.signal(
+    signal.SIGTERM,
+    signal_handler
+)
+
+
+
+# ==========================================================
+# RAG
+# ==========================================================
+
+
+def retrieve_context(
+        query,
+        k=3
+):
+
+    """
+    Поиск релевантных документов
+    """
+
+    if collection is None:
+
+        return ""
+
+
+    try:
+
+
+        result = collection.query(
+
+            query_texts=[
+                query
+            ],
+
+            n_results=k
+
+        )
+
+
+        docs = result.get(
+            "documents",
+            [[]]
+        )[0]
+
+
+        return "\n\n".join(
+            docs
+        )
+
+
+    except Exception as e:
+
+
+        print(
+            f"Ошибка ChromaDB: {e}"
+        )
+
+
+        return ""
+
+def build_explanation_prompt(mistake):
+    query = "{} {}".format(
+        mistake.get("question", ""),
+        mistake.get("src", ""),
+    ).strip()
+
+    context = retrieve_context(query, k=RAG_K_EXPLANATION)
     correct_text = mistake["options"][mistake["correct"]]
 
-    prompt = f"""Ты — преподаватель по компьютерным сетям. Твоя задача — объяснить, почему правильный ответ на вопрос является верным. Не анализируй ошибку ученика, не говори "вы ошиблись". Просто дай чёткое, учебное объяснение, основанное ТОЛЬКО на приведённом контексте из учебника Таненбаума. Не домысливай.
+    prompt = (
+        "Ты преподаватель по компьютерным сетям. "
+        "Сформулируй объяснение только текстом, без служебных меток и без повторения структуры prompt. "
+        "Используй только контекст и правильный ответ. "
+        "Начинай сразу с объяснения.\n"
+        f"Вопрос: {mistake['question']}\n"
+        f"Правильный ответ: {correct_text}\n"
+        f"Контекст: {context}\n"
+        "Объяснение:"
+    )
 
-Вопрос: {mistake['question']}
-Правильный ответ: {correct_text}
+    return prompt
 
-Контекст из учебника:
-{context}
-
-Требования к ответу:
-- Дай объяснение из 3-5 полных, законченных предложений.
-- Не обрывай ответ на середине слова или предложения.
-- Если контекста недостаточно, так и скажи, но всё равно объясни общими словами.
-
-Объяснение:"""
-
-    print(f"🤖 Генерация объяснения для вопроса ID={mistake.get('id')}...")
-    response = llm(
-        prompt, max_tokens=300, temperature=0.3
-    )  # низкая температура для фактов
-    explanation = response["choices"][0]["text"].strip()
-    print(f"✅ Объяснение для ID={mistake.get('id')} готово.")
-    explanation_cache[q_id] = explanation
-    return explanation
+# ==========================================================
+# HISTORY
+# ==========================================================
 
 
-@app.route("/api/chat/detail", methods=["POST"])
-def chat_detail():
-    if not model_ready:
-        return jsonify({"error": "Модель ещё не загружена"}), 503
+def get_user_id(data):
 
-    data = request.get_json(silent=True)
     if not data:
-        return jsonify({"error": "Неверный формат запроса"}), 400
 
-    required = ["id", "question", "options", "correct", "previous_explanation"]
-    if not all(k in data for k in required):
-        return jsonify({"error": "Отсутствуют обязательные поля"}), 400
-
-    q_id = data["id"]
-    question = data["question"]
-    options = data["options"]
-    correct_idx = data["correct"]
-    prev_expl = data["previous_explanation"]
-
-    correct_text = options[correct_idx]
-
-    # Ищем контекст ещё раз (можно взять тот же)
-    context = retrieve_context(question + " " + data.get("src", ""), k=3)
-    if not context:
-        context = retrieve_context("компьютерные сети", k=3)
-
-    prompt = f"""Ты — преподаватель по компьютерным сетям. Ранее ты дал такое объяснение:
-{prev_expl}
-
-Теперь расскажи об этом же вопросе подробнее. Добавь больше деталей, примеров, ссылок на контекст из учебника.
-Вопрос: {question}
-Правильный ответ: {correct_text}
-Контекст из учебника:
-{context}
-
-Подробное объяснение (5-7 предложений, без обрыва мыслей):"""
-
-    print(f"🔍 Генерация детального объяснения для вопроса ID={q_id}...")
-    response = llm(prompt, max_tokens=400, temperature=0.5)
-    detail = response["choices"][0]["text"].strip()
-    print(f"✅ Детальное объяснение готово.")
-    return jsonify({"id": q_id, "detail": detail})
+        return "anonymous"
 
 
-# ==================== API ====================
-@app.route("/")
-def index():
-    return render_template("index.html")
+    user_id = (
+        data.get(
+            "user_id",
+            "anonymous"
+        )
+    )
 
 
-@app.route("/api/model_status")
-def model_status():
-    return jsonify(
-        {
-            "ready": model_ready,
-            "llm_loaded": llm is not None,
-            "db_loaded": collection is not None,
-            "doc_count": collection.count() if collection else 0,
+    return (
+        str(user_id).strip()
+        or
+        "anonymous"
+    )
+
+
+
+def build_history_messages(
+        user_id
+):
+
+    with conversation_store_lock:
+
+        return list(
+            conversation_store[user_id]
+        )
+
+
+
+def push_history(
+        user_id,
+        role,
+        content
+):
+
+    with conversation_store_lock:
+
+        conversation_store[user_id].append(
+
+            {
+                "role": role,
+
+                "content": content
+            }
+
+        )
+
+
+
+def format_history_text(history):
+
+    if not history:
+
+        return ""
+
+
+    lines = [
+        "Предыдущие сообщения:"
+    ]
+
+
+    for msg in history:
+
+        role = (
+            "Пользователь"
+            if msg["role"]=="user"
+            else
+            "Учитель"
+        )
+
+
+        lines.append(
+            f"{role}: {msg['content']}"
+        )
+
+
+    return (
+        "\n".join(lines)
+        +
+        "\n\n"
+    )
+
+
+
+# ==========================================================
+# LLM STREAM CORE
+# ==========================================================
+
+
+def llm_complete(
+    prompt,
+    max_tokens,
+    temperature,
+    stop=None,
+    stream=False,
+):
+    """Create a completion with standard model settings."""
+    return llm.create_completion(
+        prompt,
+        max_tokens=max_tokens,
+        temperature=temperature,
+        top_p=LLAMA_TOP_P,
+        top_k=LLAMA_TOP_K,
+        repeat_penalty=LLAMA_REPEAT_PENALTY,
+        stream=stream,
+        stop=stop,
+    )
+
+
+def stream_llm(prompt, max_tokens=500, temperature=0.4, stop=None):
+    """Универсальный генератор токенов."""
+    stream = llm_complete(
+        prompt,
+        max_tokens=max_tokens,
+        temperature=temperature,
+        stop=stop,
+        stream=True,
+    )
+
+    for chunk in stream:
+        text = chunk["choices"][0]["text"]
+        if text:
+            yield text
+
+
+# ==========================================================
+# SSE RESPONSE HELPERS
+# ==========================================================
+
+
+def sse_event(data):
+
+    """
+    Формирование SSE сообщения.
+
+    Формат:
+
+    data: {...}
+
+    пустая строка обязательна
+    """
+
+    return (
+        "data: "
+        +
+        json.dumps(
+            data,
+            ensure_ascii=False
+        )
+        +
+        "\n\n"
+    )
+
+
+
+def create_stream_response(generator):
+
+    """
+    Единый Response для всех SSE endpoint.
+    """
+
+    return Response(
+
+        stream_with_context(
+            generator()
+        ),
+
+        mimetype="text/event-stream",
+
+        headers={
+
+            # запрещаем кеширование
+            "Cache-Control":
+                "no-cache, no-transform",
+
+
+            # постоянное соединение
+            "Connection":
+                "keep-alive",
+
+
+            # nginx не должен буферизовать поток
+            "X-Accel-Buffering":
+                "no"
         }
     )
 
 
-@app.route("/api/chat", methods=["POST"])
-def chat():
-    if not model_ready:
-        return jsonify({"error": "Модель ещё не загружена"}), 503
 
-    data = request.get_json(silent=True)
+# ==========================================================
+# SERVICE ENDPOINTS
+# ==========================================================
+
+
+@app.route(
+    "/api/model_status"
+)
+def model_status():
+
+
+    return jsonify(
+
+        {
+
+            "ready":
+                model_ready,
+
+
+            "llm_loaded":
+                llm is not None,
+
+
+            "db_loaded":
+                collection is not None,
+
+
+            "doc_count":
+                (
+                    collection.count()
+                    if collection
+                    else
+                    0
+                )
+        }
+    )
+
+
+
+
+@app.route(
+    "/api/reset",
+    methods=["POST"]
+)
+def reset_state():
+
+
+    explanation_cache.clear()
+
+
+    return jsonify(
+
+        {
+
+            "status":
+                "ok",
+
+            "message":
+                "Кеш очищен"
+
+        }
+
+    )
+
+
+
+# ==========================================================
+# STREAM FOR QUIZ ERRORS
+# ==========================================================
+
+
+@app.route(
+    "/api/chat/stream",
+    methods=["POST"]
+)
+def chat_stream():
+
+
+    if not model_ready:
+
+
+        return jsonify(
+
+            {
+                "error":
+                    "Модель не загружена"
+            }
+
+        ),503
+
+
+
+    data = request.get_json(
+        silent=True
+    )
+
+
     if not data or "mistakes" not in data:
-        return (
-            jsonify(
-                {
-                    "error": "Неверный формат запроса. Ожидается JSON с ключом 'mistakes'."
-                }
-            ),
-            400,
-        )
+
+
+        return jsonify(
+
+            {
+                "error":
+                    "Неверный запрос"
+            }
+
+        ),400
+
+
 
     mistakes = data["mistakes"]
-    if not isinstance(mistakes, list) or len(mistakes) == 0:
-        return jsonify({"error": "Список ошибок пуст."}), 400
 
-    explanations = []
-    for idx, m in enumerate(mistakes, 1):
-        try:
-            print(f"📚 Объясняю вопрос {idx} из {len(mistakes)} (ID={m.get('id')})")
-            expl = generate_explanation(m)
-            explanations.append({"id": m.get("id"), "explanation": expl})
-        except Exception as e:
-            print(f"❌ Ошибка при объяснении вопроса ID={m.get('id')}: {e}")
-            traceback.print_exc()
-            explanations.append(
-                {
-                    "id": m.get("id"),
-                    "explanation": f"Не удалось сгенерировать объяснение: {str(e)}",
-                }
+
+
+    if not isinstance(
+            mistakes,
+            list
+        ):
+
+
+        return jsonify(
+
+            {
+                "error":
+                    "Неверный формат"
+            }
+
+        ),400
+
+
+
+
+    def generate():
+
+
+        # сразу уведомляем браузер
+
+        yield ":\n\n"
+
+
+
+        for mistake in mistakes:
+
+
+            q_id = mistake.get(
+                "id"
             )
 
-    return jsonify({"explanations": explanations})
 
 
-import flask
+            yield sse_event(
+
+                {
+                    "id":
+                        q_id,
+
+                    "start":
+                        True
+                }
+
+            )
 
 
-@app.route("/questions.js")
-def serve_questions_js():
-    return flask.send_from_directory(".", "questions.js")
+
+            try:
 
 
-@app.route("/quiz.js")
-def serve_quiz_js():
-    return flask.send_from_directory(".", "quiz.js")
+                prompt = (
+                    build_explanation_prompt(
+                        mistake
+                    )
+                )
 
 
-@app.route("/styles/<path:filename>")
-def serve_styles(filename):
-    return flask.send_from_directory("styles", filename)
+
+                with llm_lock:
 
 
-@app.route("/api/chat/free", methods=["POST"])
-def chat_free():
-    """Свободный диалог с ИИ-агентом с учётом истории сообщений."""
+                    for token in stream_llm(
+                        prompt,
+                        max_tokens=MAX_TOKENS_EXPLANATION,
+                        temperature=LLAMA_TEMPERATURE_EXPLANATION,
+                        stop=STOP_SEQUENCES,
+                    ):
+
+
+                        yield sse_event(
+
+                            {
+
+                                "id":
+                                    q_id,
+
+
+                                "token":
+                                    token
+
+                            }
+
+                        )
+
+
+
+                yield sse_event(
+
+                    {
+
+                        "id":
+                            q_id,
+
+                        "done":
+                            True
+
+                    }
+
+                )
+
+
+
+            except Exception as e:
+
+
+                yield sse_event(
+
+                    {
+
+                        "id":
+                            q_id,
+
+                        "error":
+                            str(e)
+
+                    }
+
+                )
+
+
+
+        yield sse_event(
+
+            {
+                "all_done":
+                    True
+            }
+
+        )
+
+
+
+    return create_stream_response(
+        generate
+    )
+
+
+
+# ==========================================================
+# STREAM DETAIL EXPLANATION
+# ==========================================================
+
+
+@app.route(
+    "/api/chat/detail/stream",
+    methods=["POST"]
+)
+def chat_detail_stream():
+
+
     if not model_ready:
-        return jsonify({"error": "Модель ещё не загружена"}), 503
 
-    data = request.get_json(silent=True)
+
+        return jsonify(
+
+            {
+                "error":
+                    "Модель не загружена"
+            }
+
+        ),503
+
+
+
+
+    data = request.get_json(
+        silent=True
+    )
+
+
+
+    required = [
+
+        "id",
+
+        "question",
+
+        "options",
+
+        "correct",
+
+        "previous_explanation"
+
+    ]
+
+
+
+    if not all(
+            key in data
+            for key in required
+        ):
+
+
+        return jsonify(
+
+            {
+                "error":
+                    "Недостаточно полей"
+            }
+
+        ),400
+
+
+
+
+    q_id = data["id"]
+
+
+    question = data["question"]
+
+
+    correct_text = (
+        data["options"]
+        [
+            data["correct"]
+        ]
+    )
+
+
+    previous = (
+        data["previous_explanation"]
+    )
+
+
+
+    context = retrieve_context(
+
+        question,
+
+        k=3
+
+    )
+
+
+
+    prompt = (
+        "Ты преподаватель по компьютерным сетям. "
+        "Добавь подробностей только к уже данному объяснению. "
+        "Не повторяй вопрос, не выводи служебные метки и не возвращай структуру prompt. "
+        "Начинай сразу с дополнительной информации.\n"
+        f"Ранее объяснение: {previous}\n"
+        f"Вопрос: {question}\n"
+        f"Правильный ответ: {correct_text}\n"
+        f"Контекст: {context}\n"
+        "Подробное объяснение:"
+    )
+
+
+
+
+    def generate():
+
+
+        yield ":\n\n"
+
+
+
+        yield sse_event(
+
+            {
+
+                "id":
+                    q_id,
+
+                "start":
+                    True
+
+            }
+
+        )
+
+
+
+        try:
+
+
+            with llm_lock:
+
+
+                for token in stream_llm(
+
+                    prompt,
+
+                    max_tokens=MAX_TOKENS_DETAIL,
+
+                    temperature=LLAMA_TEMPERATURE_DETAIL,
+
+                    stop=STOP_SEQUENCES
+
+                ):
+
+
+                    yield sse_event(
+
+                        {
+
+                            "id":
+                                q_id,
+
+                            "token":
+                                token
+
+                        }
+
+                    )
+
+
+
+
+            yield sse_event(
+
+                {
+
+                    "id":
+                        q_id,
+
+                    "done":
+                        True
+
+                }
+
+            )
+
+
+
+        except Exception as e:
+
+
+            yield sse_event(
+
+                {
+
+                    "id":
+                        q_id,
+
+                    "error":
+                        str(e)
+
+                }
+
+            )
+
+
+
+    return create_stream_response(
+        generate
+    )
+
+
+# ==========================================================
+# FREE CHAT STREAM
+# ==========================================================
+
+
+@app.route(
+    "/api/chat/free/stream",
+    methods=["POST"]
+)
+def chat_free_stream():
+
+
+    if not model_ready:
+
+
+        return jsonify(
+
+            {
+                "error":
+                    "Модель не загружена"
+            }
+
+        ),503
+
+
+
+
+    data = request.get_json(
+        silent=True
+    )
+
+
+
     if not data or "question" not in data:
-        return jsonify({"error": "Неверный запрос. Ожидается поле 'question'."}), 400
 
-    question = data["question"].strip()
+
+        return jsonify(
+
+            {
+                "error":
+                    "Нет вопроса"
+            }
+
+        ),400
+
+
+
+
+    question = (
+        data["question"]
+        .strip()
+    )
+
+
+
     if not question:
-        return jsonify({"error": "Вопрос не может быть пустым."}), 400
 
-    # Получаем историю диалога (если передана)
-    context_messages = data.get("context", [])
-    # Формируем историю в виде текста для промпта
-    history_text = ""
-    if context_messages:
-        # Берём последние 5-6 сообщений для контекста
-        recent = context_messages[-6:]
-        history_text = "Предыдущие сообщения:\n"
-        for msg in recent:
-            role = "Пользователь" if msg["role"] == "user" else "Учитель"
-            history_text += f"{role}: {msg['content']}\n"
-        history_text += "\n"
 
-    # Ищем релевантные фрагменты из книги
-    context = retrieve_context(question, k=4)
+        return jsonify(
+
+            {
+                "error":
+                    "Пустой вопрос"
+            }
+
+        ),400
+
+
+
+
+    user_id = get_user_id(
+        data
+    )
+
+
+
+    history = build_history_messages(
+        user_id
+    )
+
+
+
+    history_text = format_history_text(
+        history
+    )
+
+
+
+    context = retrieve_context(
+
+        question,
+
+        k=4
+
+    )
+
+
+
     if not context:
-        context = retrieve_context("компьютерные сети", k=2)
 
-    # Формируем промпт с учётом истории
-    prompt = f"""Ты — преподаватель по компьютерным сетям, эксперт по книге Таненбаума «Компьютерные сети» (6-е издание).
-Твоя задача — отвечать на вопросы пользователя, используя ТОЛЬКО информацию из приведённого ниже контекста.
-Если ответа нет в контексте, так и скажи, не домысливай.
-При ответе учитывай историю диалога, чтобы давать последовательные и релевантные ответы.
 
-{history_text}
+        context = retrieve_context(
 
-Контекст из учебника:
-{context}
+            "компьютерные сети",
 
-Вопрос пользователя: {question}
+            k=2
 
-Ответ (чётко, аргументированно, на русском языке, 3-5 предложений. Если нужно, приведи примеры или аналогии, но только из контекста):"""
+        )
 
-    print(f"💬 Свободный вопрос: {question[:50]}...")
-    response = llm(prompt, max_tokens=500, temperature=0.4)
-    answer = response["choices"][0]["text"].strip()
 
-    return jsonify({"answer": answer, "context_used": context[:200] + "..."})
+
+
+    prompt = (
+        "Ты преподаватель по компьютерным сетям. "
+        "Отвечай только на основе контекста и истории диалога. "
+        "Если ответ неизвестен, скажи прямо. "
+        "Не повторяй вопрос, не выводи дополнительные метки и не возвращай структуру prompt.\n"
+        f"{history_text}"
+        f"Контекст: {context}\n"
+        f"Вопрос: {question}\n"
+        "Ответ:"
+    )
+
+
+
+
+    def generate():
+
+
+        yield ":\n\n"
+
+
+        answer=[]
+
+
+
+        try:
+
+
+            yield sse_event(
+
+                {
+                    "status":
+                        "generating"
+                }
+
+            )
+
+
+
+            with llm_lock:
+
+
+                for token in stream_llm(
+
+                    prompt,
+
+                    max_tokens=500,
+
+                    temperature=0.4
+
+                ):
+
+
+                    answer.append(
+                        token
+                    )
+
+
+
+                    yield sse_event(
+
+                        {
+
+                            "token":
+                                token
+
+                        }
+
+                    )
+
+
+
+
+            final_answer = (
+                "".join(answer)
+                .strip()
+            )
+
+
+
+            push_history(
+
+                user_id,
+
+                "user",
+
+                question
+
+            )
+
+
+
+            push_history(
+
+                user_id,
+
+                "assistant",
+
+                final_answer
+
+            )
+
+
+
+            yield sse_event(
+
+                {
+
+                    "done":
+                        True,
+
+                    "answer":
+                        final_answer
+
+                }
+
+            )
+
+
+
+        except Exception as e:
+
+
+            traceback.print_exc()
+
+
+
+            yield sse_event(
+
+                {
+
+                    "error":
+                        str(e)
+
+                }
+
+            )
+
+
+
+    return create_stream_response(
+        generate
+    )
+
+
+
+# ==========================================================
+# SYNCHRONOUS COMPATIBILITY API
+# ==========================================================
+
+
+@app.route(
+    "/api/chat/free",
+    methods=["POST"]
+)
+def chat_free():
+
+    if not model_ready:
+
+        return jsonify(
+            {
+                "error":
+                    "Модель не загружена"
+            }
+        ),503
+
+
+
+    data=request.get_json()
+
+
+    question=data["question"]
+
+
+
+    context=retrieve_context(
+        question,
+        k=4
+    )
+
+
+
+    prompt = (
+        "Ты преподаватель по компьютерным сетям. "
+        "Отвечай кратко и по существу, используя только контекст. "
+        "Не повторяй вопрос и не выводи служебные метки.\n"
+        f"Контекст: {context}\n"
+        f"Вопрос: {question}\n"
+        "Ответ:"
+    )
+
+    with llm_lock:
+        result = llm_complete(
+            prompt,
+            max_tokens=MAX_TOKENS_FREE,
+            temperature=LLAMA_TEMPERATURE_FREE,
+            stop=STOP_SEQUENCES,
+            stream=False,
+        )
+
+    answer = (
+        result["choices"][0]["text"]
+        .strip()
+    )
+
+
+
+    return jsonify(
+
+        {
+            "answer":
+                answer
+        }
+
+    )
+
+
+
+
+@app.route(
+    "/api/chat/detail",
+    methods=["POST"]
+)
+def chat_detail():
+
+
+    data=request.get_json()
+
+
+
+    question=data["question"]
+
+
+
+    context=retrieve_context(
+        question,
+        k=3
+    )
+
+
+
+    prompt = (
+        "Ты преподаватель по компьютерным сетям. "
+        "Отвечай развёрнуто и поясни ключевые детали. "
+        "Используй только контекст и не добавляй лишних меток.\n"
+        f"Контекст: {context}\n"
+        f"Вопрос: {question}\n"
+        "Подробный ответ:"
+    )
+
+    with llm_lock:
+        result = llm_complete(
+            prompt,
+            max_tokens=MAX_TOKENS_DETAIL,
+            temperature=LLAMA_TEMPERATURE_DETAIL,
+            stop=STOP_SEQUENCES,
+            stream=False,
+        )
+
+
+
+    answer = (
+        result["choices"][0]["text"]
+        .strip()
+    )
+
+
+
+    return jsonify(
+
+        {
+            "detail":
+                answer
+        }
+
+    )
+
+
+
+# ==========================================================
+# HISTORY API
+# ==========================================================
+# ==========================================================
+# QUIZ CHAT COMPATIBILITY API
+# ==========================================================
+
+
+@app.route(
+    "/api/chat",
+    methods=["POST"]
+)
+def chat():
+
+    if not model_ready:
+
+        return jsonify(
+            {
+                "error":
+                "Модель не загружена"
+            }
+        ),503
+
+
+
+    data = request.get_json(
+        silent=True
+    )
+
+
+    if not data or "mistakes" not in data:
+
+        return jsonify(
+            {
+                "error":
+                "Неверный запрос"
+            }
+        ),400
+
+
+
+    mistakes = data["mistakes"]
+
+
+    explanations=[]
+
+
+
+    for mistake in mistakes:
+
+
+        q_id = mistake.get(
+            "id"
+        )
+
+
+        try:
+
+
+            prompt = build_explanation_prompt(
+                mistake
+            )
+
+
+            with llm_lock:
+                result = llm_complete(
+                    prompt,
+                    max_tokens=MAX_TOKENS_EXPLANATION,
+                    temperature=LLAMA_TEMPERATURE_EXPLANATION,
+                    stop=STOP_SEQUENCES,
+                    stream=False
+                )
+
+
+
+            text = (
+
+                result["choices"][0]["text"]
+
+                .strip()
+
+            )
+
+
+            explanations.append(
+
+                {
+
+                    "id":
+                        q_id,
+
+
+                    "explanation":
+                        text
+
+                }
+
+            )
+
+
+        except Exception as e:
+
+
+            explanations.append(
+
+                {
+
+                    "id":
+                        q_id,
+
+
+                    "explanation":
+                        f"Ошибка: {e}"
+
+                }
+
+            )
+
+
+
+    return jsonify(
+
+        {
+            "explanations":
+                explanations
+        }
+
+    )
+
+@app.route(
+    "/api/chat/history",
+    methods=["GET"]
+)
+def chat_history():
+
+
+    user_id = request.args.get(
+
+        "user_id",
+
+        "anonymous"
+
+    )
+
+
+
+    return jsonify(
+
+        {
+
+            "user_id":
+                user_id,
+
+
+            "history":
+                build_history_messages(
+                    user_id
+                )
+
+        }
+
+    )
+
+
+
+
+@app.route(
+    "/api/chat/history",
+    methods=["DELETE"]
+)
+def clear_chat_history():
+
+
+    user_id=request.args.get(
+
+        "user_id",
+
+        "anonymous"
+
+    )
+
+
+
+    with conversation_store_lock:
+
+
+        conversation_store.pop(
+
+            user_id,
+
+            None
+
+        )
+
+
+
+    return jsonify(
+
+        {
+            "ok":
+                True
+        }
+
+    )
+
+
+
+# ==========================================================
+# STATIC
+# ==========================================================
+
+
+@app.route(
+    "/questions.js"
+)
+def serve_questions_js():
+
+
+    return app.send_static_file(
+
+        "questions.js"
+
+    )
+
+
+
+@app.route(
+    "/quiz.js"
+)
+def serve_quiz_js():
+
+
+    return app.send_static_file(
+
+        "quiz.js"
+
+    )
+
+
+
+@app.route(
+    "/styles/<path:filename>"
+)
+def serve_styles(filename):
+
+
+    return app.send_static_file(
+
+        filename
+
+    )
+
+
+
+# ==========================================================
+# RUN
+# ==========================================================
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+
+
+    app.run(
+
+        host="0.0.0.0",
+
+        port=5000,
+
+        debug=False,
+
+        threaded=True
+
+    )

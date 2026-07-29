@@ -1,4 +1,3 @@
-import axios from 'axios'
 import { getData, setData } from './storage.tsx'
 import type { ChatMessage, Mistake } from '@/components/private/learning/types.tsx'
 
@@ -8,17 +7,15 @@ const CHAT_HISTORY_KEY = 'learning_chat_history'
 /**
  * teacher/server.py держит один экземпляр LLM (llama.cpp) на весь процесс — параллельный
  * вызов генерации по двум запросам одновременно ломает внутреннее состояние модели и
- * убивает процесс сервера (GGML_ASSERT ... i1 < ne1, аварийный останов). Бэкенд менять
- * нельзя, поэтому вся защита — здесь: единая последовательная очередь на ВСЕ запросы к
- * teacher/server.py (включая /api/model_status — простой health-check, но безопаснее
- * тоже пускать через очередь, чем распутывать, какие эндпоинты трогают модель, а какие нет).
+ * убивает процесс сервера. Бэкенд менять нельзя, поэтому вся защита — здесь:
+ * единая последовательная очередь на ВСЕ запросы к teacher (кроме model_status,
+ * который не трогает модель, но для простоты тоже пускаем через очередь).
  *
  * Два правила:
  * 1) Запросы никогда не летят параллельно — каждый следующий стартует только после того,
  *    как предыдущий завершился (успешно или с ошибкой).
- * 2) Если запрос с тем же смысловым ключом (тот же набор вопросов на объяснение, тот же
- *    вопрос на "подробнее", тот же текст свободного вопроса) уже выполняется/стоит в
- *    очереди — повторный вызов не шлёт новый запрос, а просто получает тот же результат.
+ * 2) Если запрос с тем же смысловым ключом уже выполняется/стоит в очереди —
+ *    повторный вызов не шлёт новый запрос, а просто получает тот же результат.
  */
 let queueTail: Promise<unknown> = Promise.resolve()
 const pendingByKey = new Map<string, Promise<unknown>>()
@@ -36,8 +33,7 @@ function enqueue<T>(key: string, task: () => Promise<T>): Promise<T> {
   return run
 }
 
-/** Ключ набора вопросов-ошибок — стабильный идентификатор чата, не зависящий от
- * конкретного экземпляра компонента (в отличие от React-state). */
+/** Ключ набора вопросов-ошибок — стабильный идентификатор чата. */
 export function mistakesKey(mistakes: Mistake[]): string {
   return mistakes
     .map((m) => m.id)
@@ -45,86 +41,193 @@ export function mistakesKey(mistakes: Mistake[]): string {
     .join(',')
 }
 
-export function teacherModelStatus(): Promise<{ ready: boolean }> {
-  return enqueue('model_status', () => axios.get<{ ready: boolean }>(`${TEACHER_API_BASE}/api/model_status`).then((res) => res.data))
+function getUserId(): string {
+  try {
+    const u = localStorage.getItem('d4_user')
+    if (u) {
+      const parsed = JSON.parse(u)
+      return parsed.username || 'anonymous'
+    }
+  } catch (_) {}
+  return 'anonymous'
 }
 
-export function teacherExplainMistakes(mistakes: Mistake[]): Promise<{ explanations?: { id: number; explanation: string }[]; error?: string }> {
-  return enqueue(`chat:${mistakesKey(mistakes)}`, () =>
-    axios.post<{ explanations?: { id: number; explanation: string }[]; error?: string }>(`${TEACHER_API_BASE}/api/chat`, { mistakes }).then((res) => res.data),
-  )
-}
-
-/**
- * «Подробнее» и свободный вопрос — пользовательские одноразовые действия (не
- * перезапускаются автоматически эффектом при каждом монтировании, как /api/chat выше).
- * Раньше их результат дописывался в историю из замыкания того же React-компонента,
- * который их запустил: если пользователь успевал свернуть и развернуть чат (или просто
- * закрыть панель) до ответа сервера, новый экземпляр TeacherChat ничего не знал о ещё
- * идущем запросе — а старый экземпляр, получив ответ, обновлял состояние уже
- * никому не видимого, размонтированного компонента. Индикатор загрузки пропадал, а
- * ответ ИИ, даже дойдя до localStorage, не попадал в state актуального экземпляра.
- *
- * Фикс: запись в историю (localStorage) происходит здесь, на уровне модуля, а не в
- * компоненте — она не зависит от того, жив ли ещё инициировавший запрос компонент.
- * Отдельно — реестр «текущее взаимодействие по набору вопросов» (pendingInteractionByKey),
- * на который свежесмонтированный TeacherChat может подписаться при монтировании, чтобы
- * увидеть индикатор загрузки и досмотреть тот же самый (а не новый) ответ.
- */
-const pendingInteractionByKey = new Map<string, Promise<void>>()
-
-export function getPendingInteraction(key: string): Promise<void> | undefined {
-  return pendingInteractionByKey.get(key)
-}
-
-function trackInteraction(key: string, promise: Promise<void>): Promise<void> {
-  pendingInteractionByKey.set(key, promise)
-  promise.finally(() => {
-    if (pendingInteractionByKey.get(key) === promise) pendingInteractionByKey.delete(key)
-  })
-  return promise
-}
-
+/** Вспомогательная функция для добавления сообщения в историю (localStorage). */
 function appendChatMessage(message: ChatMessage): void {
   const current = getData<ChatMessage[]>(CHAT_HISTORY_KEY, [])
   setData(CHAT_HISTORY_KEY, [...current, message])
 }
 
-interface ExplainDetailPayload {
-  id: number
-  question: string
-  options: string[]
-  correct: number
-  previous_explanation: string
-  src: string
+/**
+ * Парсер SSE-потока – возвращает асинхронный генератор объектов,
+ * полученных из событий data: {...}.
+ */
+async function* parseSSE(response: Response): AsyncGenerator<Record<string, unknown>> {
+  const reader = response.body!.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+    const lines = buffer.split('\n')
+    buffer = lines.pop() || ''
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        const jsonStr = line.slice(6).trim()
+        if (jsonStr) {
+          try {
+            yield JSON.parse(jsonStr)
+          } catch (_) {
+            // игнорируем битые чанки
+          }
+        }
+      }
+    }
+  }
 }
 
-export function requestMistakeDetail(chatKey: string, payload: ExplainDetailPayload): Promise<void> {
-  const promise = enqueue(`detail:${payload.id}`, () => axios.post<{ detail?: string; error?: string }>(`${TEACHER_API_BASE}/api/chat/detail`, payload).then((res) => res.data))
-    .then((data) => {
-      if (data.error || !data.detail) {
-        appendChatMessage({ sender: 'bot', text: data.error ?? 'Не удалось получить подробное объяснение.', contextLabel: null, mistakeId: payload.id, kind: 'error' })
-        return
+// ============================================================================
+//  ПОТОКОВЫЕ ФУНКЦИИ (SSE)
+// ============================================================================
+
+/**
+ * Потоковое объяснение списка ошибок.
+ * Для каждого вопроса приходят события с полями id и token.
+ * onToken вызывается для каждого токена с соответствующим id вопроса.
+ * Возвращает Promise, который разрешается после завершения всего потока.
+ */
+export function explainMistakesStream(
+  chatKey: string,
+  mistakes: Mistake[],
+  onToken: (mistakeId: number, token: string) => void,
+): Promise<void> {
+  const key = `explain:${chatKey}`
+  return enqueue(key, async () => {
+    const response = await fetch(`${TEACHER_API_BASE}/api/chat/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mistakes }),
+    })
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
+    }
+    for await (const event of parseSSE(response)) {
+      if (event.id !== undefined && event.token !== undefined) {
+        onToken(event.id as number, event.token as string)
+      } else if (event.all_done) {
+        break
+      } else if (event.error) {
+        throw new Error(event.error as string)
       }
-      appendChatMessage({ sender: 'bot', text: data.detail, contextLabel: `Вопрос ${payload.id} · подробнее`, mistakeId: payload.id, kind: 'detail' })
-    })
-    .catch(() => {
-      appendChatMessage({ sender: 'bot', text: 'Ошибка соединения с teacher/server.py (порт 5000).', contextLabel: null, mistakeId: payload.id, kind: 'error' })
-    })
-  return trackInteraction(chatKey, promise)
+    }
+  })
 }
 
-export function sendFreeQuestion(chatKey: string, question: string, context: { role: string; content: string }[]): Promise<void> {
-  const promise = enqueue(`free:${question}`, () => axios.post<{ answer?: string; error?: string }>(`${TEACHER_API_BASE}/api/chat/free`, { question, context }).then((res) => res.data))
-    .then((data) => {
-      if (data.error || !data.answer) {
-        appendChatMessage({ sender: 'bot', text: data.error ?? 'Не удалось получить ответ.', contextLabel: null, mistakeId: null, kind: 'error' })
-      } else {
-        appendChatMessage({ sender: 'bot', text: data.answer, contextLabel: null, mistakeId: null, kind: 'free' })
+/**
+ * Потоковое получение подробного объяснения для одного вопроса.
+ * Приходят события с полем token.
+ * onToken вызывается для каждого токена.
+ */
+export function requestMistakeDetailStream(
+  chatKey: string,
+  payload: {
+    id: number
+    question: string
+    options: string[]
+    correct: number
+    previous_explanation: string
+    src: string
+  },
+  onToken: (token: string) => void,
+): Promise<void> {
+  const key = `detail:${payload.id}`
+  return enqueue(key, async () => {
+    const response = await fetch(`${TEACHER_API_BASE}/api/chat/detail/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
+    }
+    for await (const event of parseSSE(response)) {
+      if (event.token !== undefined) {
+        onToken(event.token as string)
+      } else if (event.done) {
+        break
+      } else if (event.error) {
+        throw new Error(event.error as string)
       }
+    }
+  })
+}
+
+/**
+ * Потоковый свободный вопрос.
+ * Приходят события с полем token.
+ * onToken вызывается для каждого токена.
+ */
+export function sendFreeQuestionStream(
+  chatKey: string,
+  question: string,
+  context: { role: string; content: string }[],
+  onToken: (token: string) => void,
+): Promise<void> {
+  const key = `free:${chatKey}:${question}`
+  return enqueue(key, async () => {
+    const response = await fetch(`${TEACHER_API_BASE}/api/chat/free/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        question,
+        context,
+        user_id: getUserId(),
+      }),
     })
-    .catch(() => {
-      appendChatMessage({ sender: 'bot', text: 'Ошибка соединения с teacher/server.py (порт 5000).', contextLabel: null, mistakeId: null, kind: 'error' })
-    })
-  return trackInteraction(chatKey, promise)
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
+    }
+    for await (const event of parseSSE(response)) {
+      if (event.token !== undefined) {
+        onToken(event.token as string)
+      } else if (event.done) {
+        break
+      } else if (event.error) {
+        throw new Error(event.error as string)
+      }
+    }
+  })
+}
+
+// ============================================================================
+//  СИНХРОННЫЕ/ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (для обратной совместимости)
+// ============================================================================
+
+/** Проверка статуса модели (не потоковая). */
+export function teacherModelStatus(): Promise<{ ready: boolean }> {
+  return enqueue('model_status', () =>
+    fetch(`${TEACHER_API_BASE}/api/model_status`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        return res.json()
+      })
+      .then((data) => data as { ready: boolean }),
+  )
+}
+
+/**
+ * Сохраняет готовое сообщение в историю (вызывается после завершения потоковой генерации).
+ * Используется компонентом для фиксации ответа в localStorage.
+ */
+export function commitChatMessage(message: ChatMessage): void {
+  appendChatMessage(message)
+}
+
+/**
+ * Загружает всю историю из localStorage.
+ */
+export function loadChatHistory(): ChatMessage[] {
+  return getData<ChatMessage[]>(CHAT_HISTORY_KEY, [])
 }

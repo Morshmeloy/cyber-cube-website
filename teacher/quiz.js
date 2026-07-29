@@ -644,290 +644,153 @@ class QuizApp {
  * @param {Array} mistakes – массив объектов с полями id, question, options, correct, src, userAnswer.
  */
 async openTeacherChat(mistakes) {
-    // Получаем имя пользователя для ключа истории
-    let username = 'unknown';
-    try {
-        const u = localStorage.getItem('d4_user');
-        if (u) {
-            const parsed = JSON.parse(u);
-            username = parsed.username || 'unknown';
-        }
-    } catch (e) {}
+    // --- Подготовка HTML ---
+    const mistakesHtml = mistakes.map(m => {
+        const userAns = m.userAnswer !== null ? m.options[m.userAnswer] : '(не выбрано)';
+        return `<div class="mistake-item"><div class="mistake-question">${m.question}</div><div class="mistake-answers"><span class="user-answer">Ваш ответ: <strong>${userAns}</strong></span><span class="correct-answer">Правильный: <strong>${m.options[m.correct]}</strong></span></div></div>`;
+    }).join('');
 
-    const storageKey = `chat_history_${username}`;
-
-    // Функция загрузки истории
-    function loadHistory() {
-        try {
-            const raw = localStorage.getItem(storageKey);
-            if (raw) {
-                const parsed = JSON.parse(raw);
-                // Проверяем, что это массив и есть поле mistakes (для инвалидации)
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    return parsed;
-                }
-            }
-        } catch (e) { /* игнорируем */ }
-        return null;
-    }
-
-    // Функция сохранения истории
-    function saveHistory(messages) {
-        try {
-            localStorage.setItem(storageKey, JSON.stringify(messages));
-        } catch (e) { /* игнорируем */ }
-    }
-
-    // Создаём модальное окно
+    // --- Создаём модальное окно ---
     const overlay = document.createElement('div');
     overlay.className = 'chat-overlay';
     overlay.innerHTML = `
         <div class="chat-modal" role="dialog" aria-modal="true" aria-labelledby="chat-title">
-            <div class="chat-modal-header">
-                <h3 id="chat-title">🧑‍🏫 Разбор ошибок</h3>
-                <button class="btn-close" aria-label="Закрыть">✕</button>
-            </div>
+            <div class="chat-modal-header"><h3 id="chat-title">🧑‍🏫 Разбор ошибок</h3><button class="btn-close" aria-label="Закрыть">✕</button></div>
             <div class="chat-body">
-                <!-- Панель ошибок (слева/сверху) -->
-                <div class="mistakes-panel" id="mistakes-panel">
-                    <h4>Ваши ошибки</h4>
-                    <div id="mistakes-list"></div>
-                </div>
-                <!-- Область диалога -->
-                <div class="chat-dialog" id="chat-dialog">
-                    <div class="chat-messages" id="chat-messages"></div>
-                    <div class="chat-input-area">
-                        <input type="text" id="free-chat-input" placeholder="Задайте вопрос..." />
-                        <button id="free-chat-send">Отправить</button>
+                <div class="mistakes-list"><h4>Вопросы с ошибками:</h4>${mistakesHtml}</div>
+                <div class="chat-section">
+                    <div class="chat-messages" id="chat-messages">
+                        <div class="loading-indicator">⏳ Учитель думает...</div>
                     </div>
                 </div>
             </div>
-        </div>
-    `;
+        </div>`;
     document.body.appendChild(overlay);
 
+    const messagesDiv = overlay.querySelector('#chat-messages');
     const closeBtn = overlay.querySelector('.btn-close');
-    const messagesContainer = overlay.querySelector('#chat-messages');
-    const mistakesList = overlay.querySelector('#mistakes-list');
-    const freeInput = overlay.querySelector('#free-chat-input');
-    const freeSend = overlay.querySelector('#free-chat-send');
 
-    // --- Отрисовка списка ошибок ---
-    mistakesList.innerHTML = mistakes.map(m => `
-        <div class="mistake-item">
-            <div class="mistake-question">${m.question}</div>
-            <div class="mistake-answers">
-                <span class="user-answer">Ваш ответ: <strong>${m.options[m.userAnswer] || '(не выбрано)'}</strong></span>
-                <span class="correct-answer">Правильный: <strong>${m.options[m.correct]}</strong></span>
-            </div>
-        </div>
-    `).join('');
-
-    // --- Загрузка истории или генерация новых объяснений ---
-    let history = loadHistory();
-
-    // Если история есть и она соответствует текущему набору ошибок (сравниваем по id),
-    // то просто отображаем её.
-    if (history) {
-        // Проверяем, что id ошибок совпадают (чтобы не показывать старые объяснения для других вопросов)
-        const storedIds = history.filter(msg => msg.mistakeId).map(msg => msg.mistakeId);
-        const currentIds = mistakes.map(m => m.id);
-        const idsMatch = currentIds.every(id => storedIds.includes(id)) && storedIds.every(id => currentIds.includes(id));
-        if (!idsMatch) {
-            // Если не совпадают, считаем историю устаревшей и генерируем заново
-            history = null;
-        }
+    // --- Отмена запроса при закрытии ---
+    const abortController = new AbortController();
+    if (window._teacherAbortController) {
+        window._teacherAbortController.abort();
     }
+    window._teacherAbortController = abortController;
 
-    if (history) {
-        // Отображаем сохранённые сообщения
-        history.forEach(msg => {
-            appendMessage(msg.sender, msg.text, msg.mistakeId, msg.type);
+    const closeModal = () => {
+        abortController.abort();
+        overlay.remove();
+        window.removeEventListener('beforeunload', beforeUnloadHandler);
+        if (window._teacherAbortController === abortController) {
+            window._teacherAbortController = null;
+        }
+    };
+
+    const beforeUnloadHandler = () => abortController.abort();
+    window.addEventListener('beforeunload', beforeUnloadHandler);
+
+    closeBtn.addEventListener('click', closeModal);
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) closeModal();
+    });
+
+    // --- Убираем индикатор загрузки ---
+    messagesDiv.innerHTML = '';
+    const waitingMsg = document.createElement('div');
+    waitingMsg.className = 'loading-indicator';
+    waitingMsg.textContent = '⏳ Генерация ответа...';
+    messagesDiv.appendChild(waitingMsg);
+
+    try {
+        // --- Выполняем ПОТОКОВЫЙ запрос ---
+        const response = await fetch('/api/chat/stream', {   // <-- потоковый эндпоинт
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'text/event-stream'
+            },
+            body: JSON.stringify({ mistakes }),
+            signal: abortController.signal,
+            cache: 'no-store'
         });
-        // Прокручиваем вниз
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    } else {
-        // Генерируем объяснения для всех ошибок
-        history = [];
-        // Показываем индикатор загрузки
-        const loadingMsg = { sender: 'bot', text: '⏳ Учитель готовит объяснения...', mistakeId: null, type: 'loading' };
-        appendMessage('bot', loadingMsg.text, null, 'loading');
-        try {
-            const response = await fetch('/teacher/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mistakes })
-            });
-            if (!response.ok) throw new Error(`Сервер вернул ошибку: ${response.status}`);
-            const data = await response.json();
-            if (data.error) {
-                appendMessage('bot', `Ошибка: ${data.error}`, null, 'error');
-                return;
-            }
-            // Удаляем индикатор загрузки
-            const lastMsg = history.pop();
-            if (lastMsg && lastMsg.type === 'loading') {
-                // ничего не делаем, просто удаляем
-            }
 
-            // Добавляем объяснения в историю и отображаем
-            data.explanations.forEach(exp => {
-                const q = mistakes.find(m => m.id === exp.id);
-                const questionText = q ? q.question : `Вопрос ${exp.id}`;
-                const msgText = `<strong>❓ ${questionText}</strong><br>${exp.explanation}`;
-                const msg = { sender: 'bot', text: msgText, mistakeId: exp.id, type: 'explanation' };
-                history.push(msg);
-                appendMessage('bot', msgText, exp.id, 'explanation');
-            });
-            // Сохраняем историю
-            saveHistory(history);
-            // Прокручиваем
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        } catch (err) {
-            appendMessage('bot', `Ошибка соединения: ${err.message}`, null, 'error');
+        if (!response.ok) throw new Error(`Ошибка ${response.status}`);
+
+        waitingMsg.remove();
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        const answerEls = {};
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+            for (const line of lines) {
+                if (!line.startsWith('data: ')) continue;
+                try {
+                    const jsonStr = line.slice(6).trim();
+                    if (!jsonStr) continue;
+                    const data = JSON.parse(jsonStr);
+                    if (data.all_done) continue;
+                    const qId = data.id;
+                    if (!qId) continue;
+                    const q = mistakes.find(m => m.id === qId);
+                    if (!q) continue;
+
+                    if (!answerEls[qId]) {
+                        const msgBlock = document.createElement('div');
+                        msgBlock.className = 'chat-msg';
+                        msgBlock.id = `msg-${qId}`;
+                        msgBlock.innerHTML = `
+                            <div class="chat-question">❓ ${q.question}</div>
+                            <div class="chat-answer" id="answer-${qId}">🤖 </div>
+                        `;
+                        messagesDiv.appendChild(msgBlock);
+                        answerEls[qId] = msgBlock;
+                    }
+                    const ansEl = document.getElementById(`answer-${qId}`);
+                    if (!ansEl) continue;
+
+                    if (data.token) {
+                        console.log(`[${qId}] токен:`, data.token);
+                        const currentText = ansEl.textContent.replace('🤖 ', '');
+                        ansEl.textContent = '🤖 ' + currentText + data.token;
+                        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                    }
+                    if (data.done) {
+                        const btn = document.createElement('button');
+                        btn.className = 'btn-detail';
+                        btn.dataset.id = qId;
+                        btn.textContent = '📖 Рассказать подробнее';
+                        btn.addEventListener('click', () => this.requestDetailedExplanation(qId, mistakes));
+                        answerEls[qId].appendChild(btn);
+                    }
+                    if (data.error) {
+                        ansEl.textContent = '🤖 Ошибка: ' + data.error;
+                    }
+                } catch (e) {
+                    console.warn('Ошибка парсинга SSE:', e);
+                }
+            }
         }
-    }
-
-    // --- Вспомогательная функция добавления сообщения в DOM и историю (если нужно) ---
-    function appendMessage(sender, text, mistakeId = null, type = 'text') {
-        const msgDiv = document.createElement('div');
-        msgDiv.className = `chat-msg ${sender}`;
-        const avatar = sender === 'user' ? '👤' : '🤖';
-        let bubbleContent = text;
-        // Если это сообщение от бота и это объяснение, добавляем кнопку "Подробнее"
-        if (sender === 'bot' && type === 'explanation' && mistakeId) {
-            const q = mistakes.find(m => m.id === mistakeId);
-            if (q) {
-                bubbleContent += `<br><button class="btn-detail" data-id="${mistakeId}" data-question="${q.question}" data-options='${JSON.stringify(q.options)}' data-correct="${q.correct}">📖 Подробнее</button>`;
-            }
-        }
-        msgDiv.innerHTML = `
-            <div class="chat-avatar">${avatar}</div>
-            <div class="chat-bubble">${bubbleContent}</div>
-        `;
-        messagesContainer.appendChild(msgDiv);
-        // Прокрутка вниз
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        return msgDiv;
-    }
-
-    // --- Обработчик кнопки "Подробнее" (делегирование) ---
-    messagesContainer.addEventListener('click', async (e) => {
-        const btn = e.target.closest('.btn-detail');
-        if (!btn) return;
-        const mistakeId = parseInt(btn.dataset.id);
-        const q = mistakes.find(m => m.id === mistakeId);
-        if (!q) return;
-
-        // Находим последнее сообщение-объяснение для этого вопроса (чтобы получить предыдущее объяснение)
-        const previousMsg = history.filter(m => m.mistakeId === mistakeId && m.type === 'explanation').pop();
-        const previousExplanation = previousMsg ? previousMsg.text.replace(/<strong>.*?<\/strong><br>/, '') : '';
-
-        // Меняем кнопку на "Загрузка..."
-        btn.textContent = '⏳';
-        btn.disabled = true;
-
-        try {
-            const resp = await fetch('/teacher/api/chat/detail', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    id: q.id,
-                    question: q.question,
-                    options: q.options,
-                    correct: q.correct,
-                    previous_explanation: previousExplanation
-                })
-            });
-            if (!resp.ok) throw new Error(`Ошибка: ${resp.status}`);
-            const detailData = await resp.json();
-            if (detailData.error) {
-                alert('Ошибка: ' + detailData.error);
-                btn.textContent = '📖 Подробнее';
-                btn.disabled = false;
-                return;
-            }
-            const detailText = `<strong>📚 Подробнее о вопросе ${q.id}</strong><br>${detailData.detail}`;
-            // Добавляем сообщение в историю и отображаем
-            const msg = { sender: 'bot', text: detailText, mistakeId: mistakeId, type: 'detail' };
-            history.push(msg);
-            saveHistory(history);
-            appendMessage('bot', detailText, mistakeId, 'detail');
-            // Удаляем кнопку из предыдущего сообщения (чтобы не плодить)
-            btn.style.display = 'none';
-        } catch (err) {
+    } catch (err) {
+        if (err.name === 'AbortError') {
+            console.log('Запрос отменён');
+            messagesDiv.innerHTML = '<p>⏹️ Генерация остановлена.</p>';
+        } else {
             console.error(err);
-            alert('Ошибка: ' + err.message);
-            btn.textContent = '📖 Подробнее';
-            btn.disabled = false;
+            messagesDiv.innerHTML = `<p class="error">Ошибка: ${err.message}</p>`;
         }
-    });
-
-    // --- Отправка свободного вопроса ---
-    async function sendFreeQuestion() {
-        const question = freeInput.value.trim();
-        if (!question) return;
-        freeInput.value = '';
-        // Добавляем сообщение пользователя
-        const userMsg = { sender: 'user', text: question, mistakeId: null, type: 'free' };
-        history.push(userMsg);
-        saveHistory(history);
-        appendMessage('user', question, null, 'free');
-
-        // Индикатор "печатает"
-        const typingMsg = { sender: 'bot', text: '⏳ Печатает...', mistakeId: null, type: 'loading' };
-        history.push(typingMsg);
-        const typingDiv = appendMessage('bot', typingMsg.text, null, 'loading');
-
-        try {
-            // Собираем историю (последние 10 сообщений, исключая служебные)
-            const contextMessages = history
-                .filter(msg => msg.type !== 'loading' && msg.type !== 'error' && msg.type !== 'detail')
-                .slice(-10) // последние 10 значимых сообщений
-                .map(msg => ({
-                    role: msg.sender === 'user' ? 'user' : 'assistant',
-                    content: msg.text.replace(/<[^>]+>/g, '') // убираем HTML-теги
-                }));
-
-            const response = await fetch('/teacher/api/chat/free', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    question: question,
-                    context: contextMessages // передаём историю
-                })
-            });
-            if (!response.ok) throw new Error(`Сервер вернул ошибку: ${response.status}`);
-            const data = await response.json();
-            // Удаляем индикатор
-            const last = history.pop();
-            if (last && last.type === 'loading') {
-                typingDiv.remove();
-            }
-            if (data.error) {
-                const errMsg = { sender: 'bot', text: `Ошибка: ${data.error}`, mistakeId: null, type: 'error' };
-                history.push(errMsg);
-                appendMessage('bot', errMsg.text, null, 'error');
-            } else {
-                const botMsg = { sender: 'bot', text: data.answer, mistakeId: null, type: 'free' };
-                history.push(botMsg);
-                appendMessage('bot', data.answer, null, 'free');
-            }
-            saveHistory(history);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        } catch (err) {
-            // ... обработка ошибок
+    } finally {
+        window.removeEventListener('beforeunload', beforeUnloadHandler);
+        if (window._teacherAbortController === abortController) {
+            window._teacherAbortController = null;
         }
     }
-
-    freeSend.addEventListener('click', sendFreeQuestion);
-    freeInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') sendFreeQuestion();
-    });
-
-    // --- Закрытие ---
-    closeBtn.addEventListener('click', () => overlay.remove());
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
 }
 }
 // Привязка прогресса к пользователю

@@ -3,131 +3,315 @@ import { getData, setData } from '@/lib/storage.tsx'
 import type { ChatMessage, Mistake } from './types.tsx'
 import { CTA_PRIMARY } from './cta.tsx'
 import { Spinner } from '@/components/ui/spinner.tsx'
-import { mistakesKey, teacherExplainMistakes, requestMistakeDetail, sendFreeQuestion as sendFreeQuestionRequest, getPendingInteraction } from '@/lib/teacher-api.tsx'
+import {
+  mistakesKey,
+  explainMistakesStream,
+  requestMistakeDetailStream,
+  sendFreeQuestionStream,
+  commitChatMessage,
+  loadChatHistory,
+} from '@/lib/teacher-api.tsx'
 
-const CHAT_HISTORY_KEY = 'learning_chat_history'
 const CHAT_DRAFT_KEY = 'learning_chat_draft'
 
-/** История диалога с учителем валидна, только пока набор ошибок тот же — иначе после
- * нового прохождения теста показывался бы разбор для уже неактуальных вопросов. */
-function loadChatHistory(mistakes: Mistake[]): ChatMessage[] {
-  const stored = getData<ChatMessage[]>(CHAT_HISTORY_KEY, [])
-  if (stored.length === 0) return []
-  const storedIds = new Set(stored.filter((m): m is ChatMessage & { mistakeId: number } => m.mistakeId !== null).map((m) => m.mistakeId))
+function getErrorMessage(error: unknown, fallback = 'Произошла ошибка.'): string {
+  if (error instanceof Error) {
+    return error.message || fallback
+  }
+
+  if (typeof error === 'string') {
+    return error
+  }
+
+  return fallback
+}
+
+/** Проверка, что сохранённая история соответствует текущему набору ошибок. */
+function isHistoryValidForMistakes(history: ChatMessage[], mistakes: Mistake[]): boolean {
+  const storedIds = new Set(
+    history
+      .filter((m): m is ChatMessage & { mistakeId: number } => m.mistakeId !== null)
+      .map((m) => m.mistakeId),
+  )
   const currentIds = new Set(mistakes.map((m) => m.id))
-  const sameSet = storedIds.size === currentIds.size && [...storedIds].every((id) => currentIds.has(id))
-  return sameSet ? stored : []
+  return storedIds.size === currentIds.size && [...storedIds].every((id) => currentIds.has(id))
 }
 
 interface TeacherChatProps {
   mistakes: Mistake[]
 }
 
-/** React-порт openTeacherChat из navigation/learning-quiz.ts — разбор ошибок + свободный
- * диалог с учителем (teacher/server.py). История в localStorage переживает переоткрытие
- * панели, пока набор вопросов-ошибок не изменился. */
+/** React-компонент чата с учителем. Поддерживает потоковое получение ответов через SSE.
+ *  История сохраняется в localStorage только после завершения генерации каждого сообщения.
+ *  Во время генерации ответ отображается по токенам в реальном времени.
+ */
 export function TeacherChat({ mistakes }: TeacherChatProps) {
   const chatKey = mistakesKey(mistakes)
-  const [history, setHistory] = useState<ChatMessage[]>(() => loadChatHistory(mistakes))
+
+  // Загружаем историю из localStorage (если она валидна для текущих ошибок)
+  const initialHistory = loadChatHistory()
+  const [history, setHistory] = useState<ChatMessage[]>(() =>
+    isHistoryValidForMistakes(initialHistory, mistakes) ? initialHistory : [],
+  )
+
   const [input, setInput] = useState(() => getData<string>(CHAT_DRAFT_KEY, ''))
-  // Изначально true, если истории ещё нет (эффект ниже сразу запросит объяснения) — либо
-  // если на момент монтирования уже есть чужое незавершённое взаимодействие (см. ниже).
-  // setLoading(true) внутри эффекта запрещён правилом react-hooks/set-state-in-effect,
-  // поэтому оба случая учтены сразу в ленивом инициализаторе.
-  const [loading, setLoading] = useState(() => loadChatHistory(mistakes).length === 0 || !!getPendingInteraction(mistakesKey(mistakes)))
+  const [isLoading, setIsLoading] = useState(false) // индикатор, что идёт генерация
+  const [streamingMessage, setStreamingMessage] = useState<ChatMessage | null>(null) // сообщение, которое сейчас достраивается
   const [loadingDetailIndex, setLoadingDetailIndex] = useState<number | null>(null)
+
   const messagesRef = useRef<HTMLDivElement>(null)
   const didFetchInitial = useRef(false)
 
-  function persistHistory(next: ChatMessage[]): void {
-    setHistory(next)
-    setData(CHAT_HISTORY_KEY, next)
-  }
-
-  // Первичная загрузка объяснений — только если истории ещё нет (как в оригинале).
+  // Первичная загрузка объяснений для ошибок (только если истории нет)
   useEffect(() => {
     if (didFetchInitial.current) return
     didFetchInitial.current = true
     if (history.length > 0) return
 
-    teacherExplainMistakes(mistakes)
-      .then((data) => {
-        if (data.error || !data.explanations) {
-          persistHistory([{ sender: 'bot', text: data.error ?? 'Не удалось получить объяснения.', contextLabel: null, mistakeId: null, kind: 'error' }])
-          return
+    // Если нет истории, запускаем потоковое объяснение всех ошибок
+    const explanationMessages: ChatMessage[] = []
+    let currentMistakeId: number | null = null
+    let currentText = ''
+
+    setIsLoading(true)
+
+    explainMistakesStream(
+      chatKey,
+      mistakes,
+      (mistakeId, token) => {
+        // Если это новый вопрос, создаём новое сообщение
+        if (currentMistakeId !== mistakeId) {
+          // Если был предыдущий вопрос – фиксируем его в историю
+          if (currentMistakeId !== null && currentText.trim()) {
+            const finalMsg: ChatMessage = {
+              sender: 'bot',
+              text: currentText.trim(),
+              contextLabel: `Вопрос ${currentMistakeId}`,
+              mistakeId: currentMistakeId,
+              kind: 'explanation',
+            }
+            explanationMessages.push(finalMsg)
+            commitChatMessage(finalMsg)
+          }
+          // Начинаем новый ответ
+          currentMistakeId = mistakeId
+          currentText = ''
+          // Создаём временное сообщение для отображения
+          const tempMsg: ChatMessage = {
+            sender: 'bot',
+            text: '',
+            contextLabel: `Вопрос ${mistakeId}`,
+            mistakeId: mistakeId,
+            kind: 'explanation',
+          }
+          setStreamingMessage(tempMsg)
         }
-        const next: ChatMessage[] = data.explanations.map((exp) => {
-          const mistake = mistakes.find((m) => m.id === exp.id)
-          return { sender: 'bot', text: exp.explanation, contextLabel: mistake ? `Вопрос ${mistake.id}` : null, mistakeId: exp.id, kind: 'explanation' }
-        })
-        persistHistory(next)
+        // Добавляем токен
+        currentText += token
+        // Обновляем временное сообщение
+        setStreamingMessage((prev) =>
+          prev && prev.mistakeId === mistakeId ? { ...prev, text: currentText } : prev,
+        )
+      },
+    )
+      .then(() => {
+        // После завершения потока фиксируем последнее сообщение
+        if (currentMistakeId !== null && currentText.trim()) {
+          const finalMsg: ChatMessage = {
+            sender: 'bot',
+            text: currentText.trim(),
+            contextLabel: `Вопрос ${currentMistakeId}`,
+            mistakeId: currentMistakeId,
+            kind: 'explanation',
+          }
+          explanationMessages.push(finalMsg)
+          commitChatMessage(finalMsg)
+        }
+        // Обновляем историю
+        setHistory(loadChatHistory())
+        setStreamingMessage(null)
+        setIsLoading(false)
       })
-      .catch(() => {
-        persistHistory([{ sender: 'bot', text: 'Ошибка соединения с teacher/server.py (порт 5000). Проверьте, что сервис запущен.', contextLabel: null, mistakeId: null, kind: 'error' }])
+      .catch((err) => {
+        console.error(err)
+        const errorMsg: ChatMessage = {
+          sender: 'bot',
+          text: `Ошибка: ${err.message || 'Не удалось получить объяснения.'}`,
+          contextLabel: null,
+          mistakeId: null,
+          kind: 'error',
+        }
+        commitChatMessage(errorMsg)
+        setHistory(loadChatHistory())
+        setStreamingMessage(null)
+        setIsLoading(false)
       })
-      .finally(() => setLoading(false))
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- mistakes стабилен для времени жизни компонента
-  }, [])
+  }, [chatKey, history.length, mistakes])
 
-  // «Подробнее»/свободный вопрос — одноразовые запросы без своего эффекта-перезапуска
-  // (см. lib/teacher-api.ts): если пользователь успел свернуть чат и открыть заново, пока
-  // ответ ещё генерировался, этот эффект подхватывает уже идущее взаимодействие вместо
-  // того, чтобы молча его не заметить — показывает "Печатает…" и дочитывает результат,
-  // который teacher-api.ts тем временем допишет в localStorage независимо от того, жив
-  // ли инициировавший запрос компонент.
-  useEffect(() => {
-    const pending = getPendingInteraction(chatKey)
-    if (!pending) return
-    pending.then(() => setHistory(loadChatHistory(mistakes))).finally(() => setLoading(false))
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- chatKey/mistakes стабильны для времени жизни компонента
-  }, [])
-
+  // Прокрутка вниз при добавлении новых сообщений или обновлении потока
   useEffect(() => {
     messagesRef.current?.scrollTo({ top: messagesRef.current.scrollHeight })
-  }, [history, loading])
+  }, [history, streamingMessage, isLoading])
 
   function handleInputChange(value: string): void {
     setInput(value)
     setData(CHAT_DRAFT_KEY, value)
   }
 
-  async function requestDetail(mistake: Mistake, previousExplanation: string, index: number): Promise<void> {
+  /** Обработчик кнопки "Подробнее" – потоковая генерация доп. объяснения */
+  async function handleRequestDetail(mistake: Mistake, previousExplanation: string, index: number): Promise<void> {
     setLoadingDetailIndex(index)
+    // Создаём временное сообщение, которое будет достраиваться
+    const tempMsg: ChatMessage = {
+      sender: 'bot',
+      text: '',
+      contextLabel: `Вопрос ${mistake.id} · подробнее`,
+      mistakeId: mistake.id,
+      kind: 'detail',
+    }
+    setStreamingMessage(tempMsg)
+    let accumulated = ''
+
     try {
-      await requestMistakeDetail(chatKey, {
-        id: mistake.id,
-        question: mistake.question,
-        options: mistake.options,
-        correct: mistake.correct,
-        previous_explanation: previousExplanation,
-        src: mistake.src,
-      })
-      setHistory(loadChatHistory(mistakes))
+      await requestMistakeDetailStream(
+        chatKey,
+        {
+          id: mistake.id,
+          question: mistake.question,
+          options: mistake.options,
+          correct: mistake.correct,
+          previous_explanation: previousExplanation,
+          src: mistake.src,
+        },
+        (token) => {
+          accumulated += token
+          setStreamingMessage((prev) =>
+            prev && prev.mistakeId === mistake.id && prev.kind === 'detail'
+              ? { ...prev, text: accumulated }
+              : prev,
+          )
+        },
+      )
+      // После завершения потока фиксируем сообщение в историю
+      const finalMsg: ChatMessage = {
+        sender: 'bot',
+        text: accumulated.trim(),
+        contextLabel: `Вопрос ${mistake.id} · подробнее`,
+        mistakeId: mistake.id,
+        kind: 'detail',
+      }
+      commitChatMessage(finalMsg)
+      setHistory(loadChatHistory())
+      setStreamingMessage(null)
+    } catch (err) {
+      console.error(err)
+      const errorMsg: ChatMessage = {
+        sender: 'bot',
+        text: `Ошибка: ${getErrorMessage(err, 'Не удалось получить подробное объяснение.')}`,
+        contextLabel: null,
+        mistakeId: mistake.id,
+        kind: 'error',
+      }
+      commitChatMessage(errorMsg)
+      setHistory(loadChatHistory())
+      setStreamingMessage(null)
     } finally {
       setLoadingDetailIndex(null)
     }
   }
 
-  async function sendFreeQuestion(): Promise<void> {
+  /** Обработчик отправки свободного вопроса – потоковая генерация ответа */
+  async function handleSendFreeQuestion(): Promise<void> {
     const question = input.trim()
-    if (!question) return
+    if (!question || isLoading) return
+
+    // Сохраняем вопрос пользователя
+    const userMsg: ChatMessage = {
+      sender: 'user',
+      text: question,
+      contextLabel: null,
+      mistakeId: null,
+      kind: 'free',
+    }
+    commitChatMessage(userMsg)
+    setHistory(loadChatHistory())
     setInput('')
     setData(CHAT_DRAFT_KEY, '')
-    setLoading(true)
 
-    const withUserMsg = [...history, { sender: 'user' as const, text: question, contextLabel: null, mistakeId: null, kind: 'free' as const }]
-    persistHistory(withUserMsg)
+    // Создаём временное сообщение бота
+    const tempMsg: ChatMessage = {
+      sender: 'bot',
+      text: '',
+      contextLabel: null,
+      mistakeId: null,
+      kind: 'free',
+    }
+    setStreamingMessage(tempMsg)
+    setIsLoading(true)
 
-    const context = withUserMsg
-      .filter((m) => m.kind === 'free')
+    const context = loadChatHistory()
+      .filter((m) => m.kind === 'free' || m.kind === 'explanation')
       .slice(-10)
-      .map((m) => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.text }))
+      .map((m) => ({
+        role: m.sender === 'user' ? 'user' : 'assistant',
+        content: m.text,
+      }))
+
+    let accumulated = ''
 
     try {
-      await sendFreeQuestionRequest(chatKey, question, context)
-      setHistory(loadChatHistory(mistakes))
+      await sendFreeQuestionStream(
+        chatKey,
+        question,
+        context,
+        (token) => {
+          accumulated += token
+          setStreamingMessage((prev) =>
+            prev && prev.kind === 'free' ? { ...prev, text: accumulated } : prev,
+          )
+        },
+      )
+      // Фиксируем готовый ответ
+      const finalMsg: ChatMessage = {
+        sender: 'bot',
+        text: accumulated.trim(),
+        contextLabel: null,
+        mistakeId: null,
+        kind: 'free',
+      }
+      commitChatMessage(finalMsg)
+      setHistory(loadChatHistory())
+      setStreamingMessage(null)
+    } catch (err) {
+      console.error(err)
+      const errorMsg: ChatMessage = {
+        sender: 'bot',
+        text: `Ошибка: ${getErrorMessage(err, 'Не удалось получить ответ.')}`,
+        contextLabel: null,
+        mistakeId: null,
+        kind: 'error',
+      }
+      commitChatMessage(errorMsg)
+      setHistory(loadChatHistory())
+      setStreamingMessage(null)
     } finally {
-      setLoading(false)
+      setIsLoading(false)
+    }
+  }
+
+  // Объединяем историю и потоковое сообщение для отображения
+  const displayMessages = [...history]
+  if (streamingMessage) {
+    // Если потоковое сообщение уже есть в истории (например, после перезагрузки) – не дублируем,
+    // но в нашем случае оно ещё не закоммичено, поэтому добавляем
+    const alreadyExists = displayMessages.some(
+      (m) =>
+        m.mistakeId === streamingMessage.mistakeId &&
+        m.kind === streamingMessage.kind &&
+        m.contextLabel === streamingMessage.contextLabel,
+    )
+    if (!alreadyExists && streamingMessage.text) {
+      displayMessages.push(streamingMessage)
     }
   }
 
@@ -151,19 +335,24 @@ export function TeacherChat({ mistakes }: TeacherChatProps) {
 
       <h3 className="mt-5.5 mb-2.5 border-t border-[#e8f8ff]/10 pt-4.5 text-xs font-bold tracking-wide text-[var(--plasma-color)] uppercase">Диалог с учителем</h3>
       <div ref={messagesRef} className="mb-3.5 flex max-h-[380px] flex-col gap-3 overflow-y-auto pr-1">
-        {history.map((msg, i) => (
+        {displayMessages.map((msg, i) => (
           <ChatRow
             key={i}
             msg={msg}
-            showDetailButton={msg.kind === 'explanation' && !history.some((h) => h.kind === 'detail' && h.mistakeId === msg.mistakeId)}
+            showDetailButton={
+              msg.kind === 'explanation' &&
+              !displayMessages.some(
+                (h) => h.kind === 'detail' && h.mistakeId === msg.mistakeId && h.contextLabel === msg.contextLabel,
+              )
+            }
             detailLoading={loadingDetailIndex === i}
             onRequestDetail={() => {
               const mistake = msg.mistakeId !== null ? mistakes.find((m) => m.id === msg.mistakeId) : undefined
-              if (mistake) void requestDetail(mistake, msg.text, i)
+              if (mistake) void handleRequestDetail(mistake, msg.text, i)
             }}
           />
         ))}
-        {loading && (
+        {isLoading && !streamingMessage && (
           <div className="flex items-center gap-2.5">
             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#e8f8ff]/15 bg-white/5 text-sm">🤖</div>
             <div className="flex items-center gap-2 rounded-2xl rounded-tl-[4px] border border-[#e8f8ff]/10 bg-white/5 px-3.5 py-2.5 text-[13px] text-[#e8f8ff]/70">
@@ -180,13 +369,14 @@ export function TeacherChat({ mistakes }: TeacherChatProps) {
           value={input}
           onChange={(e) => handleInputChange(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') void sendFreeQuestion()
+            if (e.key === 'Enter') void handleSendFreeQuestion()
           }}
           placeholder="Задайте вопрос учителю…"
           className="flex-1 rounded-lg border border-[#e8f8ff]/20 bg-[#0a0c18a6] px-3 py-2.5 text-[13px] text-[#e8f8ff] placeholder:text-[#e8f8ff]/35 focus:border-[var(--plasma-color)] focus:outline-none"
+          disabled={isLoading}
         />
-        <button type="button" disabled={loading} onClick={() => void sendFreeQuestion()} className={`${CTA_PRIMARY} flex items-center gap-1.5`}>
-          {loading && <Spinner className="h-3.5 w-3.5" />}
+        <button type="button" disabled={isLoading || !input.trim()} onClick={() => void handleSendFreeQuestion()} className={`${CTA_PRIMARY} flex items-center gap-1.5`}>
+          {isLoading && <Spinner className="h-3.5 w-3.5" />}
           Отправить
         </button>
       </div>
