@@ -41,6 +41,7 @@ def _operation_to_response(op: StockOperation) -> StockOperationResponse:
         user_id=op.user_id,
         username=op.user.username,
         created_at=op.created_at,
+        exported_at=op.exported_at,
     )
 
 
@@ -100,14 +101,25 @@ class WarehouseService:
         latest = await self.audit_repo.get_latest_by_action("nomenclature_synced")
         return SyncStatusResponse(last_synced_at=latest.created_at if latest else None)
 
-    async def export_operations(self, current_user: User) -> bytes:
-        operations = await self.operation_repo.get_all(limit=10000)
+    async def export_operations(
+        self, current_user: User, include_exported: bool = False
+    ) -> bytes:
+        _require_admin(current_user)
+        if include_exported:
+            operations = await self.operation_repo.get_all(limit=10000)
+        else:
+            operations = await self.operation_repo.get_unexported(limit=10000)
         content = build_operations_export(operations)
+        if not include_exported:
+            await self.operation_repo.mark_exported([op.id for op in operations])
         await self.audit_repo.log(
             user_id=current_user.id,
-            action="nomenclature_exported",
+            action="operations_exported",
             entity_type="stock_operation",
-            details={"count": len(operations)},
+            details={
+                "count": len(operations),
+                "mode": "all" if include_exported else "new",
+            },
         )
         return content
 
@@ -119,7 +131,9 @@ class WarehouseService:
             data.nomenclature_name
         )
         if data.operation_type == "issue":
-            portal_qty = await self.nomenclature_repo.portal_quantity_for(nomenclature.id)
+            portal_qty = await self.nomenclature_repo.portal_quantity_for(
+                nomenclature.id
+            )
             available = nomenclature.base_quantity + portal_qty
             if data.quantity > available:
                 raise HTTPException(
@@ -162,10 +176,18 @@ class WarehouseService:
 
         new_quantity = data.quantity if data.quantity is not None else before.quantity
         new_type = (
-            OperationType(data.operation_type) if data.operation_type else before.operation_type
+            OperationType(data.operation_type)
+            if data.operation_type
+            else before.operation_type
         )
-        portal_qty = await self.nomenclature_repo.portal_quantity_for(before.nomenclature_id)
-        old_effect = before.quantity if before.operation_type == OperationType.RETURN else -before.quantity
+        portal_qty = await self.nomenclature_repo.portal_quantity_for(
+            before.nomenclature_id
+        )
+        old_effect = (
+            before.quantity
+            if before.operation_type == OperationType.RETURN
+            else -before.quantity
+        )
         new_effect = new_quantity if new_type == OperationType.RETURN else -new_quantity
         nomenclature = await self.nomenclature_repo.get_by_id(before.nomenclature_id)
         total_after = nomenclature.base_quantity + portal_qty - old_effect + new_effect
@@ -207,8 +229,14 @@ class WarehouseService:
         if not before:
             raise HTTPException(status_code=404, detail="Операция не найдена")
 
-        portal_qty = await self.nomenclature_repo.portal_quantity_for(before.nomenclature_id)
-        old_effect = before.quantity if before.operation_type == OperationType.RETURN else -before.quantity
+        portal_qty = await self.nomenclature_repo.portal_quantity_for(
+            before.nomenclature_id
+        )
+        old_effect = (
+            before.quantity
+            if before.operation_type == OperationType.RETURN
+            else -before.quantity
+        )
         nomenclature = await self.nomenclature_repo.get_by_id(before.nomenclature_id)
         total_after = nomenclature.base_quantity + portal_qty - old_effect
         if total_after < 0:

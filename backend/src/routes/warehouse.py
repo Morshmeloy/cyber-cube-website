@@ -49,11 +49,14 @@ async def get_sync_status(
 
 @router.get("/operations/export")
 async def export_operations(
+    include_exported: bool = False,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     service = WarehouseService(db)
-    content = await service.export_operations(current_user)
+    content = await service.export_operations(
+        current_user, include_exported=include_exported
+    )
     return Response(
         content=content,
         media_type=XLSX_MEDIA_TYPE,
