@@ -24,6 +24,8 @@ export interface StockOperation {
   userId: number
   username: string
   createdAt: string
+  exportedAt: string | null
+  confirmedIn1cAt: string | null
 }
 
 export interface SyncResult {
@@ -68,6 +70,8 @@ interface StockOperationDto {
   user_id: number
   username: string
   created_at: string
+  exported_at: string | null
+  confirmed_in_1c_at: string | null
 }
 
 interface SyncResultDto {
@@ -115,6 +119,8 @@ function fromOperationDto(dto: StockOperationDto): StockOperation {
     userId: dto.user_id,
     username: dto.username,
     createdAt: dto.created_at,
+    exportedAt: dto.exported_at,
+    confirmedIn1cAt: dto.confirmed_in_1c_at,
   }
 }
 
@@ -157,8 +163,11 @@ function downloadBlob(blob: Blob, filename: string): void {
   URL.revokeObjectURL(url)
 }
 
-export async function exportOperations(): Promise<void> {
-  const response = await apiClient.get('/warehouse/operations/export', { responseType: 'blob' })
+export async function exportOperations(includeExported = false): Promise<void> {
+  const response = await apiClient.get('/warehouse/operations/export', {
+    responseType: 'blob',
+    params: { include_exported: includeExported },
+  })
   downloadBlob(response.data as Blob, 'operacii.xlsx')
 }
 
@@ -205,6 +214,21 @@ export async function updateOperation(id: number, draft: StockOperationEditDraft
 
 export async function deleteOperation(id: number): Promise<void> {
   await apiClient.delete(`/warehouse/operations/${id}`)
+}
+
+export async function confirmOperationsIn1c(ids: number[]): Promise<{ count: number }> {
+  const response = await apiClient.post<{ count: number }>('/warehouse/operations/confirm-in-1c', { ids })
+  return response.data
+}
+
+export async function confirmAllExportedIn1c(): Promise<{ count: number }> {
+  const response = await apiClient.post<{ count: number }>('/warehouse/operations/confirm-all-exported')
+  return response.data
+}
+
+export async function unconfirmOperationIn1c(id: number): Promise<StockOperation> {
+  const response = await apiClient.post<StockOperationDto>(`/warehouse/operations/${id}/unconfirm-in-1c`)
+  return fromOperationDto(response.data)
 }
 
 export async function fetchAuditLog(): Promise<AuditLogEntry[]> {

@@ -44,10 +44,13 @@ class NomenclatureRepository:
         return item
 
     async def portal_quantity_for(self, nomenclature_id: int) -> float:
-        """Движение через портал по ОДНОЙ конкретной номенклатуре."""
+        """Движение через портал по ОДНОЙ конкретной номенклатуре — без операций,
+        уже подтверждённых как внесённые в 1С (иначе их эффект посчитается дважды,
+        когда 1С отдаст base_quantity, уже учитывающий их)."""
         result = await self.db.execute(
             select(StockOperation).where(
-                StockOperation.nomenclature_id == nomenclature_id
+                StockOperation.nomenclature_id == nomenclature_id,
+                StockOperation.confirmed_in_1c_at.is_(None),
             )
         )
         total = 0.0
@@ -60,8 +63,10 @@ class NomenclatureRepository:
         return total
 
     async def portal_quantity_map(self) -> dict[int, float]:
-        """{nomenclature_id: сумма возвратов минус выдач через портал}"""
-        result = await self.db.execute(select(StockOperation))
+        """{nomenclature_id: сумма возвратов минус выдач через портал}, без подтверждённых в 1С."""
+        result = await self.db.execute(
+            select(StockOperation).where(StockOperation.confirmed_in_1c_at.is_(None))
+        )
         totals: dict[int, float] = {}
         for op_row in result.scalars().all():
             delta = (
@@ -146,6 +151,55 @@ class StockOperationRepository:
             .limit(limit)
         )
         return result.scalars().all()
+
+    async def get_unexported(self, limit: int = 10000) -> List[StockOperation]:
+        result = await self.db.execute(
+            select(StockOperation)
+            .options(
+                selectinload(StockOperation.nomenclature),
+                selectinload(StockOperation.user),
+            )
+            .where(StockOperation.exported_at.is_(None))
+            .order_by(StockOperation.created_at.desc())
+            .limit(limit)
+        )
+        return result.scalars().all()
+
+    async def mark_exported(self, ids: list[int]) -> None:
+        if not ids:
+            return
+        result = await self.db.execute(
+            select(StockOperation).where(StockOperation.id.in_(ids))
+        )
+        for op_row in result.scalars().all():
+            op_row.exported_at = func.now()
+        await self.db.commit()
+
+    async def get_exported_unconfirmed(self) -> List[StockOperation]:
+        result = await self.db.execute(
+            select(StockOperation)
+            .options(
+                selectinload(StockOperation.nomenclature),
+                selectinload(StockOperation.user),
+            )
+            .where(
+                StockOperation.exported_at.is_not(None),
+                StockOperation.confirmed_in_1c_at.is_(None),
+            )
+        )
+        return result.scalars().all()
+
+    async def set_confirmed(self, ids: list[int], confirmed: bool) -> int:
+        if not ids:
+            return 0
+        result = await self.db.execute(
+            select(StockOperation).where(StockOperation.id.in_(ids))
+        )
+        rows = result.scalars().all()
+        for op_row in rows:
+            op_row.confirmed_in_1c_at = func.now() if confirmed else None
+        await self.db.commit()
+        return len(rows)
 
     async def get_by_id(self, operation_id: int) -> Optional[StockOperation]:
         result = await self.db.execute(

@@ -45,6 +45,8 @@ class StockOperation(Base):
     destination = Column(String(200), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    exported_at = Column(DateTime(timezone=True), nullable=True)
+    confirmed_in_1c_at = Column(DateTime(timezone=True), nullable=True)
 
     nomenclature = relationship("Nomenclature", back_populates="operations")
     user = relationship("User", back_populates="stock_operations")

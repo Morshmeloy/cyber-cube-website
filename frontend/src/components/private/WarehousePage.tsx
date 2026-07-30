@@ -13,6 +13,9 @@ import {
   syncFrom1c,
   fetchSyncStatus,
   exportOperations,
+  confirmOperationsIn1c,
+  confirmAllExportedIn1c,
+  unconfirmOperationIn1c,
   type Nomenclature,
   type StockOperation,
   type AuditLogEntry,
@@ -58,6 +61,37 @@ function normalizeName(name: string): string {
   return name.trim().replace(/\s+/g, ' ').toLowerCase()
 }
 
+function levenshtein(a: string, b: string): number {
+  const rows = a.length + 1
+  const cols = b.length + 1
+  const dp: number[][] = Array.from({ length: rows }, () => new Array(cols).fill(0))
+  for (let i = 0; i < rows; i++) dp[i][0] = i
+  for (let j = 0; j < cols; j++) dp[0][j] = j
+  for (let i = 1; i < rows; i++) {
+    for (let j = 1; j < cols; j++) {
+      dp[i][j] =
+        a[i - 1] === b[j - 1]
+          ? dp[i - 1][j - 1]
+          : 1 + Math.min(dp[i - 1][j - 1], dp[i - 1][j], dp[i][j - 1])
+    }
+  }
+  return dp[rows - 1][cols - 1]
+}
+
+/** 4.2.2 ТЗ: точное совпадение уже дедуплицируется на бэке (find_by_name/get_or_create),
+ * а похожие (опечатки в 1-2 символа) ловим только на фронте — не блокируем создание,
+ * а предлагаем выбрать существующую позицию. */
+const SIMILAR_NAME_THRESHOLD = 2
+
+function findSimilarNomenclature(name: string, items: Nomenclature[]): Nomenclature[] {
+  const normalized = normalizeName(name)
+  return items.filter((item) => {
+    const itemNormalized = normalizeName(item.name)
+    if (itemNormalized === normalized) return false
+    return levenshtein(normalized, itemNormalized) <= SIMILAR_NAME_THRESHOLD
+  })
+}
+
 function extractErrorMessage(error: unknown, fallback: string): string {
   if (axios.isAxiosError(error)) {
     if (error.response?.status === 403) return 'Только администратор может выполнять это действие.'
@@ -78,8 +112,13 @@ function describeAuditEntry(entry: AuditLogEntry): string {
   switch (entry.action) {
     case 'nomenclature_synced':
       return `Синхронизировал номенклатуру и остатки с 1С — добавлено ${details.added ?? 0}, обновлено ${details.updated ?? 0} (всего в 1С: ${details.total ?? 0}).`
+    case 'operations_exported':
     case 'nomenclature_exported':
-      return `Экспортировал историю операций (${details.count ?? 0} записей).`
+      return `Экспортировал историю операций (${details.count ?? 0} записей${details.mode === 'all' ? ', включая ранее экспортированные' : ''}).`
+    case 'operations_confirmed_in_1c':
+      return `Подтвердил перенос в 1С для ${details.count ?? 0} операций.`
+    case 'operation_unconfirmed_in_1c':
+      return 'Отменил подтверждение переноса операции в 1С.'
     case 'operation_created':
       return `Добавил операцию: ${operationTypeWord(details.operation_type)} «${details.nomenclature ?? '—'}», ${details.quantity ?? '?'} шт.`
     case 'operation_updated': {
@@ -129,10 +168,13 @@ export function WarehousePage() {
   const [exportingKey, setExportingKey] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [savingEditId, setSavingEditId] = useState<number | null>(null)
+  const [confirmingId, setConfirmingId] = useState<number | null>(null)
+  const [bulkConfirming, setBulkConfirming] = useState(false)
 
   const [draft, setDraft] = useState<OperationDraft>(EMPTY_DRAFT)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editDraft, setEditDraft] = useState<EditDraft | null>(null)
+  const [pendingSimilar, setPendingSimilar] = useState<{ typedName: string; matches: Nomenclature[] } | null>(null)
 
   async function loadData(): Promise<void> {
     setRefreshing(true)
@@ -158,6 +200,29 @@ export function WarehousePage() {
     })
   }, [])
 
+  async function performCreateOperation(name: string): Promise<void> {
+    const trimmedPerson = draft.person.trim()
+    const trimmedDestination = draft.destination.trim()
+    const qty = Number(draft.quantity)
+    setSubmitting(true)
+    try {
+      await createOperation({
+        nomenclatureName: name,
+        quantity: qty,
+        operationType: draft.operationType,
+        person: trimmedPerson,
+        destination: trimmedDestination,
+      })
+      setDraft(EMPTY_DRAFT)
+      setPendingSimilar(null)
+      await loadData()
+    } catch (error) {
+      toast.error(extractErrorMessage(error, 'Не удалось создать операцию.'))
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>): Promise<void> {
     e.preventDefault()
     const trimmedName = draft.name.trim()
@@ -166,31 +231,25 @@ export function WarehousePage() {
     const qty = Number(draft.quantity)
     if (!trimmedName || !draft.quantity || Number.isNaN(qty) || !trimmedPerson || !trimmedDestination) return
 
+    const exactMatch = nomenclature?.find((item) => normalizeName(item.name) === normalizeName(trimmedName))
+
     if (draft.operationType === 'issue') {
-      const match = nomenclature?.find((item) => normalizeName(item.name) === normalizeName(trimmedName))
-      const available = match?.totalQuantity ?? 0
+      const available = exactMatch?.totalQuantity ?? 0
       if (qty > available) {
         toast.error(`Недостаточно товара на складе: доступно ${available}, запрошено ${qty}.`)
         return
       }
     }
 
-    setSubmitting(true)
-    try {
-      await createOperation({
-        nomenclatureName: trimmedName,
-        quantity: qty,
-        operationType: draft.operationType,
-        person: trimmedPerson,
-        destination: trimmedDestination,
-      })
-      setDraft(EMPTY_DRAFT)
-      await loadData()
-    } catch (error) {
-      toast.error(extractErrorMessage(error, 'Не удалось создать операцию.'))
-    } finally {
-      setSubmitting(false)
+    if (!exactMatch) {
+      const similar = findSimilarNomenclature(trimmedName, nomenclature ?? [])
+      if (similar.length > 0) {
+        setPendingSimilar({ typedName: trimmedName, matches: similar })
+        return
+      }
     }
+
+    await performCreateOperation(trimmedName)
   }
 
   async function handleSync(): Promise<void> {
@@ -206,14 +265,51 @@ export function WarehousePage() {
     }
   }
 
-  async function handleExportOperations(): Promise<void> {
-    setExportingKey('operations')
+  async function handleExportOperations(includeExported: boolean): Promise<void> {
+    setExportingKey(includeExported ? 'operations-all' : 'operations')
     try {
-      await exportOperations()
+      await exportOperations(includeExported)
     } catch (error) {
       toast.error(extractErrorMessage(error, 'Не удалось выгрузить файл.'))
     } finally {
       setExportingKey(null)
+    }
+  }
+
+  async function handleConfirmOperation(id: number): Promise<void> {
+    setConfirmingId(id)
+    try {
+      await confirmOperationsIn1c([id])
+      await loadData()
+    } catch (error) {
+      toast.error(extractErrorMessage(error, 'Не удалось подтвердить перенос операции в 1С.'))
+    } finally {
+      setConfirmingId(null)
+    }
+  }
+
+  async function handleUnconfirmOperation(id: number): Promise<void> {
+    setConfirmingId(id)
+    try {
+      await unconfirmOperationIn1c(id)
+      await loadData()
+    } catch (error) {
+      toast.error(extractErrorMessage(error, 'Не удалось отменить подтверждение.'))
+    } finally {
+      setConfirmingId(null)
+    }
+  }
+
+  async function handleConfirmAllExported(): Promise<void> {
+    setBulkConfirming(true)
+    try {
+      const result = await confirmAllExportedIn1c()
+      toast.success(`Подтверждён перенос ${result.count} операций.`)
+      await loadData()
+    } catch (error) {
+      toast.error(extractErrorMessage(error, 'Не удалось подтвердить перенос операций.'))
+    } finally {
+      setBulkConfirming(false)
     }
   }
 
@@ -307,7 +403,10 @@ export function WarehousePage() {
               type="text"
               list="nomenclature-options"
               value={draft.name}
-              onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+              onChange={(e) => {
+                setDraft({ ...draft, name: e.target.value })
+                setPendingSimilar(null)
+              }}
               placeholder="Название товара"
               required
               className={fieldClass}
@@ -318,6 +417,46 @@ export function WarehousePage() {
               ))}
             </datalist>
           </div>
+
+          {pendingSimilar && (
+            <div className="mb-3 rounded-md border border-amber-400/40 bg-amber-400/10 p-3 text-[12px] text-amber-200">
+              <p className="mb-2">
+                Похожая позиция уже есть в справочнике — использовать её вместо создания новой «{pendingSimilar.typedName}»?
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {pendingSimilar.matches.map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => {
+                      setDraft((d) => ({ ...d, name: m.name }))
+                      setPendingSimilar(null)
+                    }}
+                    className="rounded-md border border-amber-400/50 px-2 py-1 transition-colors hover:bg-amber-400/15"
+                  >
+                    Использовать «{m.name}»
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  disabled={submitting}
+                  onClick={() => void performCreateOperation(pendingSimilar.typedName)}
+                  className="flex items-center gap-1 rounded-md border border-[#e8f8ff]/20 px-2 py-1 text-[#e8f8ff]/80 transition-colors hover:bg-white/6 disabled:opacity-50"
+                >
+                  {submitting && <Spinner className="h-3 w-3" />}
+                  Всё равно создать новую
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPendingSimilar(null)}
+                  className="rounded-md border border-[#e8f8ff]/20 px-2 py-1 text-[#e8f8ff]/80 transition-colors hover:bg-white/6"
+                >
+                  Отмена
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="mb-3">
             <label className={labelClass}>Количество</label>
             <input
@@ -438,10 +577,37 @@ export function WarehousePage() {
       >
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-sm font-bold text-[var(--plasma-color)]">История операций</h3>
-          <button type="button" onClick={() => void handleExportOperations()} disabled={exportingKey === 'operations'} className={secondaryButtonClass}>
-            {exportingKey === 'operations' && <Spinner className="h-3.5 w-3.5" />}
-            Экспорт операций
-          </button>
+          {isAdmin && (
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => void handleExportOperations(false)}
+                disabled={exportingKey !== null}
+                className={secondaryButtonClass}
+              >
+                {exportingKey === 'operations' && <Spinner className="h-3.5 w-3.5" />}
+                Экспорт новых операций
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleExportOperations(true)}
+                disabled={exportingKey !== null}
+                className={secondaryButtonClass}
+              >
+                {exportingKey === 'operations-all' && <Spinner className="h-3.5 w-3.5" />}
+                Выгрузить все (включая экспортированные)
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleConfirmAllExported()}
+                disabled={bulkConfirming}
+                className={secondaryButtonClass}
+              >
+                {bulkConfirming && <Spinner className="h-3.5 w-3.5" />}
+                Подтвердить перенос всех выгруженных
+              </button>
+            </div>
+          )}
         </div>
 
         {operations === null ? (
@@ -453,7 +619,7 @@ export function WarehousePage() {
           <table className="w-full min-w-[820px] border-collapse text-[13px] text-[#e8f8ff]/85">
             <thead>
               <tr>
-                {['Дата', 'Номенклатура', 'Тип', 'Кол-во', 'ФИО', 'Адрес/место назначения', 'Кто ввёл', ...(isAdmin ? ['Действия'] : [])].map((h) => (
+                {['Дата', 'Номенклатура', 'Тип', 'Кол-во', 'ФИО', 'Адрес/место назначения', 'Кто ввёл', ...(isAdmin ? ['Экспорт', 'Подтверждено в 1С', 'Действия'] : [])].map((h) => (
                   <th key={h} className="bg-white/6 px-2.5 py-2 text-left font-bold text-[var(--plasma-color)]">
                     {h}
                   </th>
@@ -519,6 +685,16 @@ export function WarehousePage() {
                     </td>
                     <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{op.username}</td>
                     {isAdmin && (
+                      <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2 whitespace-nowrap text-[11px]">
+                        {op.exportedAt ? formatDate(op.exportedAt) : <span className="text-[#e8f8ff]/40">—</span>}
+                      </td>
+                    )}
+                    {isAdmin && (
+                      <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2 whitespace-nowrap text-[11px]">
+                        {op.confirmedIn1cAt ? formatDate(op.confirmedIn1cAt) : <span className="text-[#e8f8ff]/40">—</span>}
+                      </td>
+                    )}
+                    {isAdmin && (
                       <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">
                         {isEditing ? (
                           <div className="flex gap-1.5">
@@ -540,7 +716,7 @@ export function WarehousePage() {
                             </button>
                           </div>
                         ) : (
-                          <div className="flex gap-1.5">
+                          <div className="flex flex-wrap gap-1.5">
                             <button
                               type="button"
                               onClick={() => startEdit(op)}
@@ -557,6 +733,27 @@ export function WarehousePage() {
                               {deletingId === op.id && <Spinner className="h-3 w-3" />}
                               Удалить
                             </button>
+                            {op.confirmedIn1cAt ? (
+                              <button
+                                type="button"
+                                disabled={confirmingId === op.id}
+                                onClick={() => void handleUnconfirmOperation(op.id)}
+                                className="flex items-center gap-1.5 rounded-md border border-[#e8f8ff]/20 px-2.5 py-1 text-[11px] text-[#e8f8ff]/80 transition-colors hover:bg-white/6 disabled:opacity-50"
+                              >
+                                {confirmingId === op.id && <Spinner className="h-3 w-3" />}
+                                Отменить подтверждение
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled={confirmingId === op.id}
+                                onClick={() => void handleConfirmOperation(op.id)}
+                                className="flex items-center gap-1.5 rounded-md border border-emerald-400/35 px-2.5 py-1 text-[11px] text-emerald-300 transition-colors hover:bg-emerald-500/15 disabled:opacity-50"
+                              >
+                                {confirmingId === op.id && <Spinner className="h-3 w-3" />}
+                                Подтвердить в 1С
+                              </button>
+                            )}
                           </div>
                         )}
                       </td>
@@ -566,7 +763,7 @@ export function WarehousePage() {
               })}
               {operations.length === 0 && (
                 <tr>
-                  <td colSpan={isAdmin ? 8 : 7} className="px-2.5 py-4 text-center text-[#e8f8ff]/50">
+                  <td colSpan={isAdmin ? 10 : 7} className="px-2.5 py-4 text-center text-[#e8f8ff]/50">
                     Операций пока нет.
                   </td>
                 </tr>
