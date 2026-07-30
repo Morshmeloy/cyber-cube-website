@@ -2,9 +2,9 @@
 set -e
 
 # === НАСТРОЙКИ ===
-SERVER="user@your-server-ip"
+SERVER="egor@192.168.0.188"
 SSH_KEY="$HOME/.ssh/id_ed25519"
-APP_DIR="/home/user/d4tech"
+APP_DIR="/home/egor/d4tech"
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
