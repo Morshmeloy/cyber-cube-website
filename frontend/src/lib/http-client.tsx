@@ -1,6 +1,6 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 
-const API_BASE_URL = 'http://localhost:8000/api'
+const API_BASE_URL = '/api'
 
 const ACCESS_TOKEN_KEY = 'd4_access_token'
 const REFRESH_TOKEN_KEY = 'd4_refresh_token'
