@@ -142,7 +142,7 @@ export function requestMistakeDetailStream(
   },
   onToken: (token: string) => void,
 ): Promise<void> {
-  const key = `detail:${payload.id}`
+  const key = `detail:${chatKey}:${payload.id}`
   return enqueue(key, async () => {
     const response = await fetch(`${TEACHER_API_BASE}/api/chat/detail/stream`, {
       method: 'POST',
