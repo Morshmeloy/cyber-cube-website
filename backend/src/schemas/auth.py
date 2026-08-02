@@ -2,12 +2,14 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional
 from src.models.user import UserRole
 
+
 class UserCreate(BaseModel):
     username: str
     email: EmailStr
     password: str
-    role: UserRole = UserRole.ENGINEER
+    role: UserRole = UserRole.ACCOUNTANT
     full_name: Optional[str] = None
+
 
 class UserResponse(BaseModel):
     id: int
@@ -20,9 +22,11 @@ class UserResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 class LoginRequest(BaseModel):
     username: str
     password: str
+
 
 class LoginResponse(BaseModel):
     access_token: str
@@ -30,12 +34,15 @@ class LoginResponse(BaseModel):
     token_type: str = "bearer"
     role: str
 
+
 class RefreshRequest(BaseModel):
     refresh_token: str
+
 
 class RefreshResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
 
 class TokenData(BaseModel):
     username: str
