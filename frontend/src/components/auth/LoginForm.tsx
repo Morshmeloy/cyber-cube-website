@@ -5,12 +5,11 @@ import type { PageNavigationTarget } from '@/types/page-content.tsx'
 
 interface LoginFormProps {
   navigateTo: (target: PageNavigationTarget) => void
-  onSwitchToRegister: () => void
 }
 
 /** Вход через реальный бэкенд (POST /api/auth/login, см. lib/auth.ts) — JWT
  * access/refresh-токены, а не локально зашитые демо-учётки. */
-export function LoginForm({ navigateTo, onSwitchToRegister }: LoginFormProps) {
+export function LoginForm({ navigateTo }: LoginFormProps) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -65,13 +64,6 @@ export function LoginForm({ navigateTo, onSwitchToRegister }: LoginFormProps) {
           >
             {isSubmitting && <Spinner />}
             {isSubmitting ? 'Проверка…' : 'Войти'}
-          </button>
-          <button
-            type="button"
-            onClick={onSwitchToRegister}
-            className="mt-2.5 w-full rounded-lg border border-transparent bg-transparent py-1.5 text-[13px] text-cyan-300 underline transition-colors hover:text-white"
-          >
-            Нет аккаунта? Зарегистрироваться
           </button>
           {error && <div className="mt-3.5 rounded-lg border border-red-400/35 bg-red-500/10 px-3 py-2.5 text-[13px] leading-[1.5] text-red-300">{error}</div>}
         </form>

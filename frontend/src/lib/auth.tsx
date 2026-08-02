@@ -64,44 +64,6 @@ export async function login(username: string, password: string): Promise<LoginRe
   return { user }
 }
 
-export interface RegisterData {
-  username: string
-  email: string
-  password: string
-  fullName?: string
-  role: UserRole
-}
-
-export type RegisterError = 'username-taken' | 'email-taken' | 'invalid-data' | 'server-unreachable'
-export type RegisterResult = { user: User } | { error: RegisterError }
-
-/** Регистрация через POST /api/auth/register, затем автоматический вход тем же
- * логином/паролем — сам /register не выдаёт токены, только созданный профиль. */
-export async function register(data: RegisterData): Promise<RegisterResult> {
-  try {
-    await apiClient.post('/auth/register', {
-      username: data.username,
-      email: data.email,
-      password: data.password,
-      full_name: data.fullName || null,
-      role: data.role,
-    })
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.status === 400) {
-      const detail = (error.response.data as { detail?: string } | undefined)?.detail ?? ''
-      if (/username/i.test(detail)) return { error: 'username-taken' }
-      if (/email/i.test(detail)) return { error: 'email-taken' }
-      return { error: 'invalid-data' }
-    }
-    if (axios.isAxiosError(error) && error.response) return { error: 'invalid-data' }
-    return { error: 'server-unreachable' }
-  }
-
-  const loginResult = await login(data.username, data.password)
-  if ('user' in loginResult) return loginResult
-  return { error: 'server-unreachable' }
-}
-
 export function logout(): void {
   clearTokens()
   localStorage.removeItem(USER_CACHE_KEY)
