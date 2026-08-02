@@ -10,7 +10,6 @@ from src.schemas.auth import (
     UserResponse,
 )
 from src.core.dependencies import get_current_user
-from src.schemas.auth import UserResponse
 from src.models.user import User
 
 router = APIRouter(prefix="/auth", tags=["auth"])
