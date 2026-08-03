@@ -94,8 +94,11 @@ class NomenclatureRepository:
         for guid, name in items:
             quantity = balances.get(guid, 0)
             existing = await self.find_by_guid(guid)
+            if not existing:
+                existing = await self.find_by_name(name)
             if existing:
                 existing.name = name
+                existing.source_guid = guid
                 existing.base_quantity = quantity
                 existing.base_synced_at = func.now()
                 updated += 1
