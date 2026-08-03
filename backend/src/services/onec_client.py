@@ -23,18 +23,21 @@ async def fetch_nomenclature() -> list[tuple[str, str]]:
 
 
 async def fetch_balances() -> dict[str, float]:
-    """Возвращает {guid_номенклатуры: суммарное_количество} из InformationRegister_ОстаткиТоваров.
-    Регистр — не Balance()-таблица, строк может быть несколько на одну номенклатуру
-    (разные склады/партии/характеристики) — суммируем сами."""
+    """Возвращает {guid_номенклатуры: суммарное_количество} из AccountingRegister_Хозрасчетный.
+    Счёт 10.01 «Сырьё и материалы» — GUID зафиксирован (счета плана счетов предопределены,
+    не меняются между обращениями). Строк может быть несколько на одну номенклатуру
+    (разные склады) — суммируем."""
+    account_key = "85836622-8dda-11ee-879b-a8decfe6e8ab"  # ChartOfAccounts_Хозрасчетный, счёт 10.01
+    condition = f"AccountCondition='Account_Key eq guid''{account_key}'''"
     async with _client() as client:
         response = await client.get(
-            "/InformationRegister_ОстаткиТоваров",
-            params={"$format": "json", "$select": "Номенклатура_Key,Количество"},
+            f"/AccountingRegister_Хозрасчетный/Balance({condition})",
+            params={"$format": "json"},
         )
         response.raise_for_status()
         rows = response.json()["value"]
         totals: dict[str, float] = {}
         for row in rows:
-            guid = row["Номенклатура_Key"]
-            totals[guid] = totals.get(guid, 0) + (row["Количество"] or 0)
+            guid = row["ExtDimension1"]
+            totals[guid] = totals.get(guid, 0) + (row["КоличествоBalance"] or 0)
         return totals
