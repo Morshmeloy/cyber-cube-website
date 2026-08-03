@@ -2,9 +2,9 @@
 set -e
 
 # === НАСТРОЙКИ ===
-SERVER="egor@192.168.0.188"
+SERVER="macar@192.168.0.188"
 SSH_KEY="$HOME/.ssh/id_ed25519"
-APP_DIR="/home/egor/d4tech"
+APP_DIR="/home/macar/d4tech"
 IMAGE_NAME="d4tech-backend"
 TAR_FILE="d4tech-backend.tar"
 
