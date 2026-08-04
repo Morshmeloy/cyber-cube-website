@@ -3,6 +3,7 @@ from sqlalchemy import (
     Integer,
     String,
     Float,
+    Boolean,
     DateTime,
     ForeignKey,
     Enum as SQLEnum,
@@ -28,6 +29,7 @@ class Nomenclature(Base):
     source_guid = Column(String(36), unique=True, nullable=True, index=True)
     base_quantity = Column(Float, nullable=False, default=0)
     base_synced_at = Column(DateTime(timezone=True), nullable=True)
+    is_active = Column(Boolean, nullable=False, default=True, server_default="true")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     operations = relationship("StockOperation", back_populates="nomenclature")
