@@ -1,4 +1,5 @@
 import httpx
+import urllib.parse
 from src.core.config import settings
 
 MATERIALS_FOLDER_KEY = (
@@ -16,17 +17,19 @@ def _client() -> httpx.AsyncClient:
 
 async def fetch_nomenclature() -> list[tuple[str, str]]:
     """Возвращает [(guid, название), ...] — только позиции из папки «Материалы»
-    Catalog_Номенклатура (сайт не должен показывать всё подряд, только то,
-    что бухгалтер сознательно туда положил)."""
+    Catalog_Номенклатура. $filter собираем вручную с %20 вместо пробела — 1С
+    не принимает '+' как пробел (стандартная сериализация httpx.params), падает с 500.
+    """
+    query = urllib.parse.urlencode(
+        {
+            "$format": "json",
+            "$select": "Ref_Key,Description",
+            "$filter": f"Parent_Key eq guid'{MATERIALS_FOLDER_KEY}'",
+        },
+        quote_via=urllib.parse.quote,
+    )
     async with _client() as client:
-        response = await client.get(
-            "/Catalog_Номенклатура",
-            params={
-                "$format": "json",
-                "$select": "Ref_Key,Description",
-                "$filter": f"Parent_Key eq guid'{MATERIALS_FOLDER_KEY}'",
-            },
-        )
+        response = await client.get(f"/Catalog_Номенклатура?{query}")
         response.raise_for_status()
         rows = response.json()["value"]
         return [(row["Ref_Key"], row["Description"]) for row in rows]
