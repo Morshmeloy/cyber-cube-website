@@ -15,7 +15,11 @@ class NomenclatureRepository:
         self.db = db
 
     async def get_all(self) -> List[Nomenclature]:
-        result = await self.db.execute(select(Nomenclature).order_by(Nomenclature.name))
+        result = await self.db.execute(
+            select(Nomenclature)
+            .where(Nomenclature.is_active == True)
+            .order_by(Nomenclature.name)
+        )
         return result.scalars().all()
 
     async def get_by_id(self, nomenclature_id: int) -> Optional[Nomenclature]:
