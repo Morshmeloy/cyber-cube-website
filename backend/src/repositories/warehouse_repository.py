@@ -93,6 +93,11 @@ class NomenclatureRepository:
         self, items: list[tuple[str, str]], balances: dict[str, float]
     ) -> tuple[int, int]:
         """items: [(guid, название), ...] из Catalog_Номенклатура. Возвращает (added, updated)."""
+        if not items:
+            raise ValueError(
+                "fetch_nomenclature() вернул пустой список — синк остановлен, "
+                "чтобы не заархивировать все позиции разом"
+            )
         added = 0
         updated = 0
         synced_guids = {guid for guid, _ in items}
