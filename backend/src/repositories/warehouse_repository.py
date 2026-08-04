@@ -95,6 +95,7 @@ class NomenclatureRepository:
         """items: [(guid, название), ...] из Catalog_Номенклатура. Возвращает (added, updated)."""
         added = 0
         updated = 0
+        synced_guids = {guid for guid, _ in items}
         for guid, name in items:
             quantity = balances.get(guid, 0)
             existing = await self.find_by_guid(guid)
@@ -105,6 +106,7 @@ class NomenclatureRepository:
                 existing.source_guid = guid
                 existing.base_quantity = quantity
                 existing.base_synced_at = func.now()
+                existing.is_active = True
                 updated += 1
             else:
                 self.db.add(
@@ -116,6 +118,17 @@ class NomenclatureRepository:
                     )
                 )
                 added += 1
+
+        result = await self.db.execute(
+            select(Nomenclature).where(
+                Nomenclature.is_active == True,
+                Nomenclature.source_guid.is_not(None),
+                Nomenclature.source_guid.not_in(synced_guids) if synced_guids else True,
+            )
+        )
+        for stale in result.scalars().all():
+            stale.is_active = False
+
         await self.db.commit()
         return added, updated
 
