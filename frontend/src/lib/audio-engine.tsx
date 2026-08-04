@@ -257,8 +257,12 @@ export function createAudioEngine(): AudioEngine {
     startTransformerHum()
   }
 
-  document.addEventListener('click', unlockOnFirstGesture, { once: true })
-  document.addEventListener('touchstart', unlockOnFirstGesture, { once: true, passive: true })
+  // Звук на сайте временно отключён целиком: `started` никогда не станет true
+  // (все play-функции начинаются с `if (!started) return`), раскомментировать
+  // эти две строки — единственный способ снова включить звук.
+  // document.addEventListener('click', unlockOnFirstGesture, { once: true })
+  // document.addEventListener('touchstart', unlockOnFirstGesture, { once: true, passive: true })
+  void unlockOnFirstGesture
 
   return {
     startKubSound,
