@@ -5,7 +5,7 @@ set -e
 SERVER="macar@192.168.0.188"
 SSH_KEY="$HOME/.ssh/id_ed25519"
 APP_DIR="/home/macar/d4tech"
-IMAGE_NAME="d4tech-backend"
+IMAGE_NAME="d4tech-web"
 TAR_FILE="d4tech-backend.tar"
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
