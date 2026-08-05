@@ -90,9 +90,12 @@ class NomenclatureRepository:
         return result.scalar_one_or_none()
 
     async def upsert_from_sync(
-        self, items: list[tuple[str, str]], balances: dict[str, float]
+        self,
+        items: list[tuple[str, str, str | None, str | None]],
+        balances: dict[str, float],
     ) -> tuple[int, int]:
-        """items: [(guid, название), ...] из Catalog_Номенклатура. Возвращает (added, updated)."""
+        """items: [(guid, название, код, единица_измерения), ...] из Catalog_Номенклатура.
+        Возвращает (added, updated)."""
         if not items:
             raise ValueError(
                 "fetch_nomenclature() вернул пустой список — синк остановлен, "
@@ -100,8 +103,8 @@ class NomenclatureRepository:
             )
         added = 0
         updated = 0
-        synced_guids = {guid for guid, _ in items}
-        for guid, name in items:
+        synced_guids = {guid for guid, _, _, _ in items}
+        for guid, name, code, unit in items:
             quantity = balances.get(guid, 0)
             existing = await self.find_by_guid(guid)
             if not existing:
@@ -109,6 +112,8 @@ class NomenclatureRepository:
             if existing:
                 existing.name = name
                 existing.source_guid = guid
+                existing.code = code
+                existing.unit = unit
                 existing.base_quantity = quantity
                 existing.base_synced_at = func.now()
                 existing.is_active = True
@@ -118,6 +123,8 @@ class NomenclatureRepository:
                     Nomenclature(
                         name=name,
                         source_guid=guid,
+                        code=code,
+                        unit=unit,
                         base_quantity=quantity,
                         base_synced_at=func.now(),
                     )
