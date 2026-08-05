@@ -23,11 +23,12 @@ const fieldClass =
 const labelClass = 'mb-1 block text-xs font-semibold text-[#e8f8ff]/70'
 
 /** React-порт settings/navigation/pages/private/finance.ts — чеки/затраты, видимость по роли
- * (admin/accountant видят все, остальные — только свои), черновик формы через lib/storage.ts. */
+ * (admin/accountant видят все, остальные — только свои), черновик формы через lib/storage.ts.
+ * ВНИМАНИЕ: сравнение по имени роли, не по правам — тот же временный мост, что в DocsPage.tsx. */
 export function FinancePage() {
   const user = getUser()
   const currentUser = user?.username ?? 'unknown'
-  const isAdmin = user?.role === 'admin' || user?.role === 'accountant'
+  const isAdmin = user?.role.name === 'Администратор' || user?.role.name === 'Бухгалтер'
 
   const [items, setItems] = useState<Expense[]>(() => getData<Expense[]>('finance', []))
   const [draft0] = useState<FinanceDraft>(() => getData<FinanceDraft>('finance_draft', EMPTY_DRAFT))

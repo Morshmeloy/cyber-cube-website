@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { fetchMe, getUser } from '@/lib/auth.tsx'
-import { DASHBOARD_NAV_CARDS, PRIVATE_PAGE_COLORS, ROLE_LABELS } from '@/data/navigation/private.tsx'
+import { DASHBOARD_NAV_CARDS, PRIVATE_PAGE_COLORS } from '@/data/navigation/private.tsx'
 import type { CSSProperties } from 'react'
 import type { PageNavigationTarget } from '@/types/page-content.tsx'
 
@@ -33,7 +33,7 @@ export function DashboardPage({ navigateTo }: DashboardPageProps) {
           <h2 className="mb-1 text-[clamp(20px,3vw,28px)] font-extrabold text-[var(--plasma-color)] [text-shadow:0_0_8px_color-mix(in_srgb,var(--plasma-color)_40%,transparent)]">
             Добро пожаловать, {user?.fullName || user?.username || 'пользователь'}
           </h2>
-          <p className="text-[13px] text-[#e8f8ff]/60">{user ? ROLE_LABELS[user.role] : ''}</p>
+          <p className="text-[13px] text-[#e8f8ff]/60">{user?.role.name ?? ''}</p>
         </div>
       </div>
 

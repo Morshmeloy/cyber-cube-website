@@ -1,30 +1,63 @@
 import axios from 'axios'
 import { apiClient, setTokens, clearTokens, getAccessToken } from './http-client.tsx'
 
-export type UserRole = 'admin' | 'engineer' | 'accountant'
+export interface Role {
+  id: number
+  name: string
+  isSystem: boolean
+  canViewWarehouse: boolean
+  canManageWarehouseOperations: boolean
+  canSyncWarehouse1c: boolean
+  canManageUsers: boolean
+  canManageRoles: boolean
+}
 
 export interface User {
   id: number
   username: string
   email: string
-  role: UserRole
+  role: Role
   fullName: string | null
   isActive: boolean
+}
+
+export interface RoleDto {
+  id: number
+  name: string
+  is_system: boolean
+  can_view_warehouse: boolean
+  can_manage_warehouse_operations: boolean
+  can_sync_warehouse_1c: boolean
+  can_manage_users: boolean
+  can_manage_roles: boolean
 }
 
 interface UserResponseDto {
   id: number
   username: string
   email: string
-  role: UserRole
+  role: RoleDto
   full_name: string | null
   is_active: boolean
 }
 
 const USER_CACHE_KEY = 'd4_user'
 
+export function mapRole(dto: RoleDto): Role {
+  return {
+    id: dto.id,
+    name: dto.name,
+    isSystem: dto.is_system,
+    canViewWarehouse: dto.can_view_warehouse,
+    canManageWarehouseOperations: dto.can_manage_warehouse_operations,
+    canSyncWarehouse1c: dto.can_sync_warehouse_1c,
+    canManageUsers: dto.can_manage_users,
+    canManageRoles: dto.can_manage_roles,
+  }
+}
+
 function mapUser(dto: UserResponseDto): User {
-  return { id: dto.id, username: dto.username, email: dto.email, role: dto.role, fullName: dto.full_name, isActive: dto.is_active }
+  return { id: dto.id, username: dto.username, email: dto.email, role: mapRole(dto.role), fullName: dto.full_name, isActive: dto.is_active }
 }
 
 function cacheUser(user: User): void {
@@ -52,7 +85,7 @@ export type LoginResult = { user: User } | { error: LoginError }
  * ответ /login содержит только role, без id/email/full_name. */
 export async function login(username: string, password: string): Promise<LoginResult> {
   try {
-    const response = await apiClient.post<{ access_token: string; refresh_token: string; role: UserRole }>('/auth/login', { username, password })
+    const response = await apiClient.post<{ access_token: string; refresh_token: string; role: string }>('/auth/login', { username, password })
     setTokens(response.data)
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) return { error: 'invalid-credentials' }

@@ -1,54 +1,95 @@
-import type { UserRole } from './auth.tsx'
+import { apiClient } from './http-client.tsx'
+import { mapRole, type Role, type RoleDto } from './auth.tsx'
 
 export interface AdminUser {
   id: number
   username: string
   email: string
-  role: UserRole
+  role: Role
   fullName: string | null
   isActive: boolean
 }
 
-/**
- * Заглушка API администрирования пользователей — реального бэкенд-эндпоинта пока нет
- * (backend/ умеет только регистрацию/логин/`/auth/me`, без списка/управления пользователями).
- * Данные живут в памяти модуля (сбрасываются при перезагрузке страницы), но каждая функция
- * оформлена как настоящий асинхронный запрос (искусственная задержка через setTimeout) —
- * чтобы UI (спиннеры, обработка ошибок) не пришлось переписывать, когда появится реальный
- * backend-эндпоинт: сигнатуры и форма ответа уже соответствуют будущему REST-контракту.
- */
-const FAKE_LATENCY_MS = 500
-
-let mockUsers: AdminUser[] = [
-  { id: 1, username: 'admin', email: 'admin@d4tech.ru', role: 'admin', fullName: 'Администратор Системы', isActive: true },
-  { id: 2, username: 'engineer1', email: 'engineer1@d4tech.ru', role: 'engineer', fullName: 'Иван Петров', isActive: true },
-  { id: 3, username: 'accountant1', email: 'accountant1@d4tech.ru', role: 'accountant', fullName: 'Мария Сидорова', isActive: true },
-  { id: 4, username: 'engineer2', email: 'engineer2@d4tech.ru', role: 'engineer', fullName: null, isActive: false },
-]
-
-function delay<T>(value: T): Promise<T> {
-  return new Promise((resolve) => setTimeout(() => resolve(value), FAKE_LATENCY_MS))
+interface AdminUserDto {
+  id: number
+  username: string
+  email: string
+  role: RoleDto
+  full_name: string | null
+  is_active: boolean
 }
 
-export function fetchAllUsers(): Promise<AdminUser[]> {
-  return delay([...mockUsers])
+function mapAdminUser(dto: AdminUserDto): AdminUser {
+  return { id: dto.id, username: dto.username, email: dto.email, role: mapRole(dto.role), fullName: dto.full_name, isActive: dto.is_active }
 }
 
-export function updateUserRole(id: number, role: UserRole): Promise<AdminUser> {
-  mockUsers = mockUsers.map((u) => (u.id === id ? { ...u, role } : u))
-  const updated = mockUsers.find((u) => u.id === id)
-  if (!updated) return Promise.reject(new Error('Пользователь не найден'))
-  return delay(updated)
+export interface RolePermissions {
+  canViewWarehouse: boolean
+  canManageWarehouseOperations: boolean
+  canSyncWarehouse1c: boolean
+  canManageUsers: boolean
+  canManageRoles: boolean
 }
 
-export function setUserActive(id: number, isActive: boolean): Promise<AdminUser> {
-  mockUsers = mockUsers.map((u) => (u.id === id ? { ...u, isActive } : u))
-  const updated = mockUsers.find((u) => u.id === id)
-  if (!updated) return Promise.reject(new Error('Пользователь не найден'))
-  return delay(updated)
+function permissionsToDto(permissions: RolePermissions) {
+  return {
+    can_view_warehouse: permissions.canViewWarehouse,
+    can_manage_warehouse_operations: permissions.canManageWarehouseOperations,
+    can_sync_warehouse_1c: permissions.canSyncWarehouse1c,
+    can_manage_users: permissions.canManageUsers,
+    can_manage_roles: permissions.canManageRoles,
+  }
 }
 
-export function deleteUser(id: number): Promise<void> {
-  mockUsers = mockUsers.filter((u) => u.id !== id)
-  return delay(undefined)
+export async function fetchRoles(): Promise<Role[]> {
+  const response = await apiClient.get<RoleDto[]>('/admin/roles')
+  return response.data.map(mapRole)
+}
+
+export async function createRole(name: string, permissions: RolePermissions): Promise<Role> {
+  const response = await apiClient.post<RoleDto>('/admin/roles', { name, ...permissionsToDto(permissions) })
+  return mapRole(response.data)
+}
+
+export async function updateRole(id: number, name: string, permissions: RolePermissions): Promise<Role> {
+  const response = await apiClient.patch<RoleDto>(`/admin/roles/${id}`, { name, ...permissionsToDto(permissions) })
+  return mapRole(response.data)
+}
+
+export async function deleteRole(id: number): Promise<void> {
+  await apiClient.delete(`/admin/roles/${id}`)
+}
+
+export async function fetchUsers(): Promise<AdminUser[]> {
+  const response = await apiClient.get<AdminUserDto[]>('/admin/users')
+  return response.data.map(mapAdminUser)
+}
+
+export interface NewUserInput {
+  username: string
+  email: string
+  password: string
+  roleId: number
+  fullName: string
+}
+
+export async function createUser(input: NewUserInput): Promise<AdminUser> {
+  const response = await apiClient.post<AdminUserDto>('/admin/users', {
+    username: input.username,
+    email: input.email,
+    password: input.password,
+    role_id: input.roleId,
+    full_name: input.fullName || null,
+  })
+  return mapAdminUser(response.data)
+}
+
+export async function updateUserRole(id: number, roleId: number): Promise<AdminUser> {
+  const response = await apiClient.patch<AdminUserDto>(`/admin/users/${id}`, { role_id: roleId })
+  return mapAdminUser(response.data)
+}
+
+export async function setUserActive(id: number, isActive: boolean): Promise<AdminUser> {
+  const response = await apiClient.patch<AdminUserDto>(`/admin/users/${id}`, { is_active: isActive })
+  return mapAdminUser(response.data)
 }

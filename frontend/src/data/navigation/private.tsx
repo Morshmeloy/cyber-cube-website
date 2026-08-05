@@ -1,5 +1,4 @@
 import type { PrivatePageKey } from '../../types/page-content.tsx'
-import type { User } from '../../lib/auth.tsx'
 
 /** Цвета страниц личного кабинета — приглушённая палитра, отдельная от неоновых цветов
  * граней куба (личный кабинет визуально — внутренний инструмент), но не тусклая: должна
@@ -10,14 +9,6 @@ export const PRIVATE_PAGE_COLORS: Record<PrivatePageKey, string> = {
   warehouse: '#b88a44',
   docs: '#3b6e8f',
   finance: '#8f4b6e',
-}
-
-/** Человекочитаемая подпись роли — для дашборда и виджета профиля. Роли — ровно
- * те, что знает бэкенд (backend/src/models/user.py::UserRole): admin/engineer/accountant. */
-export const ROLE_LABELS: Record<User['role'], string> = {
-  admin: 'Администратор',
-  engineer: 'Инженер',
-  accountant: 'Бухгалтер',
 }
 
 /** Карточки-разделы личного кабинета: цвет (см. выше), иконка и переход по клику. */

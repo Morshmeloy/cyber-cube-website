@@ -1,7 +1,6 @@
 import { ChevronDown } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu.tsx'
 import { getUser, logout } from '@/lib/auth.tsx'
-import { ROLE_LABELS } from '@/data/navigation/private.tsx'
 import { LOGO_MARK_IMAGE_PATH, SITE_NAME } from '@/data/site/site.tsx'
 import type { PageNavigationTarget } from '@/types/page-content.tsx'
 
@@ -30,7 +29,7 @@ export function UserMenu({ user, navigateTo, onLoggedOut }: UserMenuProps) {
             </span>
             <span className="hidden flex-col items-start text-left leading-tight sm:flex">
               <span className="max-w-[210px] overflow-hidden text-lg font-bold text-ellipsis whitespace-nowrap">{user.fullName || user.username}</span>
-              <span className="text-base text-[#e8f8ff]/55">{ROLE_LABELS[user.role]}</span>
+              <span className="text-base text-[#e8f8ff]/55">{user.role.name}</span>
             </span>
             <ChevronDown className="h-5.5 w-5.5 text-[#e8f8ff]/60 transition-transform data-[state=open]:rotate-180" />
           </button>

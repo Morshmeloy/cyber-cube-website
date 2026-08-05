@@ -1,18 +1,20 @@
 import { getUser } from '@/lib/auth.tsx'
 
 const DOCS: { title: string; roles: string[] }[] = [
-  { title: 'Инженерная документация (схемы, чертежи)', roles: ['engineer', 'admin'] },
-  { title: 'Бухгалтерские отчёты (баланс, налоги)', roles: ['accountant', 'admin'] },
-  { title: 'Политика безопасности', roles: ['admin'] },
-  { title: 'Общие инструкции', roles: ['engineer', 'accountant', 'admin'] },
-  { title: 'Технические спецификации', roles: ['engineer'] },
-  { title: 'Финансовые планы', roles: ['accountant', 'admin'] },
+  { title: 'Инженерная документация (схемы, чертежи)', roles: ['Инженер', 'Администратор'] },
+  { title: 'Бухгалтерские отчёты (баланс, налоги)', roles: ['Бухгалтер', 'Администратор'] },
+  { title: 'Политика безопасности', roles: ['Администратор'] },
+  { title: 'Общие инструкции', roles: ['Инженер', 'Бухгалтер', 'Администратор'] },
+  { title: 'Технические спецификации', roles: ['Инженер'] },
+  { title: 'Финансовые планы', roles: ['Бухгалтер', 'Администратор'] },
 ]
 
 /** React-порт settings/navigation/pages/private/docs.ts — статический список документов,
- * доступ по роли текущего пользователя. */
+ * доступ по роли текущего пользователя. ВНИМАНИЕ: сравнение по имени роли (не по правам) —
+ * временный мост до отдельной задачи на права для документов/финансов; если переименовать
+ * роль «Инженер»/«Бухгалтер»/«Администратор» через новую админку, доступ тут молча собьётся. */
 export function DocsPage() {
-  const role = getUser()?.role ?? 'guest'
+  const role = getUser()?.role.name ?? 'гость'
   const accessible = DOCS.filter((doc) => doc.roles.includes(role))
 
   return (

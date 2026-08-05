@@ -162,13 +162,15 @@ export function AppRoot() {
   }
 
   /** Скрытая страница /admin (см. lib/router.ts) — нет ссылок в интерфейсе, только прямой
-   * URL. Неавторизованных отправляет на вход, авторизованных без роли admin — на дашборд. */
+   * URL. Неавторизованных отправляет на вход, авторизованных без прав управления
+   * пользователями/ролями — на дашборд (не жёсткая привязка к роли admin). */
   function openAdminPage(): void {
     if (!isAuthenticated()) {
       navigateTo({ face: 'front' })
       return
     }
-    if (getUser()?.role !== 'admin') {
+    const role = getUser()?.role
+    if (!role || !(role.isSystem || role.canManageUsers || role.canManageRoles)) {
       navigateTo({ private: 'dashboard' })
       return
     }
