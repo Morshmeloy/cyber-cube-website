@@ -31,37 +31,37 @@ interface CubeProps {
 const FACE_VISUALS: Record<FaceName, { background: string; boxShadow: string; transform: string; color: string }> = {
   front: {
     background: 'linear-gradient(135deg, rgba(0, 255, 255, 0.9), rgba(0, 110, 110, 0.9))',
-    boxShadow: '0 0 25px rgba(0, 255, 255, 0.25), inset 0 0 40px rgba(0, 255, 255, 0.08)',
+    boxShadow: '0 0 16px rgba(0, 255, 255, 0.25), inset 0 0 24px rgba(0, 255, 255, 0.08)',
     transform: 'translateZ(var(--cube-half))',
     color: faceColors.front,
   },
   back: {
     background: 'linear-gradient(135deg, rgba(255, 0, 255, 0.9), rgba(110, 0, 110, 0.9))',
-    boxShadow: '0 0 25px rgba(255, 0, 255, 0.25), inset 0 0 40px rgba(255, 0, 255, 0.08)',
+    boxShadow: '0 0 16px rgba(255, 0, 255, 0.25), inset 0 0 24px rgba(255, 0, 255, 0.08)',
     transform: 'rotateY(180deg) translateZ(var(--cube-half))',
     color: faceColors.back,
   },
   right: {
     background: 'linear-gradient(135deg, rgba(0, 255, 136, 0.9), rgba(0, 110, 60, 0.9))',
-    boxShadow: '0 0 25px rgba(0, 255, 136, 0.25), inset 0 0 40px rgba(0, 255, 136, 0.08)',
+    boxShadow: '0 0 16px rgba(0, 255, 136, 0.25), inset 0 0 24px rgba(0, 255, 136, 0.08)',
     transform: 'rotateY(90deg) translateZ(var(--cube-half))',
     color: faceColors.right,
   },
   left: {
     background: 'linear-gradient(135deg, rgba(255, 136, 0, 0.9), rgba(110, 60, 0, 0.9))',
-    boxShadow: '0 0 25px rgba(255, 136, 0, 0.25), inset 0 0 40px rgba(255, 136, 0, 0.08)',
+    boxShadow: '0 0 16px rgba(255, 136, 0, 0.25), inset 0 0 24px rgba(255, 136, 0, 0.08)',
     transform: 'rotateY(-90deg) translateZ(var(--cube-half))',
     color: faceColors.left,
   },
   top: {
     background: 'linear-gradient(135deg, rgba(136, 0, 255, 0.9), rgba(60, 0, 110, 0.9))',
-    boxShadow: '0 0 25px rgba(136, 0, 255, 0.25), inset 0 0 40px rgba(136, 0, 255, 0.08)',
+    boxShadow: '0 0 16px rgba(136, 0, 255, 0.25), inset 0 0 24px rgba(136, 0, 255, 0.08)',
     transform: 'rotateX(90deg) translateZ(var(--cube-half))',
     color: faceColors.top,
   },
   bottom: {
     background: 'linear-gradient(135deg, rgba(0, 136, 255, 0.9), rgba(0, 60, 110, 0.9))',
-    boxShadow: '0 0 25px rgba(0, 136, 255, 0.25), inset 0 0 40px rgba(0, 136, 255, 0.08)',
+    boxShadow: '0 0 16px rgba(0, 136, 255, 0.25), inset 0 0 24px rgba(0, 136, 255, 0.08)',
     transform: 'rotateX(-90deg) translateZ(var(--cube-half))',
     color: faceColors.bottom,
   },
@@ -79,7 +79,7 @@ const SCENE_STYLE: CSSProperties = {
 } as CSSProperties
 
 const FACE_ICON_FILTER: CSSProperties = {
-  filter: 'drop-shadow(0 0 8px currentColor) drop-shadow(0 0 16px currentColor)',
+  filter: 'drop-shadow(0 0 12px currentColor)',
 }
 
 /** Главный 3D-куб навигации — React-порт navigation/cube.ts (см. useCube): та же физика
@@ -115,7 +115,7 @@ export const Cube = forwardRef<CubeHandle, CubeProps>(function Cube({ audio, onF
           : 'scale-100 rotate-0 opacity-100 transition-all duration-500 ease-in-out'
       }`}
     >
-      <div ref={cubeRef} className="relative h-full w-full [transform-style:preserve-3d]">
+      <div ref={cubeRef} className="relative h-full w-full will-change-transform [transform-style:preserve-3d]">
         {cubeFaceDefinitions.map((face) => {
           const visuals = FACE_VISUALS[face.name]
           const isTopOrBottom = face.name === 'top' || face.name === 'bottom'
@@ -147,7 +147,7 @@ export const Cube = forwardRef<CubeHandle, CubeProps>(function Cube({ audio, onF
               >
                 {face.name === 'front' ? (
                   <div className="flex h-full w-full items-center justify-center">
-                    <canvas ref={frontLogoCanvasRef} className="mx-auto block h-auto w-[110%]" style={{ filter: 'drop-shadow(0 0 10px rgba(0, 255, 255, 1)) drop-shadow(0 0 25px rgba(0, 255, 255, 0.8))' }} width={600} height={216} />
+                    <canvas ref={frontLogoCanvasRef} className="mx-auto block h-auto w-[110%]" style={{ filter: 'drop-shadow(0 0 15px rgba(0, 255, 255, 0.9))' }} width={600} height={216} />
                   </div>
                 ) : (
                   <div className="h-14 w-14 [&_svg]:h-full [&_svg]:w-full" style={FACE_ICON_FILTER} dangerouslySetInnerHTML={{ __html: face.iconHtml }} />

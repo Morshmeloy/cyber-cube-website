@@ -24,8 +24,15 @@ function randomDrops(count: number, heightBase: number, heightRange: number, dur
  * .map(), со случайными параметрами, посчитанными один раз при монтировании.
  */
 export function Rain() {
-  const raindrops = useMemo(() => randomDrops(RAINDROP_COUNT, 40, 60, 2, 2, 5), [])
-  const purpleTrails = useMemo(() => randomDrops(PURPLE_TRAIL_COUNT, 20, 30, 2.5, 3, 6), [])
+  // На тач-устройствах (телефоны/планшеты) капель вдвое меньше — рендер такого количества
+  // постоянно анимирующихся блюрных теней конкурирует за GPU с вращением куба; на десктопе
+  // (курсор мыши) не трогаем.
+  const isCoarsePointer = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
+  const raindropCount = isCoarsePointer ? Math.round(RAINDROP_COUNT / 2) : RAINDROP_COUNT
+  const purpleTrailCount = isCoarsePointer ? Math.round(PURPLE_TRAIL_COUNT / 2) : PURPLE_TRAIL_COUNT
+
+  const raindrops = useMemo(() => randomDrops(raindropCount, 40, 60, 2, 2, 5), [raindropCount])
+  const purpleTrails = useMemo(() => randomDrops(purpleTrailCount, 20, 30, 2.5, 3, 6), [purpleTrailCount])
 
   return (
     <>

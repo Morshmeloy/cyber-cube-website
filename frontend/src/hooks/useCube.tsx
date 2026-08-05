@@ -184,6 +184,7 @@ export function useCube(options: UseCubeOptions): RefObject<CubeHandle> {
     function onMouseDown(e: MouseEvent): void {
       if (e.button !== 0) return
       if (sceneEl!.classList.contains('hidden')) return
+      if (!sceneEl!.contains(e.target as Node)) return
 
       isDragging = true
       isInertia = false
@@ -226,6 +227,7 @@ export function useCube(options: UseCubeOptions): RefObject<CubeHandle> {
 
     function onTouchStart(e: TouchEvent): void {
       if (sceneEl!.classList.contains('hidden')) return
+      if (!sceneEl!.contains(e.target as Node)) return
       isDragging = true
       isInertia = false
       isSnapping = false
@@ -237,12 +239,16 @@ export function useCube(options: UseCubeOptions): RefObject<CubeHandle> {
 
     function onTouchMove(e: TouchEvent): void {
       if (!isDragging) return
+      e.preventDefault()
       const touch = e.touches[0]
       const dx = touch.clientX - prevMouse.x
       const dy = touch.clientY - prevMouse.y
       if (Math.abs(dx) > 3 || Math.abs(dy) > 3) audio.startKubSound()
-      velocity.x = dy * 0.4
-      velocity.y = dx * 0.4
+      // Множитель выше, чем у мыши (0.4) — на телефоне палец физически проходит
+      // намного меньше пикселей за один свайп, чем мышь на десктопе, иначе грань
+      // не докручивается до соседней за один жест.
+      velocity.x = dy * 0.7
+      velocity.y = dx * 0.7
       rotation.y += velocity.y
       rotation.x = Math.max(-90, Math.min(90, rotation.x - velocity.x))
       updateCubeTransform()
@@ -274,7 +280,7 @@ export function useCube(options: UseCubeOptions): RefObject<CubeHandle> {
     document.addEventListener('mousemove', onMouseMove)
     document.addEventListener('mouseup', onMouseUp)
     document.addEventListener('touchstart', onTouchStart, { passive: true })
-    document.addEventListener('touchmove', onTouchMove, { passive: true })
+    document.addEventListener('touchmove', onTouchMove, { passive: false })
     document.addEventListener('touchend', onTouchEnd)
     document.addEventListener('contextmenu', onContextMenu)
     sceneEl.addEventListener('click', onSceneClick)
