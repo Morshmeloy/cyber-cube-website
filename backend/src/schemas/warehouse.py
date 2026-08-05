@@ -9,6 +9,8 @@ OperationType = Literal["issue", "return"]
 class NomenclatureResponse(BaseModel):
     id: int
     name: str
+    code: Optional[str]
+    unit: Optional[str]
     base_quantity: float
     portal_quantity: float
     total_quantity: float
@@ -17,6 +19,13 @@ class NomenclatureResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class NomenclaturePageResponse(BaseModel):
+    items: list[NomenclatureResponse]
+    total: int
+    page: int
+    page_size: int
 
 
 class StockOperationCreate(BaseModel):
@@ -34,9 +43,22 @@ class StockOperationUpdate(BaseModel):
     destination: Optional[str] = Field(None, max_length=200)
 
 
+class BatchOperationLine(BaseModel):
+    nomenclature_name: str = Field(..., min_length=1, max_length=200)
+    quantity: float = Field(..., gt=0)
+
+
+class BatchOperationCreate(BaseModel):
+    lines: list[BatchOperationLine] = Field(..., min_length=1)
+    operation_type: OperationType
+    person: str = Field(..., max_length=150)
+    destination: str = Field(..., max_length=200)
+
+
 class StockOperationResponse(BaseModel):
     id: int
     uuid: UUID
+    batch_id: Optional[UUID]
     nomenclature_id: int
     nomenclature_name: str
     quantity: float
@@ -51,6 +73,17 @@ class StockOperationResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class StockOperationPageResponse(BaseModel):
+    items: list[StockOperationResponse]
+    total: int
+    page: int
+    page_size: int
+
+
+class ExportSelectedRequest(BaseModel):
+    ids: list[int] = Field(..., min_length=1)
 
 
 class SyncResult(BaseModel):
