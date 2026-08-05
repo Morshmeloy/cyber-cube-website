@@ -15,18 +15,32 @@ from src.schemas.warehouse import (
 )
 from src.schemas.audit import AuditLogResponse
 from src.schemas.onec import SyncStatusResponse
-from src.models.user import User, UserRole
+from src.models.user import User
 from src.models.warehouse import OperationType, StockOperation
 from src.models.audit import AuditLog
 from src.services.excel_service import build_operations_export
 from src.services.onec_client import fetch_nomenclature, fetch_balances
 
 
-def _require_admin(current_user: User) -> None:
-    if current_user.role != UserRole.ADMIN:
-        raise HTTPException(
-            status_code=403, detail="Только администратор может выполнять это действие"
-        )
+def _require(current_user: User, flag: str, message: str) -> None:
+    if not (current_user.role.is_system or getattr(current_user.role, flag)):
+        raise HTTPException(status_code=403, detail=message)
+
+
+def _require_view(current_user: User) -> None:
+    _require(current_user, "can_view_warehouse", "Нет доступа к складу")
+
+
+def _require_ops(current_user: User) -> None:
+    _require(
+        current_user,
+        "can_manage_warehouse_operations",
+        "Нет доступа к операциям склада",
+    )
+
+
+def _require_sync(current_user: User) -> None:
+    _require(current_user, "can_sync_warehouse_1c", "Нет доступа к синхронизации с 1С")
 
 
 def _operation_to_response(op: StockOperation) -> StockOperationResponse:
@@ -67,7 +81,8 @@ class WarehouseService:
         self.operation_repo = StockOperationRepository(db)
         self.audit_repo = AuditRepository(db)
 
-    async def list_nomenclature(self) -> list[NomenclatureResponse]:
+    async def list_nomenclature(self, current_user: User) -> list[NomenclatureResponse]:
+        _require_view(current_user)
         items = await self.nomenclature_repo.get_all()
         portal_totals = await self.nomenclature_repo.portal_quantity_map()
         return [
@@ -84,7 +99,7 @@ class WarehouseService:
         ]
 
     async def sync_from_1c(self, current_user: User) -> SyncResult:
-        _require_admin(current_user)
+        _require_sync(current_user)
         return await self._perform_sync(user_id=current_user.id)
 
     async def _perform_sync(self, user_id: int | None = None) -> SyncResult:
@@ -99,14 +114,15 @@ class WarehouseService:
         )
         return SyncResult(added=added, updated=updated)
 
-    async def get_sync_status(self) -> SyncStatusResponse:
+    async def get_sync_status(self, current_user: User) -> SyncStatusResponse:
+        _require_view(current_user)
         latest = await self.audit_repo.get_latest_by_action("nomenclature_synced")
         return SyncStatusResponse(last_synced_at=latest.created_at if latest else None)
 
     async def export_operations(
         self, current_user: User, include_exported: bool = False
     ) -> bytes:
-        _require_admin(current_user)
+        _require_ops(current_user)
         if include_exported:
             operations = await self.operation_repo.get_all(limit=10000)
         else:
@@ -128,7 +144,7 @@ class WarehouseService:
     async def create_operation(
         self, data: StockOperationCreate, current_user: User
     ) -> StockOperationResponse:
-        _require_admin(current_user)
+        _require_ops(current_user)
         nomenclature = await self.nomenclature_repo.get_or_create(
             data.nomenclature_name
         )
@@ -164,14 +180,15 @@ class WarehouseService:
         loaded = await self.operation_repo.get_by_id(operation.id)
         return _operation_to_response(loaded)
 
-    async def list_operations(self) -> list[StockOperationResponse]:
+    async def list_operations(self, current_user: User) -> list[StockOperationResponse]:
+        _require_view(current_user)
         operations = await self.operation_repo.get_all()
         return [_operation_to_response(op) for op in operations]
 
     async def update_operation(
         self, operation_id: int, data: StockOperationUpdate, current_user: User
     ) -> StockOperationResponse:
-        _require_admin(current_user)
+        _require_ops(current_user)
         before = await self.operation_repo.get_by_id(operation_id)
         if not before:
             raise HTTPException(status_code=404, detail="Операция не найдена")
@@ -226,7 +243,7 @@ class WarehouseService:
         return _operation_to_response(updated)
 
     async def delete_operation(self, operation_id: int, current_user: User) -> None:
-        _require_admin(current_user)
+        _require_ops(current_user)
         before = await self.operation_repo.get_by_id(operation_id)
         if not before:
             raise HTTPException(status_code=404, detail="Операция не найдена")
@@ -267,7 +284,7 @@ class WarehouseService:
     async def confirm_operations_in_1c(
         self, ids: list[int], current_user: User
     ) -> ConfirmResult:
-        _require_admin(current_user)
+        _require_ops(current_user)
         count = await self.operation_repo.set_confirmed(ids, True)
         await self.audit_repo.log(
             user_id=current_user.id,
@@ -278,7 +295,7 @@ class WarehouseService:
         return ConfirmResult(count=count)
 
     async def confirm_all_exported_in_1c(self, current_user: User) -> ConfirmResult:
-        _require_admin(current_user)
+        _require_ops(current_user)
         pending = await self.operation_repo.get_exported_unconfirmed()
         ids = [op.id for op in pending]
         count = await self.operation_repo.set_confirmed(ids, True)
@@ -293,7 +310,7 @@ class WarehouseService:
     async def unconfirm_operation_in_1c(
         self, operation_id: int, current_user: User
     ) -> StockOperationResponse:
-        _require_admin(current_user)
+        _require_ops(current_user)
         count = await self.operation_repo.set_confirmed([operation_id], False)
         if not count:
             raise HTTPException(status_code=404, detail="Операция не найдена")
@@ -307,6 +324,7 @@ class WarehouseService:
         updated = await self.operation_repo.get_by_id(operation_id)
         return _operation_to_response(updated)
 
-    async def list_audit_log(self) -> list[AuditLogResponse]:
+    async def list_audit_log(self, current_user: User) -> list[AuditLogResponse]:
+        _require_view(current_user)
         entries = await self.audit_repo.get_all()
         return [_audit_to_response(entry) for entry in entries]
