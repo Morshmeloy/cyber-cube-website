@@ -5,6 +5,8 @@ export type OperationType = 'issue' | 'return'
 export interface Nomenclature {
   id: number
   name: string
+  code: string | null
+  unit: string | null
   baseQuantity: number
   portalQuantity: number
   totalQuantity: number
@@ -15,6 +17,7 @@ export interface Nomenclature {
 export interface StockOperation {
   id: number
   uuid: string
+  batchId: string | null
   nomenclatureId: number
   nomenclatureName: string
   quantity: number
@@ -26,6 +29,13 @@ export interface StockOperation {
   createdAt: string
   exportedAt: string | null
   confirmedIn1cAt: string | null
+}
+
+export interface Page<T> {
+  items: T[]
+  total: number
+  page: number
+  pageSize: number
 }
 
 export interface SyncResult {
@@ -51,6 +61,8 @@ export interface AuditLogEntry {
 interface NomenclatureDto {
   id: number
   name: string
+  code: string | null
+  unit: string | null
   base_quantity: number
   portal_quantity: number
   total_quantity: number
@@ -61,6 +73,7 @@ interface NomenclatureDto {
 interface StockOperationDto {
   id: number
   uuid: string
+  batch_id: string | null
   nomenclature_id: number
   nomenclature_name: string
   quantity: number
@@ -72,6 +85,13 @@ interface StockOperationDto {
   created_at: string
   exported_at: string | null
   confirmed_in_1c_at: string | null
+}
+
+interface PageDto<T> {
+  items: T[]
+  total: number
+  page: number
+  page_size: number
 }
 
 interface SyncResultDto {
@@ -98,6 +118,8 @@ function fromNomenclatureDto(dto: NomenclatureDto): Nomenclature {
   return {
     id: dto.id,
     name: dto.name,
+    code: dto.code,
+    unit: dto.unit,
     baseQuantity: dto.base_quantity,
     portalQuantity: dto.portal_quantity,
     totalQuantity: dto.total_quantity,
@@ -110,6 +132,7 @@ function fromOperationDto(dto: StockOperationDto): StockOperation {
   return {
     id: dto.id,
     uuid: dto.uuid,
+    batchId: dto.batch_id,
     nomenclatureId: dto.nomenclature_id,
     nomenclatureName: dto.nomenclature_name,
     quantity: dto.quantity,
@@ -137,9 +160,26 @@ function fromAuditDto(dto: AuditLogDto): AuditLogEntry {
   }
 }
 
-export async function fetchNomenclature(): Promise<Nomenclature[]> {
-  const response = await apiClient.get<NomenclatureDto[]>('/warehouse/nomenclature')
-  return response.data.map(fromNomenclatureDto)
+export interface NomenclatureFilters {
+  query?: string
+  page?: number
+  pageSize?: number
+}
+
+export async function fetchNomenclature(filters: NomenclatureFilters = {}): Promise<Page<Nomenclature>> {
+  const response = await apiClient.get<PageDto<NomenclatureDto>>('/warehouse/nomenclature', {
+    params: {
+      query: filters.query || undefined,
+      page: filters.page ?? 1,
+      page_size: filters.pageSize ?? 10,
+    },
+  })
+  return {
+    items: response.data.items.map(fromNomenclatureDto),
+    total: response.data.total,
+    page: response.data.page,
+    pageSize: response.data.page_size,
+  }
 }
 
 export async function syncFrom1c(): Promise<SyncResult> {
@@ -171,28 +211,69 @@ export async function exportOperations(includeExported = false): Promise<void> {
   downloadBlob(response.data as Blob, 'operacii.xlsx')
 }
 
-export async function fetchOperations(): Promise<StockOperation[]> {
-  const response = await apiClient.get<StockOperationDto[]>('/warehouse/operations')
-  return response.data.map(fromOperationDto)
+export async function exportSelectedOperations(ids: number[]): Promise<void> {
+  const response = await apiClient.post(
+    '/warehouse/operations/export-selected',
+    { ids },
+    { responseType: 'blob' },
+  )
+  downloadBlob(response.data as Blob, 'trebovanie-nakladnaya.xlsx')
 }
 
-export interface StockOperationDraft {
+export interface OperationFilters {
+  query?: string
+  dateFrom?: string
+  dateTo?: string
+  operationType?: OperationType
+  person?: string
+  destination?: string
+  exportStatus?: 'exported' | 'not_exported'
+  page?: number
+  pageSize?: number
+}
+
+export async function fetchOperations(filters: OperationFilters = {}): Promise<Page<StockOperation>> {
+  const response = await apiClient.get<PageDto<StockOperationDto>>('/warehouse/operations', {
+    params: {
+      query: filters.query || undefined,
+      date_from: filters.dateFrom || undefined,
+      date_to: filters.dateTo || undefined,
+      operation_type: filters.operationType || undefined,
+      person: filters.person || undefined,
+      destination: filters.destination || undefined,
+      export_status: filters.exportStatus || undefined,
+      page: filters.page ?? 1,
+      page_size: filters.pageSize ?? 10,
+    },
+  })
+  return {
+    items: response.data.items.map(fromOperationDto),
+    total: response.data.total,
+    page: response.data.page,
+    pageSize: response.data.page_size,
+  }
+}
+
+export interface BatchOperationLineDraft {
   nomenclatureName: string
   quantity: number
+}
+
+export interface BatchOperationDraft {
+  lines: BatchOperationLineDraft[]
   operationType: OperationType
   person: string
   destination: string
 }
 
-export async function createOperation(draft: StockOperationDraft): Promise<StockOperation> {
-  const response = await apiClient.post<StockOperationDto>('/warehouse/operations', {
-    nomenclature_name: draft.nomenclatureName,
-    quantity: draft.quantity,
+export async function createBatchOperation(draft: BatchOperationDraft): Promise<StockOperation[]> {
+  const response = await apiClient.post<StockOperationDto[]>('/warehouse/operations', {
+    lines: draft.lines.map((line) => ({ nomenclature_name: line.nomenclatureName, quantity: line.quantity })),
     operation_type: draft.operationType,
     person: draft.person,
     destination: draft.destination,
   })
-  return fromOperationDto(response.data)
+  return response.data.map(fromOperationDto)
 }
 
 export interface StockOperationEditDraft {
