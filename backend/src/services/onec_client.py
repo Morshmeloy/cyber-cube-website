@@ -15,15 +15,30 @@ def _client() -> httpx.AsyncClient:
     )
 
 
-async def fetch_nomenclature() -> list[tuple[str, str]]:
-    """Возвращает [(guid, название), ...] — только позиции из папки «Материалы»
-    Catalog_Номенклатура. $filter собираем вручную с %20 вместо пробела — 1С
-    не принимает '+' как пробел (стандартная сериализация httpx.params), падает с 500.
-    """
+async def fetch_units() -> dict[str, str]:
+    """{guid: 'шт'/'м'/...} из Catalog_КлассификаторЕдиницИзмерения — справочник
+    небольшой (весь классификатор ОКЕИ), тянем целиком одним запросом, чтобы
+    резолвить ЕдиницаИзмерения_Key у номенклатуры без запроса на каждую позицию."""
+    query = urllib.parse.urlencode(
+        {"$format": "json", "$select": "Ref_Key,Description"},
+        quote_via=urllib.parse.quote,
+    )
+    async with _client() as client:
+        response = await client.get(f"/Catalog_КлассификаторЕдиницИзмерения?{query}")
+        response.raise_for_status()
+        rows = response.json()["value"]
+        return {row["Ref_Key"]: row["Description"] for row in rows}
+
+
+async def fetch_nomenclature() -> list[tuple[str, str, str | None, str | None]]:
+    """Возвращает [(guid, название, код, единица_измерения), ...] — только позиции
+    из папки «Материалы» Catalog_Номенклатура. $filter собираем вручную с %20 вместо
+    пробела — 1С не принимает '+' как пробел (стандартная сериализация httpx.params),
+    падает с 500."""
     query = urllib.parse.urlencode(
         {
             "$format": "json",
-            "$select": "Ref_Key,Description",
+            "$select": "Ref_Key,Code,Description,ЕдиницаИзмерения_Key",
             "$filter": f"Parent_Key eq guid'{MATERIALS_FOLDER_KEY}'",
         },
         quote_via=urllib.parse.quote,
@@ -32,7 +47,17 @@ async def fetch_nomenclature() -> list[tuple[str, str]]:
         response = await client.get(f"/Catalog_Номенклатура?{query}")
         response.raise_for_status()
         rows = response.json()["value"]
-        return [(row["Ref_Key"], row["Description"]) for row in rows]
+
+    units = await fetch_units()
+    return [
+        (
+            row["Ref_Key"],
+            row["Description"],
+            row["Code"],
+            units.get(row["ЕдиницаИзмерения_Key"]),
+        )
+        for row in rows
+    ]
 
 
 async def fetch_balances() -> dict[str, float]:
