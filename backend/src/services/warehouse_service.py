@@ -1,3 +1,4 @@
+from datetime import datetime
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.repositories.warehouse_repository import (
@@ -6,11 +7,13 @@ from src.repositories.warehouse_repository import (
 )
 from src.repositories.audit_repository import AuditRepository
 from src.schemas.warehouse import (
-    StockOperationCreate,
     StockOperationUpdate,
+    BatchOperationCreate,
     NomenclatureResponse,
+    NomenclaturePageResponse,
     SyncResult,
     StockOperationResponse,
+    StockOperationPageResponse,
     ConfirmResult,
 )
 from src.schemas.audit import AuditLogResponse
@@ -18,7 +21,10 @@ from src.schemas.onec import SyncStatusResponse
 from src.models.user import User
 from src.models.warehouse import OperationType, StockOperation
 from src.models.audit import AuditLog
-from src.services.excel_service import build_operations_export
+from src.services.excel_service import (
+    build_operations_export,
+    build_requirement_invoice_export,
+)
 from src.services.onec_client import fetch_nomenclature, fetch_balances
 
 
@@ -47,6 +53,7 @@ def _operation_to_response(op: StockOperation) -> StockOperationResponse:
     return StockOperationResponse(
         id=op.id,
         uuid=op.uuid,
+        batch_id=op.batch_id,
         nomenclature_id=op.nomenclature_id,
         nomenclature_name=op.nomenclature.name,
         quantity=op.quantity,
@@ -81,14 +88,24 @@ class WarehouseService:
         self.operation_repo = StockOperationRepository(db)
         self.audit_repo = AuditRepository(db)
 
-    async def list_nomenclature(self, current_user: User) -> list[NomenclatureResponse]:
+    async def list_nomenclature(
+        self,
+        current_user: User,
+        query: str | None = None,
+        page: int = 1,
+        page_size: int = 10,
+    ) -> NomenclaturePageResponse:
         _require_view(current_user)
-        items = await self.nomenclature_repo.get_all()
+        items, total = await self.nomenclature_repo.search(
+            query=query, page=page, page_size=page_size
+        )
         portal_totals = await self.nomenclature_repo.portal_quantity_map()
-        return [
+        responses = [
             NomenclatureResponse(
                 id=item.id,
                 name=item.name,
+                code=item.code,
+                unit=item.unit,
                 base_quantity=item.base_quantity,
                 portal_quantity=portal_totals.get(item.id, 0),
                 total_quantity=item.base_quantity + portal_totals.get(item.id, 0),
@@ -97,6 +114,9 @@ class WarehouseService:
             )
             for item in items
         ]
+        return NomenclaturePageResponse(
+            items=responses, total=total, page=page, page_size=page_size
+        )
 
     async def sync_from_1c(self, current_user: User) -> SyncResult:
         _require_sync(current_user)
@@ -141,49 +161,120 @@ class WarehouseService:
         )
         return content
 
-    async def create_operation(
-        self, data: StockOperationCreate, current_user: User
-    ) -> StockOperationResponse:
+    async def export_selected_operations(
+        self, ids: list[int], current_user: User
+    ) -> bytes:
+        """Экспорт конкретно выбранных операций (поиск+фильтры на фронте, чекбоксы) —
+        в отличие от export_operations (всё непереданное/всё), тут явный список id."""
         _require_ops(current_user)
-        nomenclature = await self.nomenclature_repo.get_or_create(
-            data.nomenclature_name
+        operations = await self.operation_repo.get_by_ids(ids)
+        if not operations:
+            raise HTTPException(status_code=404, detail="Операции не найдены")
+        content = build_requirement_invoice_export(operations)
+        await self.operation_repo.mark_exported([op.id for op in operations])
+        await self.audit_repo.log(
+            user_id=current_user.id,
+            action="operations_exported",
+            entity_type="stock_operation",
+            details={"count": len(operations), "ids": [op.id for op in operations]},
         )
-        if data.operation_type == "issue":
-            portal_qty = await self.nomenclature_repo.portal_quantity_for(
-                nomenclature.id
+        return content
+
+    async def create_batch_operation(
+        self, data: BatchOperationCreate, current_user: User
+    ) -> list[StockOperationResponse]:
+        """Несколько позиций (номенклатура+количество) одним действием — все строки
+        получают общий batch_id (см. StockOperationRepository.create_batch)."""
+        _require_ops(current_user)
+
+        # Резолвим номенклатуру и суммируем количество по одной и той же позиции
+        # в пределах пачки — иначе проверка остатка по каждой строке независимо
+        # пропустит превышение, если одна и та же позиция встретилась дважды.
+        resolved_lines: list[tuple[int, str, float]] = []
+        totals_by_id: dict[int, float] = {}
+        names_by_id: dict[int, str] = {}
+        for line in data.lines:
+            nomenclature = await self.nomenclature_repo.get_or_create(
+                line.nomenclature_name
             )
-            available = nomenclature.base_quantity + portal_qty
-            if data.quantity > available:
-                raise HTTPException(
-                    status_code=422,
-                    detail=f"Недостаточно товара на складе: доступно {available}, запрошено {data.quantity}",
+            resolved_lines.append((nomenclature.id, nomenclature.name, line.quantity))
+            totals_by_id[nomenclature.id] = (
+                totals_by_id.get(nomenclature.id, 0) + line.quantity
+            )
+            names_by_id[nomenclature.id] = nomenclature.name
+
+        if data.operation_type == "issue":
+            for nomenclature_id, total_qty in totals_by_id.items():
+                nomenclature = await self.nomenclature_repo.get_by_id(nomenclature_id)
+                portal_qty = await self.nomenclature_repo.portal_quantity_for(
+                    nomenclature_id
                 )
-        operation = await self.operation_repo.create(
-            nomenclature_id=nomenclature.id,
-            quantity=data.quantity,
+                available = nomenclature.base_quantity + portal_qty
+                if total_qty > available:
+                    raise HTTPException(
+                        status_code=422,
+                        detail=(
+                            f"Недостаточно товара «{names_by_id[nomenclature_id]}» "
+                            f"на складе: доступно {available}, запрошено {total_qty}"
+                        ),
+                    )
+
+        rows, batch_id = await self.operation_repo.create_batch(
+            lines=[(nid, qty) for nid, _, qty in resolved_lines],
             operation_type=OperationType(data.operation_type),
             person=data.person,
             destination=data.destination,
             user_id=current_user.id,
         )
-        await self.audit_repo.log(
-            user_id=current_user.id,
-            action="operation_created",
-            entity_type="stock_operation",
-            entity_id=operation.id,
-            details={
-                "nomenclature": nomenclature.name,
-                "quantity": data.quantity,
-                "operation_type": data.operation_type,
-            },
-        )
-        loaded = await self.operation_repo.get_by_id(operation.id)
-        return _operation_to_response(loaded)
 
-    async def list_operations(self, current_user: User) -> list[StockOperationResponse]:
+        for row in rows:
+            await self.audit_repo.log(
+                user_id=current_user.id,
+                action="operation_created",
+                entity_type="stock_operation",
+                entity_id=row.id,
+                details={
+                    "nomenclature": names_by_id[row.nomenclature_id],
+                    "quantity": row.quantity,
+                    "operation_type": data.operation_type,
+                    "batch_id": str(batch_id),
+                },
+            )
+
+        loaded = await self.operation_repo.get_by_ids([row.id for row in rows])
+        return [_operation_to_response(op) for op in loaded]
+
+    async def list_operations(
+        self,
+        current_user: User,
+        query: str | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+        operation_type: str | None = None,
+        person: str | None = None,
+        destination: str | None = None,
+        export_status: str | None = None,
+        page: int = 1,
+        page_size: int = 10,
+    ) -> StockOperationPageResponse:
         _require_view(current_user)
-        operations = await self.operation_repo.get_all()
-        return [_operation_to_response(op) for op in operations]
+        operations, total = await self.operation_repo.search(
+            query=query,
+            date_from=date_from,
+            date_to=date_to,
+            operation_type=OperationType(operation_type) if operation_type else None,
+            person=person,
+            destination=destination,
+            export_status=export_status,
+            page=page,
+            page_size=page_size,
+        )
+        return StockOperationPageResponse(
+            items=[_operation_to_response(op) for op in operations],
+            total=total,
+            page=page,
+            page_size=page_size,
+        )
 
     async def update_operation(
         self, operation_id: int, data: StockOperationUpdate, current_user: User
