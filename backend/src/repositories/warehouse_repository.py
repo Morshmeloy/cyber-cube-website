@@ -1,3 +1,5 @@
+from datetime import datetime
+import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
@@ -21,6 +23,29 @@ class NomenclatureRepository:
             .order_by(Nomenclature.name)
         )
         return result.scalars().all()
+
+    async def search(
+        self, query: Optional[str] = None, page: int = 1, page_size: int = 10
+    ) -> tuple[List[Nomenclature], int]:
+        """Поиск по названию/коду (без учёта регистра) + пагинация, только активные."""
+        conditions = [Nomenclature.is_active == True]
+        if query:
+            pattern = f"%{query.strip().lower()}%"
+            conditions.append(
+                func.lower(Nomenclature.name).like(pattern)
+                | func.lower(Nomenclature.code).like(pattern)
+            )
+        total = (
+            await self.db.execute(select(func.count(Nomenclature.id)).where(*conditions))
+        ).scalar_one()
+        result = await self.db.execute(
+            select(Nomenclature)
+            .where(*conditions)
+            .order_by(Nomenclature.name)
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
+        return result.scalars().all(), total
 
     async def get_by_id(self, nomenclature_id: int) -> Optional[Nomenclature]:
         result = await self.db.execute(
@@ -170,6 +195,108 @@ class StockOperationRepository:
         await self.db.commit()
         await self.db.refresh(op_row)
         return op_row
+
+    async def create_batch(
+        self,
+        lines: list[tuple[int, float]],
+        operation_type: OperationType,
+        person: str,
+        destination: str,
+        user_id: int,
+    ) -> tuple[List[StockOperation], uuid.UUID]:
+        """lines: [(nomenclature_id, quantity), ...] — несколько позиций одним действием,
+        все строки получают общий batch_id (в т.ч. если позиция всего одна)."""
+        batch_id = uuid.uuid4()
+        rows = [
+            StockOperation(
+                nomenclature_id=nomenclature_id,
+                quantity=quantity,
+                operation_type=operation_type,
+                person=person,
+                destination=destination,
+                user_id=user_id,
+                batch_id=batch_id,
+            )
+            for nomenclature_id, quantity in lines
+        ]
+        self.db.add_all(rows)
+        await self.db.commit()
+        for row in rows:
+            await self.db.refresh(row)
+        return rows, batch_id
+
+    async def get_by_ids(self, ids: list[int]) -> List[StockOperation]:
+        if not ids:
+            return []
+        result = await self.db.execute(
+            select(StockOperation)
+            .options(
+                selectinload(StockOperation.nomenclature),
+                selectinload(StockOperation.user),
+            )
+            .where(StockOperation.id.in_(ids))
+            .order_by(StockOperation.created_at)
+        )
+        return result.scalars().all()
+
+    async def search(
+        self,
+        query: Optional[str] = None,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
+        operation_type: Optional[OperationType] = None,
+        person: Optional[str] = None,
+        destination: Optional[str] = None,
+        export_status: Optional[str] = None,
+        page: int = 1,
+        page_size: int = 10,
+    ) -> tuple[List[StockOperation], int]:
+        """export_status: 'exported' | 'not_exported' | None (без фильтра по статусу)."""
+        conditions = []
+        if date_from:
+            conditions.append(StockOperation.created_at >= date_from)
+        if date_to:
+            conditions.append(StockOperation.created_at <= date_to)
+        if operation_type:
+            conditions.append(StockOperation.operation_type == operation_type)
+        if person:
+            conditions.append(
+                func.lower(StockOperation.person).like(f"%{person.strip().lower()}%")
+            )
+        if destination:
+            conditions.append(
+                func.lower(StockOperation.destination).like(f"%{destination.strip().lower()}%")
+            )
+        if export_status == "exported":
+            conditions.append(StockOperation.exported_at.is_not(None))
+        elif export_status == "not_exported":
+            conditions.append(StockOperation.exported_at.is_(None))
+        if query:
+            pattern = f"%{query.strip().lower()}%"
+            matched = await self.db.execute(
+                select(Nomenclature.id).where(
+                    func.lower(Nomenclature.name).like(pattern)
+                    | func.lower(Nomenclature.code).like(pattern)
+                )
+            )
+            nomenclature_ids = [row[0] for row in matched.all()]
+            conditions.append(StockOperation.nomenclature_id.in_(nomenclature_ids))
+
+        total = (
+            await self.db.execute(select(func.count(StockOperation.id)).where(*conditions))
+        ).scalar_one()
+        result = await self.db.execute(
+            select(StockOperation)
+            .options(
+                selectinload(StockOperation.nomenclature),
+                selectinload(StockOperation.user),
+            )
+            .where(*conditions)
+            .order_by(StockOperation.created_at.desc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
+        return result.scalars().all(), total
 
     async def get_all(self, skip: int = 0, limit: int = 200) -> List[StockOperation]:
         result = await self.db.execute(
