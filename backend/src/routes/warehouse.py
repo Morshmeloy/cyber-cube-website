@@ -28,7 +28,7 @@ async def get_nomenclature(
     db: AsyncSession = Depends(get_db),
 ):
     service = WarehouseService(db)
-    return await service.list_nomenclature()
+    return await service.list_nomenclature(current_user)
 
 
 @router.post("/onec/sync", response_model=SyncResult)
@@ -46,7 +46,7 @@ async def get_sync_status(
     db: AsyncSession = Depends(get_db),
 ):
     service = WarehouseService(db)
-    return await service.get_sync_status()
+    return await service.get_sync_status(current_user)
 
 
 @router.get("/operations/export")
@@ -72,7 +72,7 @@ async def get_operations(
     db: AsyncSession = Depends(get_db),
 ):
     service = WarehouseService(db)
-    return await service.list_operations()
+    return await service.list_operations(current_user)
 
 
 @router.post("/operations", response_model=StockOperationResponse, status_code=201)
@@ -144,4 +144,4 @@ async def get_audit_log(
     db: AsyncSession = Depends(get_db),
 ):
     service = WarehouseService(db)
-    return await service.list_audit_log()
+    return await service.list_audit_log(current_user)
