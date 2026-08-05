@@ -11,6 +11,7 @@ from src.core.security import (
 )
 from src.core.config import settings
 
+
 class AuthService:
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -21,7 +22,7 @@ class AuthService:
             raise HTTPException(status_code=400, detail="Username already taken")
         if await self.user_repo.get_user_by_email(user_data.email):
             raise HTTPException(status_code=400, detail="Email already registered")
-        
+
         hashed = get_password_hash(user_data.password)
         return await self.user_repo.create_user(user_data, hashed)
 
@@ -36,7 +37,7 @@ class AuthService:
         return user
 
     def create_tokens(self, user) -> dict:
-        data = {"sub": user.username, "user_id": user.id, "role": user.role.value}
+        data = {"sub": user.username, "user_id": user.id, "role": user.role.name}
         return {
             "access_token": create_access_token(data),
             "refresh_token": create_refresh_token(data),
@@ -50,4 +51,6 @@ class AuthService:
         user = await self.user_repo.get_user_by_username(username)
         if not user or not user.is_active:
             raise HTTPException(status_code=401, detail="User not found or inactive")
-        return create_access_token({"sub": user.username, "user_id": user.id, "role": user.role.value})
+        return create_access_token(
+            {"sub": user.username, "user_id": user.id, "role": user.role.name}
+        )
