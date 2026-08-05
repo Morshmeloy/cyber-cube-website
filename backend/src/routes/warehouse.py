@@ -1,18 +1,22 @@
+from datetime import datetime
 from fastapi import APIRouter, Depends, Response
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
+from typing import List, Optional
 from src.core.database import get_db
 from src.core.dependencies import get_current_user
 from src.models.user import User
 from src.services.warehouse_service import WarehouseService
 from src.schemas.warehouse import (
-    NomenclatureResponse,
-    StockOperationCreate,
+    NomenclaturePageResponse,
+    BatchOperationCreate,
     StockOperationUpdate,
     StockOperationResponse,
+    StockOperationPageResponse,
     SyncResult,
     ConfirmOperationsRequest,
     ConfirmResult,
+    ExportSelectedRequest,
+    OperationType,
 )
 from src.schemas.audit import AuditLogResponse
 from src.schemas.onec import SyncStatusResponse
@@ -22,13 +26,18 @@ router = APIRouter(prefix="/warehouse", tags=["warehouse"])
 XLSX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 
-@router.get("/nomenclature", response_model=List[NomenclatureResponse])
+@router.get("/nomenclature", response_model=NomenclaturePageResponse)
 async def get_nomenclature(
+    query: Optional[str] = None,
+    page: int = 1,
+    page_size: int = 10,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     service = WarehouseService(db)
-    return await service.list_nomenclature(current_user)
+    return await service.list_nomenclature(
+        current_user, query=query, page=page, page_size=page_size
+    )
 
 
 @router.post("/onec/sync", response_model=SyncResult)
@@ -66,23 +75,60 @@ async def export_operations(
     )
 
 
-@router.get("/operations", response_model=List[StockOperationResponse])
+@router.post("/operations/export-selected")
+async def export_selected_operations(
+    data: ExportSelectedRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    service = WarehouseService(db)
+    content = await service.export_selected_operations(data.ids, current_user)
+    return Response(
+        content=content,
+        media_type=XLSX_MEDIA_TYPE,
+        headers={
+            "Content-Disposition": "attachment; filename=trebovanie-nakladnaya.xlsx"
+        },
+    )
+
+
+@router.get("/operations", response_model=StockOperationPageResponse)
 async def get_operations(
+    query: Optional[str] = None,
+    date_from: Optional[datetime] = None,
+    date_to: Optional[datetime] = None,
+    operation_type: Optional[OperationType] = None,
+    person: Optional[str] = None,
+    destination: Optional[str] = None,
+    export_status: Optional[str] = None,
+    page: int = 1,
+    page_size: int = 10,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     service = WarehouseService(db)
-    return await service.list_operations(current_user)
+    return await service.list_operations(
+        current_user,
+        query=query,
+        date_from=date_from,
+        date_to=date_to,
+        operation_type=operation_type,
+        person=person,
+        destination=destination,
+        export_status=export_status,
+        page=page,
+        page_size=page_size,
+    )
 
 
-@router.post("/operations", response_model=StockOperationResponse, status_code=201)
-async def create_operation(
-    data: StockOperationCreate,
+@router.post("/operations", response_model=List[StockOperationResponse], status_code=201)
+async def create_batch_operation(
+    data: BatchOperationCreate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     service = WarehouseService(db)
-    return await service.create_operation(data, current_user)
+    return await service.create_batch_operation(data, current_user)
 
 
 @router.put("/operations/{operation_id}", response_model=StockOperationResponse)
