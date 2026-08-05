@@ -28,7 +28,7 @@ async def login(login_data: LoginRequest, db: AsyncSession = Depends(get_db)):
     return LoginResponse(
         access_token=tokens["access_token"],
         refresh_token=tokens["refresh_token"],
-        role=user.role.value,
+        role=user.role.name,
     )
 
 
