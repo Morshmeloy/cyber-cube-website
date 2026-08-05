@@ -1,6 +1,10 @@
 import io
+from datetime import datetime
 from typing import Any
 from openpyxl.workbook import Workbook
+
+ORGANIZATION_NAME = 'ООО "Д4 ТЕХНОЛОГИИ"'
+WAREHOUSE_NAME = "Основной склад"  # единственный склад в системе, см. onec_client.py
 
 
 def _write_rows(headers: list[str], rows: list[list[Any]]) -> bytes:
@@ -40,3 +44,38 @@ def build_operations_export(operations: list) -> bytes:
         ],
         rows,
     )
+
+
+def build_requirement_invoice_export(operations: list) -> bytes:
+    """Экспорт выбранных операций в формате «Требование-накладная» (см. присланный
+    пользователем пример) — номер документа и подписи (Отпустил/Получил) оставлены
+    пустыми, заполняются от руки после печати."""
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Требование-накладная"
+
+    today = datetime.now().strftime("%d.%m.%Y")
+    sheet.append([f"Требование-накладная № _____ от {today} г."])
+    sheet.append([])
+    sheet.append(["Организация:", ORGANIZATION_NAME])
+    sheet.append(["Склад:", WAREHOUSE_NAME])
+    sheet.append([])
+    sheet.append(["№", "Код", "Материал", "Количество", "Ед. изм."])
+
+    for i, op in enumerate(operations, start=1):
+        sheet.append(
+            [
+                i,
+                op.nomenclature.code or "",
+                op.nomenclature.name,
+                op.quantity,
+                op.nomenclature.unit or "",
+            ]
+        )
+
+    sheet.append([])
+    sheet.append(["Отпустил:", "", "", "Получил:", ""])
+
+    buffer = io.BytesIO()
+    workbook.save(buffer)
+    return buffer.getvalue()
