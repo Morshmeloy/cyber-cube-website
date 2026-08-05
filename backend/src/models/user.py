@@ -1,14 +1,7 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
-import enum
 from ..core.database import Base
-
-
-class UserRole(str, enum.Enum):
-    ADMIN = "admin"
-    ENGINEER = "engineer"
-    ACCOUNTANT = "accountant"
 
 
 class User(Base):
@@ -17,10 +10,11 @@ class User(Base):
     username = Column(String(50), unique=True, nullable=False, index=True)
     email = Column(String(100), unique=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
-    role = Column(SQLEnum(UserRole), default=UserRole.ENGINEER, nullable=False)
+    role_id = Column(Integer, ForeignKey("roles.id"), nullable=False)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     full_name = Column(String(100), nullable=True)
 
+    role = relationship("Role", back_populates="users")
     stock_operations = relationship("StockOperation", back_populates="user")
