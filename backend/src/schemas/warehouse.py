@@ -84,6 +84,10 @@ class StockOperationPageResponse(BaseModel):
 
 class ExportSelectedRequest(BaseModel):
     ids: list[int] = Field(..., min_length=1)
+    invoice_number: Optional[str] = Field(None, max_length=50)
+    contract_name: Optional[str] = Field(None, max_length=200)
+    released_by: Optional[str] = Field(None, max_length=150)
+    received_by: Optional[str] = Field(None, max_length=150)
 
 
 class SyncResult(BaseModel):
