@@ -2,9 +2,10 @@ import io
 from datetime import datetime
 from typing import Any
 from openpyxl.workbook import Workbook
+from openpyxl.styles import Font, Alignment, Border, Side
 
 ORGANIZATION_NAME = 'ООО "Д4 ТЕХНОЛОГИИ"'
-WAREHOUSE_NAME = "Основной склад"  # единственный склад в системе, см. onec_client.py
+WAREHOUSE_NAME = "Основной склад"
 
 
 def _write_rows(headers: list[str], rows: list[list[Any]]) -> bytes:
@@ -46,35 +47,141 @@ def build_operations_export(operations: list) -> bytes:
     )
 
 
+_THIN = Side(style="thin")
+_MEDIUM = Side(style="medium")
+
+_FONT_TITLE = Font(name="Arial", size=14, bold=True)
+_FONT_LABEL = Font(name="Arial", size=10, bold=False)
+_FONT_VALUE = Font(name="Arial", size=10, bold=True)
+_FONT_HEADER = Font(name="Arial", size=9, bold=True)
+_FONT_DATA = Font(name="Arial", size=8, bold=False)
+_FONT_SIGN_LABEL = Font(name="Arial", size=9, bold=True)
+
+_ALIGN_TITLE = Alignment(horizontal="left", vertical="center")
+_ALIGN_HEADER = Alignment(horizontal="center", vertical="center")
+_ALIGN_NUM = Alignment(horizontal="right", vertical="top")
+_ALIGN_TEXT_WRAP = Alignment(horizontal="left", vertical="top", wrap_text=True)
+_ALIGN_LABEL = Alignment(horizontal="left", vertical="center")
+_ALIGN_SIGN_LABEL = Alignment(horizontal="right")
+
+# Раскладка колонок повторяет присланный образец: A — узкий отступ слева,
+# данные — в B..K (№ / Код(C:D) / Материал(E:H) / Количество(I) / Ед.изм.(J:K,
+# без отдельного заголовка — обе подписаны одним общим "Количество" в шапке).
+_COLUMN_WIDTHS = {
+    "A": 1,
+    "B": 6.33,
+    "C": 4.66,
+    "D": 7.66,
+    "E": 19.5,
+    "F": 10.66,
+    "G": 19.83,
+    "H": 10,
+    "I": 13.16,
+    "J": 27,
+    "K": 0.16,
+}
+
+
+def _set_cell(sheet, coord: str, value=None, font=None, alignment=None):
+    cell = sheet[coord]
+    if value is not None:
+        cell.value = value
+    if font is not None:
+        cell.font = font
+    if alignment is not None:
+        cell.alignment = alignment
+    return cell
+
+
 def build_requirement_invoice_export(operations: list) -> bytes:
-    """Экспорт выбранных операций в формате «Требование-накладная» (см. присланный
-    пользователем пример) — номер документа и подписи (Отпустил/Получил) оставлены
-    пустыми, заполняются от руки после печати."""
+    """Экспорт выбранных операций в формате «Требование-накладная» — раскладка,
+    шрифты и границы сняты 1-в-1 с присланного бланка-образца (см. корень репозитория)."""
     workbook = Workbook()
     sheet = workbook.active
     sheet.title = "Требование-накладная"
 
-    today = datetime.now().strftime("%d.%m.%Y")
-    sheet.append([f"Требование-накладная № _____ от {today} г."])
-    sheet.append([])
-    sheet.append(["Организация:", ORGANIZATION_NAME])
-    sheet.append(["Склад:", WAREHOUSE_NAME])
-    sheet.append([])
-    sheet.append(["№", "Код", "Материал", "Количество", "Ед. изм."])
+    for col, width in _COLUMN_WIDTHS.items():
+        sheet.column_dimensions[col].width = width
 
-    for i, op in enumerate(operations, start=1):
-        sheet.append(
-            [
-                i,
-                op.nomenclature.code or "",
-                op.nomenclature.name,
-                op.quantity,
-                op.nomenclature.unit or "",
-            ]
+    today = datetime.now().strftime("%d.%m.%Y")
+
+    # 1. Заголовок — подчёркнут снизу (medium), не по центру, а слева
+    sheet.merge_cells("B3:K3")
+    _set_cell(sheet, "B3", f"Требование-накладная № _____ от {today} г.", _FONT_TITLE, _ALIGN_TITLE)
+    for col in "BCDEFGHIJK":
+        sheet[f"{col}3"].border = Border(bottom=_MEDIUM)
+
+    # 2. Организация / Склад — подпись обычным, значение жирным (как в образце)
+    _set_cell(sheet, "B5", "Организация:", _FONT_LABEL, _ALIGN_LABEL)
+    sheet.merge_cells("E5:K5")
+    _set_cell(sheet, "E5", ORGANIZATION_NAME, _FONT_VALUE, Alignment(horizontal="left", wrap_text=True))
+
+    _set_cell(sheet, "B8", "Склад:", _FONT_LABEL, _ALIGN_LABEL)
+    sheet.merge_cells("E8:K8")
+    _set_cell(sheet, "E8", WAREHOUSE_NAME, _FONT_VALUE, Alignment(horizontal="left", wrap_text=True))
+
+    # 3. Договор с заказчиком / Объект — пустые поля для заполнения от руки
+    _set_cell(sheet, "B9", "Договор с заказчиком", _FONT_LABEL, _ALIGN_LABEL)
+    _set_cell(sheet, "B10", "Объект", _FONT_LABEL, _ALIGN_LABEL)
+
+    # 4. Заголовки таблицы: № / Код(C:D) / Материал(E:H) / Количество(I:K,
+    # без отдельного заголовка на единицу измерения)
+    sheet.merge_cells("C12:D12")
+    sheet.merge_cells("E12:H12")
+    sheet.merge_cells("I12:K12")
+    _set_cell(sheet, "B12", "№", _FONT_HEADER, _ALIGN_HEADER)
+    _set_cell(sheet, "C12", "Код", _FONT_HEADER, _ALIGN_HEADER)
+    _set_cell(sheet, "E12", "Материал", _FONT_HEADER, _ALIGN_HEADER)
+    _set_cell(sheet, "I12", "Количество", _FONT_HEADER, _ALIGN_HEADER)
+    for col in "BCDEFGHIJK":
+        cell = sheet[f"{col}12"]
+        cell.border = Border(
+            top=_MEDIUM,
+            bottom=_THIN,
+            left=_MEDIUM if col == "B" else (_THIN if col == "I" else None),
+            right=_MEDIUM if col == "K" else (_THIN if col in "BDH" else None),
         )
 
-    sheet.append([])
-    sheet.append(["Отпустил:", "", "", "Получил:", ""])
+    # 5. Данные — по строке на позицию
+    row = 13
+    for i, op in enumerate(operations, start=1):
+        if not getattr(op, "nomenclature", None):
+            continue
+
+        sheet.merge_cells(f"C{row}:D{row}")
+        sheet.merge_cells(f"E{row}:H{row}")
+        sheet.merge_cells(f"J{row}:K{row}")
+
+        _set_cell(sheet, f"B{row}", i, _FONT_DATA, _ALIGN_NUM)
+        _set_cell(sheet, f"C{row}", op.nomenclature.code or "", _FONT_DATA, _ALIGN_TEXT_WRAP)
+        _set_cell(sheet, f"E{row}", op.nomenclature.name, _FONT_DATA, _ALIGN_TEXT_WRAP)
+        _set_cell(sheet, f"I{row}", op.quantity, _FONT_DATA, _ALIGN_NUM)
+        _set_cell(sheet, f"J{row}", op.nomenclature.unit or "", _FONT_DATA, _ALIGN_NUM)
+
+        for col in "BCDEFGHIJK":
+            cell = sheet[f"{col}{row}"]
+            cell.border = Border(
+                top=_THIN,
+                bottom=_THIN,
+                left=_MEDIUM if col == "B" else _THIN,
+                right=_MEDIUM if col == "K" else _THIN,
+            )
+        row += 1
+
+    # 6. Нижняя граница таблицы (медиум, во всю ширину)
+    for col in "BCDEFGHIJK":
+        sheet[f"{col}{row}"].border = Border(top=_MEDIUM)
+    row += 2
+
+    # 7. Подписи "Отпустил" / "Получил" — подпись справа от метки, линия снизу
+    sheet.merge_cells(f"B{row}:C{row}")
+    _set_cell(sheet, f"B{row}", "Отпустил", _FONT_SIGN_LABEL, _ALIGN_SIGN_LABEL)
+    for col in "DEF":
+        sheet[f"{col}{row}"].border = Border(bottom=_THIN)
+
+    _set_cell(sheet, f"H{row}", "Получил", _FONT_SIGN_LABEL, _ALIGN_SIGN_LABEL)
+    for col in "IJ":
+        sheet[f"{col}{row}"].border = Border(bottom=_THIN)
 
     buffer = io.BytesIO()
     workbook.save(buffer)

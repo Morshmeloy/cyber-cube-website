@@ -1,4 +1,5 @@
 from datetime import datetime
+from urllib.parse import quote
 from fastapi import APIRouter, Depends, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
@@ -83,11 +84,15 @@ async def export_selected_operations(
 ):
     service = WarehouseService(db)
     content = await service.export_selected_operations(data.ids, current_user)
+    filename = f"Требование-накладная от {datetime.now().strftime('%d.%m.%Y')}.xlsx"
     return Response(
         content=content,
         media_type=XLSX_MEDIA_TYPE,
         headers={
-            "Content-Disposition": "attachment; filename=trebovanie-nakladnaya.xlsx"
+            "Content-Disposition": (
+                "attachment; filename=trebovanie-nakladnaya.xlsx; "
+                f"filename*=UTF-8''{quote(filename)}"
+            )
         },
     )
 
