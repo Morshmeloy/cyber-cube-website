@@ -230,10 +230,23 @@ export async function exportOperations(includeExported = false): Promise<void> {
   downloadBlob(response.data as Blob, filename)
 }
 
-export async function exportSelectedOperations(ids: number[]): Promise<void> {
+export interface ExportDocumentDetails {
+  invoiceNumber?: string
+  contractName?: string
+  releasedBy?: string
+  receivedBy?: string
+}
+
+export async function exportSelectedOperations(ids: number[], details: ExportDocumentDetails = {}): Promise<void> {
   const response = await apiClient.post(
     '/warehouse/operations/export-selected',
-    { ids },
+    {
+      ids,
+      invoice_number: details.invoiceNumber || undefined,
+      contract_name: details.contractName || undefined,
+      released_by: details.releasedBy || undefined,
+      received_by: details.receivedBy || undefined,
+    },
     { responseType: 'blob' },
   )
   const filename = filenameFromContentDisposition(response.headers['content-disposition'], 'trebovanie-nakladnaya.xlsx')

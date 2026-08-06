@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { confirmAllExportedIn1c, exportSelectedOperations, fetchOperations, type OperationType, type StockOperation } from '@/lib/warehouse-api.tsx'
+import { confirmAllExportedIn1c, exportSelectedOperations, fetchOperations, type ExportDocumentDetails, type OperationType, type StockOperation } from '@/lib/warehouse-api.tsx'
 import { usePaginatedList } from '@/hooks/usePaginatedList.tsx'
 import { PaginationBar } from './PaginationBar.tsx'
 import { Spinner } from '@/components/ui/spinner.tsx'
@@ -29,6 +29,12 @@ export function ExportPanel({ refreshToken: externalRefreshToken }: ExportPanelP
   const [confirmingAll, setConfirmingAll] = useState(false)
   const [localRefreshToken, setLocalRefreshToken] = useState(0)
 
+  const [showDocumentModal, setShowDocumentModal] = useState(false)
+  const [invoiceNumber, setInvoiceNumber] = useState('')
+  const [contractName, setContractName] = useState('')
+  const [releasedBy, setReleasedBy] = useState('')
+  const [receivedBy, setReceivedBy] = useState('')
+
   useEffect(() => {
     const timer = setTimeout(() => setQuery(searchInput.trim()), 300)
     return () => clearTimeout(timer)
@@ -51,6 +57,11 @@ export function ExportPanel({ refreshToken: externalRefreshToken }: ExportPanelP
       }),
     filterKey,
   )
+
+  const objectPreview = useMemo(() => {
+    const destinations = new Set(items.filter((op) => selectedIds.has(op.id)).map((op) => op.destination))
+    return [...destinations].join(', ')
+  }, [items, selectedIds])
 
   function toggleSelected(op: StockOperation): void {
     setSelectedIds((prev) => {
@@ -78,13 +89,18 @@ export function ExportPanel({ refreshToken: externalRefreshToken }: ExportPanelP
     }
   }
 
-  async function handleGenerate(): Promise<void> {
+  async function handleGenerate(details: ExportDocumentDetails): Promise<void> {
     if (selectedIds.size === 0) return
     setGenerating(true)
     try {
-      await exportSelectedOperations([...selectedIds])
+      await exportSelectedOperations([...selectedIds], details)
       toast.success(`Документ сформирован — позиций: ${selectedIds.size}.`)
       clearSelection()
+      setShowDocumentModal(false)
+      setInvoiceNumber('')
+      setContractName('')
+      setReleasedBy('')
+      setReceivedBy('')
       setLocalRefreshToken((t) => t + 1)
     } catch (error) {
       toast.error(extractErrorMessage(error, 'Не удалось сформировать документ.'))
@@ -199,13 +215,66 @@ export function ExportPanel({ refreshToken: externalRefreshToken }: ExportPanelP
         <button
           type="button"
           disabled={selectedIds.size === 0 || generating}
-          onClick={() => void handleGenerate()}
+          onClick={() => setShowDocumentModal(true)}
           className="flex items-center gap-2 rounded-lg border border-[var(--plasma-color)] bg-[var(--plasma-color)] px-5 py-2.5 text-[13px] font-bold text-[#050510] disabled:opacity-50"
         >
           {generating && <Spinner className="h-4 w-4" />}
           Сформировать документ
         </button>
       </div>
+
+      {showDocumentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => !generating && setShowDocumentModal(false)}>
+          <div
+            className="w-full max-w-md rounded-xl border p-4"
+            style={panelStyle}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="mb-3 text-sm font-bold text-[var(--plasma-color)]">Данные документа</h3>
+            <div className="flex flex-col gap-2.5">
+              <div>
+                <label className={labelClass}>Номер накладной</label>
+                <input type="text" value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} placeholder="напр. 4" className={fieldClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Договор с заказчиком</label>
+                <input type="text" value={contractName} onChange={(e) => setContractName(e.target.value)} className={fieldClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Объект</label>
+                <input type="text" value={objectPreview} readOnly className={`${fieldClass} cursor-not-allowed opacity-70`} />
+              </div>
+              <div>
+                <label className={labelClass}>Отпустил</label>
+                <input type="text" value={releasedBy} onChange={(e) => setReleasedBy(e.target.value)} className={fieldClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Получил</label>
+                <input type="text" value={receivedBy} onChange={(e) => setReceivedBy(e.target.value)} className={fieldClass} />
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={generating}
+                onClick={() => setShowDocumentModal(false)}
+                className="rounded-md border border-[#e8f8ff]/20 px-3 py-2 text-[12px] text-[#e8f8ff]/80 hover:bg-white/6 disabled:opacity-50"
+              >
+                Отмена
+              </button>
+              <button
+                type="button"
+                disabled={generating}
+                onClick={() => void handleGenerate({ invoiceNumber, contractName, releasedBy, receivedBy })}
+                className="flex items-center gap-2 rounded-lg border border-[var(--plasma-color)] bg-[var(--plasma-color)] px-4 py-2 text-[12px] font-bold text-[#050510] disabled:opacity-50"
+              >
+                {generating && <Spinner className="h-3.5 w-3.5" />}
+                Сформировать документ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
