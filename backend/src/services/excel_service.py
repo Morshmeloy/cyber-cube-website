@@ -56,6 +56,7 @@ _FONT_VALUE = Font(name="Arial", size=10, bold=True)
 _FONT_HEADER = Font(name="Arial", size=9, bold=True)
 _FONT_DATA = Font(name="Arial", size=8, bold=False)
 _FONT_SIGN_LABEL = Font(name="Arial", size=9, bold=True)
+_FONT_SIGN_VALUE = Font(name="Arial", size=10, bold=False)
 
 _ALIGN_TITLE = Alignment(horizontal="left", vertical="center")
 _ALIGN_HEADER = Alignment(horizontal="center", vertical="center")
@@ -71,7 +72,7 @@ _COLUMN_WIDTHS = {
     "A": 1,
     "B": 6.33,
     "C": 4.66,
-    "D": 7.66,
+    "D": 12,
     "E": 19.5,
     "F": 10.66,
     "G": 19.83,
@@ -131,7 +132,9 @@ def build_requirement_invoice_export(
     # 3. Договор с заказчиком — вписывается вручную при формировании документа.
     # Объект — своё значение уже есть на каждой операции (destination), в бланке-
     # образце для него не было отдельной ячейки, добавляем её тем же стилем, что у
-    # Организации/Склада.
+    # Организации/Склада. Подпись "Договор с заказчиком" длиннее остальных подписей,
+    # поэтому колонка D расширена (см. _COLUMN_WIDTHS) — значение остаётся на одном
+    # уровне с Организацией/Складом/Объектом (с колонки E), но подпись уже не наезжает.
     _set_cell(sheet, "B9", "Договор с заказчиком", _FONT_LABEL, _ALIGN_LABEL)
     if contract_name:
         sheet.merge_cells("E9:K9")
@@ -199,14 +202,14 @@ def build_requirement_invoice_export(
     _set_cell(sheet, f"B{row}", "Отпустил", _FONT_SIGN_LABEL, _ALIGN_SIGN_LABEL)
     sheet.merge_cells(f"D{row}:F{row}")
     if released_by:
-        _set_cell(sheet, f"D{row}", released_by, _FONT_DATA, Alignment(horizontal="center", vertical="bottom"))
+        _set_cell(sheet, f"D{row}", released_by, _FONT_SIGN_VALUE, Alignment(horizontal="center", vertical="bottom"))
     for col in "DEF":
         sheet[f"{col}{row}"].border = Border(bottom=_THIN)
 
     _set_cell(sheet, f"H{row}", "Получил", _FONT_SIGN_LABEL, _ALIGN_SIGN_LABEL)
     sheet.merge_cells(f"I{row}:J{row}")
     if received_by:
-        _set_cell(sheet, f"I{row}", received_by, _FONT_DATA, Alignment(horizontal="center", vertical="bottom"))
+        _set_cell(sheet, f"I{row}", received_by, _FONT_SIGN_VALUE, Alignment(horizontal="center", vertical="bottom"))
     for col in "IJ":
         sheet[f"{col}{row}"].border = Border(bottom=_THIN)
 
