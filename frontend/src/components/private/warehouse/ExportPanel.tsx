@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { confirmAllExportedIn1c, exportSelectedOperations, fetchOperations, type ExportDocumentDetails, type OperationType, type StockOperation } from '@/lib/warehouse-api.tsx'
 import { usePaginatedList } from '@/hooks/usePaginatedList.tsx'
@@ -34,6 +34,11 @@ export function ExportPanel({ refreshToken: externalRefreshToken }: ExportPanelP
   const [contractName, setContractName] = useState('')
   const [releasedBy, setReleasedBy] = useState('')
   const [receivedBy, setReceivedBy] = useState('')
+  const documentFormRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (showDocumentModal) documentFormRef.current?.scrollIntoView({ block: 'nearest' })
+  }, [showDocumentModal])
 
   useEffect(() => {
     const timer = setTimeout(() => setQuery(searchInput.trim()), 300)
@@ -152,128 +157,124 @@ export function ExportPanel({ refreshToken: externalRefreshToken }: ExportPanelP
         </div>
       </div>
 
-      {items.length === 0 && !loading ? (
-        <div className="px-2.5 py-4 text-center text-[13px] text-[#e8f8ff]/50">Ничего не найдено по этим фильтрам.</div>
-      ) : (
-        <div className={mode === 'scroll' ? scrollBoxClass : undefined}>
-          <table className="w-full min-w-[720px] border-collapse text-[13px] text-[#e8f8ff]/85">
-            <thead>
-              <tr>
-                {['', 'Дата', 'Номенклатура', 'Тип', 'Кол-во', 'ФИО', 'Адрес/объект'].map((h) => (
-                  <th key={h} className="sticky top-0 z-10 bg-[#14172c] px-2.5 py-2 text-left font-bold text-[var(--plasma-color)]">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((op) => (
-                <tr key={op.id} className="cursor-pointer hover:bg-white/4" onClick={() => toggleSelected(op)}>
-                  <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">
-                    <input type="checkbox" checked={selectedIds.has(op.id)} onChange={() => toggleSelected(op)} onClick={(e) => e.stopPropagation()} />
-                  </td>
-                  <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2 whitespace-nowrap">{formatDate(op.createdAt)}</td>
-                  <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{op.nomenclatureName}</td>
-                  <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{operationLabel(op.operationType)}</td>
-                  <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{op.quantity}</td>
-                  <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{op.person}</td>
-                  <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{op.destination}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {loading && items.length === 0 && (
-        <div className="flex items-center justify-center gap-2 py-3 text-sm text-[#e8f8ff]/70">
-          <Spinner className="h-4 w-4" />
-          Загрузка…
-        </div>
-      )}
-
-      {total > 0 && <PaginationBar mode={mode} onModeChange={setMode} page={page} totalPages={totalPages} onPageChange={setPage} loading={loading} />}
-
-      <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-[#e8f8ff]/10 pt-3.5">
-        <span className="text-[13px] text-[#e8f8ff]/70">
-          Выбрано позиций: <strong className="text-[var(--plasma-color)]">{selectedIds.size}</strong>
-        </span>
-        {selectedIds.size > 0 && (
-          <button type="button" onClick={clearSelection} className="text-[12px] text-[#e8f8ff]/50 underline hover:text-[#e8f8ff]/80">
-            Сбросить выбор
-          </button>
-        )}
-        <button
-          type="button"
-          disabled={confirmingAll}
-          onClick={() => void handleConfirmAllExported()}
-          className="ml-auto flex items-center gap-1.5 rounded-md border border-[#e8f8ff]/20 px-2.5 py-1.5 text-[12px] text-[#e8f8ff]/80 transition-colors hover:bg-white/6 disabled:opacity-50"
-        >
-          {confirmingAll && <Spinner className="h-3.5 w-3.5" />}
-          Подтвердить перенос всех выгруженных
-        </button>
-        <button
-          type="button"
-          disabled={selectedIds.size === 0 || generating}
-          onClick={() => setShowDocumentModal(true)}
-          className="flex items-center gap-2 rounded-lg border border-[var(--plasma-color)] bg-[var(--plasma-color)] px-5 py-2.5 text-[13px] font-bold text-[#050510] disabled:opacity-50"
-        >
-          {generating && <Spinner className="h-4 w-4" />}
-          Сформировать документ
-        </button>
-      </div>
-
-      {showDocumentModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => !generating && setShowDocumentModal(false)}>
-          <div
-            className="w-full max-w-md rounded-xl border p-4"
-            style={panelStyle}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="mb-3 text-sm font-bold text-[var(--plasma-color)]">Данные документа</h3>
-            <div className="flex flex-col gap-2.5">
-              <div>
-                <label className={labelClass}>Номер накладной</label>
-                <input type="text" value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} placeholder="напр. 4" className={fieldClass} />
-              </div>
-              <div>
-                <label className={labelClass}>Договор с заказчиком</label>
-                <input type="text" value={contractName} onChange={(e) => setContractName(e.target.value)} className={fieldClass} />
-              </div>
-              <div>
-                <label className={labelClass}>Объект</label>
-                <input type="text" value={objectPreview} readOnly className={`${fieldClass} cursor-not-allowed opacity-70`} />
-              </div>
-              <div>
-                <label className={labelClass}>Отпустил</label>
-                <input type="text" value={releasedBy} onChange={(e) => setReleasedBy(e.target.value)} className={fieldClass} />
-              </div>
-              <div>
-                <label className={labelClass}>Получил</label>
-                <input type="text" value={receivedBy} onChange={(e) => setReceivedBy(e.target.value)} className={fieldClass} />
-              </div>
+      {showDocumentModal ? (
+        <div ref={documentFormRef} className="rounded-lg border border-[#e8f8ff]/15 bg-[#0a0c18a6] p-4">
+          <h4 className="mb-3 text-sm font-bold text-[var(--plasma-color)]">Данные документа</h4>
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+            <div>
+              <label className={labelClass}>Номер накладной</label>
+              <input type="text" value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} placeholder="напр. 4" className={fieldClass} />
             </div>
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                type="button"
-                disabled={generating}
-                onClick={() => setShowDocumentModal(false)}
-                className="rounded-md border border-[#e8f8ff]/20 px-3 py-2 text-[12px] text-[#e8f8ff]/80 hover:bg-white/6 disabled:opacity-50"
-              >
-                Отмена
-              </button>
-              <button
-                type="button"
-                disabled={generating}
-                onClick={() => void handleGenerate({ invoiceNumber, contractName, releasedBy, receivedBy })}
-                className="flex items-center gap-2 rounded-lg border border-[var(--plasma-color)] bg-[var(--plasma-color)] px-4 py-2 text-[12px] font-bold text-[#050510] disabled:opacity-50"
-              >
-                {generating && <Spinner className="h-3.5 w-3.5" />}
-                Сформировать документ
-              </button>
+            <div>
+              <label className={labelClass}>Договор с заказчиком</label>
+              <input type="text" value={contractName} onChange={(e) => setContractName(e.target.value)} className={fieldClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Объект</label>
+              <input type="text" value={objectPreview} readOnly className={`${fieldClass} cursor-not-allowed opacity-70`} />
+            </div>
+            <div>
+              <label className={labelClass}>Отпустил</label>
+              <input type="text" value={releasedBy} onChange={(e) => setReleasedBy(e.target.value)} className={fieldClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Получил</label>
+              <input type="text" value={receivedBy} onChange={(e) => setReceivedBy(e.target.value)} className={fieldClass} />
             </div>
           </div>
+          <div className="mt-4 flex justify-end gap-2 border-t border-[#e8f8ff]/10 pt-3.5">
+            <button
+              type="button"
+              disabled={generating}
+              onClick={() => setShowDocumentModal(false)}
+              className="rounded-md border border-[#e8f8ff]/20 px-3 py-2 text-[12px] text-[#e8f8ff]/80 hover:bg-white/6 disabled:opacity-50"
+            >
+              Отмена
+            </button>
+            <button
+              type="button"
+              disabled={generating}
+              onClick={() => void handleGenerate({ invoiceNumber, contractName, releasedBy, receivedBy })}
+              className="flex items-center gap-2 rounded-lg border border-[var(--plasma-color)] bg-[var(--plasma-color)] px-4 py-2 text-[12px] font-bold text-[#050510] disabled:opacity-50"
+            >
+              {generating && <Spinner className="h-3.5 w-3.5" />}
+              Сформировать документ
+            </button>
+          </div>
         </div>
+      ) : (
+        <>
+          {items.length === 0 && !loading ? (
+            <div className="px-2.5 py-4 text-center text-[13px] text-[#e8f8ff]/50">Ничего не найдено по этим фильтрам.</div>
+          ) : (
+            <div className={mode === 'scroll' ? scrollBoxClass : undefined}>
+              <table className="w-full min-w-[720px] border-collapse text-[13px] text-[#e8f8ff]/85">
+                <thead>
+                  <tr>
+                    {['', 'Дата', 'Номенклатура', 'Тип', 'Кол-во', 'ФИО', 'Адрес/объект'].map((h) => (
+                      <th key={h} className="sticky top-0 z-10 bg-[#14172c] px-2.5 py-2 text-left font-bold text-[var(--plasma-color)]">
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((op) => (
+                    <tr key={op.id} className="cursor-pointer hover:bg-white/4" onClick={() => toggleSelected(op)}>
+                      <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">
+                        <input type="checkbox" checked={selectedIds.has(op.id)} onChange={() => toggleSelected(op)} onClick={(e) => e.stopPropagation()} />
+                      </td>
+                      <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2 whitespace-nowrap">{formatDate(op.createdAt)}</td>
+                      <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{op.nomenclatureName}</td>
+                      <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{operationLabel(op.operationType)}</td>
+                      <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{op.quantity}</td>
+                      <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{op.person}</td>
+                      <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{op.destination}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {loading && items.length === 0 && (
+            <div className="flex items-center justify-center gap-2 py-3 text-sm text-[#e8f8ff]/70">
+              <Spinner className="h-4 w-4" />
+              Загрузка…
+            </div>
+          )}
+
+          {total > 0 && <PaginationBar mode={mode} onModeChange={setMode} page={page} totalPages={totalPages} onPageChange={setPage} loading={loading} />}
+
+          <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-[#e8f8ff]/10 pt-3.5">
+            <span className="text-[13px] text-[#e8f8ff]/70">
+              Выбрано позиций: <strong className="text-[var(--plasma-color)]">{selectedIds.size}</strong>
+            </span>
+            {selectedIds.size > 0 && (
+              <button type="button" onClick={clearSelection} className="text-[12px] text-[#e8f8ff]/50 underline hover:text-[#e8f8ff]/80">
+                Сбросить выбор
+              </button>
+            )}
+            <button
+              type="button"
+              disabled={confirmingAll}
+              onClick={() => void handleConfirmAllExported()}
+              className="ml-auto flex items-center gap-1.5 rounded-md border border-[#e8f8ff]/20 px-2.5 py-1.5 text-[12px] text-[#e8f8ff]/80 transition-colors hover:bg-white/6 disabled:opacity-50"
+            >
+              {confirmingAll && <Spinner className="h-3.5 w-3.5" />}
+              Подтвердить перенос всех выгруженных
+            </button>
+            <button
+              type="button"
+              disabled={selectedIds.size === 0 || generating}
+              onClick={() => setShowDocumentModal(true)}
+              className="flex items-center gap-2 rounded-lg border border-[var(--plasma-color)] bg-[var(--plasma-color)] px-5 py-2.5 text-[13px] font-bold text-[#050510] disabled:opacity-50"
+            >
+              {generating && <Spinner className="h-4 w-4" />}
+              Сформировать документ
+            </button>
+          </div>
+        </>
       )}
     </div>
   )
