@@ -83,8 +83,16 @@ async def export_selected_operations(
     db: AsyncSession = Depends(get_db),
 ):
     service = WarehouseService(db)
-    content = await service.export_selected_operations(data.ids, current_user)
-    filename = f"Требование-накладная от {datetime.now().strftime('%d.%m.%Y')}.xlsx"
+    content = await service.export_selected_operations(
+        data.ids,
+        current_user,
+        invoice_number=data.invoice_number,
+        contract_name=data.contract_name,
+        released_by=data.released_by,
+        received_by=data.received_by,
+    )
+    number_part = f"№ {data.invoice_number} " if data.invoice_number else ""
+    filename = f"Требование-накладная {number_part}от {datetime.now().strftime('%d.%m.%Y')}.xlsx"
     return Response(
         content=content,
         media_type=XLSX_MEDIA_TYPE,
