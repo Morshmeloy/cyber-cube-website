@@ -93,7 +93,14 @@ def _set_cell(sheet, coord: str, value=None, font=None, alignment=None):
     return cell
 
 
-def build_requirement_invoice_export(operations: list) -> bytes:
+def build_requirement_invoice_export(
+    operations: list,
+    *,
+    invoice_number: str | None = None,
+    contract_name: str | None = None,
+    released_by: str | None = None,
+    received_by: str | None = None,
+) -> bytes:
     """Экспорт выбранных операций в формате «Требование-накладная» — раскладка,
     шрифты и границы сняты 1-в-1 с присланного бланка-образца (см. корень репозитория)."""
     workbook = Workbook()
@@ -107,7 +114,8 @@ def build_requirement_invoice_export(operations: list) -> bytes:
 
     # 1. Заголовок — подчёркнут снизу (medium), не по центру, а слева
     sheet.merge_cells("B3:K3")
-    _set_cell(sheet, "B3", f"Требование-накладная № _____ от {today} г.", _FONT_TITLE, _ALIGN_TITLE)
+    number = invoice_number or "_____"
+    _set_cell(sheet, "B3", f"Требование-накладная № {number} от {today} г.", _FONT_TITLE, _ALIGN_TITLE)
     for col in "BCDEFGHIJK":
         sheet[f"{col}3"].border = Border(bottom=_MEDIUM)
 
@@ -120,9 +128,20 @@ def build_requirement_invoice_export(operations: list) -> bytes:
     sheet.merge_cells("E8:K8")
     _set_cell(sheet, "E8", WAREHOUSE_NAME, _FONT_VALUE, Alignment(horizontal="left", wrap_text=True))
 
-    # 3. Договор с заказчиком / Объект — пустые поля для заполнения от руки
+    # 3. Договор с заказчиком — вписывается вручную при формировании документа.
+    # Объект — своё значение уже есть на каждой операции (destination), в бланке-
+    # образце для него не было отдельной ячейки, добавляем её тем же стилем, что у
+    # Организации/Склада.
     _set_cell(sheet, "B9", "Договор с заказчиком", _FONT_LABEL, _ALIGN_LABEL)
+    if contract_name:
+        sheet.merge_cells("E9:K9")
+        _set_cell(sheet, "E9", contract_name, _FONT_VALUE, Alignment(horizontal="left", wrap_text=True))
+
     _set_cell(sheet, "B10", "Объект", _FONT_LABEL, _ALIGN_LABEL)
+    object_name = ", ".join(sorted({op.destination for op in operations if getattr(op, "destination", None)}))
+    if object_name:
+        sheet.merge_cells("E10:K10")
+        _set_cell(sheet, "E10", object_name, _FONT_VALUE, Alignment(horizontal="left", wrap_text=True))
 
     # 4. Заголовки таблицы: № / Код(C:D) / Материал(E:H) / Количество(I:K,
     # без отдельного заголовка на единицу измерения)
@@ -173,13 +192,21 @@ def build_requirement_invoice_export(operations: list) -> bytes:
         sheet[f"{col}{row}"].border = Border(top=_MEDIUM)
     row += 2
 
-    # 7. Подписи "Отпустил" / "Получил" — подпись справа от метки, линия снизу
+    # 7. Подписи "Отпустил" / "Получил" — подпись справа от метки, ФИО (если указано
+    # при формировании документа) печатается на самой линии, место для росписи от
+    # руки остаётся тем же — в образце ФИО не печаталось, линия была пустой.
     sheet.merge_cells(f"B{row}:C{row}")
     _set_cell(sheet, f"B{row}", "Отпустил", _FONT_SIGN_LABEL, _ALIGN_SIGN_LABEL)
+    sheet.merge_cells(f"D{row}:F{row}")
+    if released_by:
+        _set_cell(sheet, f"D{row}", released_by, _FONT_DATA, Alignment(horizontal="center", vertical="bottom"))
     for col in "DEF":
         sheet[f"{col}{row}"].border = Border(bottom=_THIN)
 
     _set_cell(sheet, f"H{row}", "Получил", _FONT_SIGN_LABEL, _ALIGN_SIGN_LABEL)
+    sheet.merge_cells(f"I{row}:J{row}")
+    if received_by:
+        _set_cell(sheet, f"I{row}", received_by, _FONT_DATA, Alignment(horizontal="center", vertical="bottom"))
     for col in "IJ":
         sheet[f"{col}{row}"].border = Border(bottom=_THIN)
 
