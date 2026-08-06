@@ -162,7 +162,14 @@ class WarehouseService:
         return content
 
     async def export_selected_operations(
-        self, ids: list[int], current_user: User
+        self,
+        ids: list[int],
+        current_user: User,
+        *,
+        invoice_number: str | None = None,
+        contract_name: str | None = None,
+        released_by: str | None = None,
+        received_by: str | None = None,
     ) -> bytes:
         """Экспорт конкретно выбранных операций (поиск+фильтры на фронте, чекбоксы) —
         в отличие от export_operations (всё непереданное/всё), тут явный список id."""
@@ -170,7 +177,13 @@ class WarehouseService:
         operations = await self.operation_repo.get_by_ids(ids)
         if not operations:
             raise HTTPException(status_code=404, detail="Операции не найдены")
-        content = build_requirement_invoice_export(operations)
+        content = build_requirement_invoice_export(
+            operations,
+            invoice_number=invoice_number,
+            contract_name=contract_name,
+            released_by=released_by,
+            received_by=received_by,
+        )
         await self.operation_repo.mark_exported([op.id for op in operations])
         await self.audit_repo.log(
             user_id=current_user.id,
