@@ -10,10 +10,9 @@ import {
   type OperationType,
 } from '@/lib/warehouse-api.tsx'
 import { usePaginatedList } from '@/hooks/usePaginatedList.tsx'
-import { useLoadMoreSentinel } from '@/hooks/useLoadMoreSentinel.tsx'
 import { PaginationBar } from './PaginationBar.tsx'
 import { Spinner } from '@/components/ui/spinner.tsx'
-import { fieldClass, formatDate, labelClass, panelClass, panelStyle, extractErrorMessage, selectClass } from './shared.tsx'
+import { fieldClass, formatDate, labelClass, panelClass, panelStyle, extractErrorMessage, scrollBoxClass, selectClass } from './shared.tsx'
 
 function operationLabel(type: OperationType): string {
   return type === 'issue' ? '📤 Выдача' : '📥 Возврат'
@@ -54,7 +53,7 @@ export function OperationsTable({ refreshToken, canManageOps, onDataChanged }: O
 
   const filterKey = `${query}|${dateFrom}|${dateTo}|${operationType}|${person}|${destination}|${refreshToken}`
 
-  const { mode, setMode, page, setPage, totalPages, items, total, loading, loadMore, hasMore } = usePaginatedList<StockOperation>(
+  const { mode, setMode, page, setPage, totalPages, items, total, loading } = usePaginatedList<StockOperation>(
     (p, pageSize) =>
       fetchOperations({
         query,
@@ -68,8 +67,6 @@ export function OperationsTable({ refreshToken, canManageOps, onDataChanged }: O
       }),
     filterKey,
   )
-
-  const sentinelRef = useLoadMoreSentinel(loadMore, mode === 'scroll' && hasMore)
 
   function refetchCurrentPage(): void {
     setPage((p) => p)
@@ -186,12 +183,13 @@ export function OperationsTable({ refreshToken, canManageOps, onDataChanged }: O
       {items.length === 0 && !loading ? (
         <div className="px-2.5 py-4 text-center text-[13px] text-[#e8f8ff]/50">Операций не найдено.</div>
       ) : (
+        <div className={mode === 'scroll' ? scrollBoxClass : undefined}>
         <table className="w-full min-w-[820px] border-collapse text-[13px] text-[#e8f8ff]/85">
           <thead>
             <tr>
               {['Дата', 'Номенклатура', 'Тип', 'Кол-во', 'ФИО', 'Адрес/место назначения', 'Кто ввёл', ...(canManageOps ? ['Экспорт', 'Подтверждено в 1С', 'Действия'] : [])].map(
                 (h) => (
-                  <th key={h} className="bg-white/6 px-2.5 py-2 text-left font-bold text-[var(--plasma-color)]">
+                  <th key={h} className="sticky top-0 z-10 bg-[#14172c] px-2.5 py-2 text-left font-bold text-[var(--plasma-color)]">
                     {h}
                   </th>
                 ),
@@ -221,12 +219,14 @@ export function OperationsTable({ refreshToken, canManageOps, onDataChanged }: O
                   </td>
                   <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">
                     {isEditing && editDraft ? (
-                      <input
-                        type="number"
-                        value={editDraft.quantity}
-                        onChange={(e) => setEditDraft({ ...editDraft, quantity: e.target.value })}
-                        className={`${fieldClass} w-24 py-1`}
-                      />
+                      <div className="w-24">
+                        <input
+                          type="number"
+                          value={editDraft.quantity}
+                          onChange={(e) => setEditDraft({ ...editDraft, quantity: e.target.value })}
+                          className={`${fieldClass} py-1`}
+                        />
+                      </div>
                     ) : (
                       op.quantity
                     )}
@@ -331,6 +331,7 @@ export function OperationsTable({ refreshToken, canManageOps, onDataChanged }: O
             })}
           </tbody>
         </table>
+        </div>
       )}
 
       {loading && items.length === 0 && (
@@ -341,7 +342,6 @@ export function OperationsTable({ refreshToken, canManageOps, onDataChanged }: O
       )}
 
       {total > 0 && <PaginationBar mode={mode} onModeChange={setMode} page={page} totalPages={totalPages} onPageChange={setPage} loading={loading} />}
-      {mode === 'scroll' && hasMore && <div ref={sentinelRef} style={{ height: 1 }} />}
     </div>
   )
 }

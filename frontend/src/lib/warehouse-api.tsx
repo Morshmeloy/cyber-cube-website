@@ -192,6 +192,24 @@ export async function fetchSyncStatus(): Promise<SyncStatus> {
   return { lastSyncedAt: response.data.last_synced_at }
 }
 
+/** Имя файла для скачивания берём из заголовка Content-Disposition ответа
+ * (там сервер уже прислал настоящее русское имя в filename*=UTF-8''...) —
+ * а не задаём жёстко строкой в JS, иначе то, что решил бэкенд, не имеет значения:
+ * <a download="..."> при blob-скачивании полностью игнорирует HTTP-заголовки. */
+function filenameFromContentDisposition(header: string | undefined, fallback: string): string {
+  if (!header) return fallback
+  const utf8Match = header.match(/filename\*=UTF-8''([^;]+)/i)
+  if (utf8Match) {
+    try {
+      return decodeURIComponent(utf8Match[1])
+    } catch {
+      // ignore, попробуем обычный filename= ниже
+    }
+  }
+  const plainMatch = header.match(/filename="?([^";]+)"?/i)
+  return plainMatch ? plainMatch[1] : fallback
+}
+
 function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
@@ -208,7 +226,8 @@ export async function exportOperations(includeExported = false): Promise<void> {
     responseType: 'blob',
     params: { include_exported: includeExported },
   })
-  downloadBlob(response.data as Blob, 'operacii.xlsx')
+  const filename = filenameFromContentDisposition(response.headers['content-disposition'], 'operacii.xlsx')
+  downloadBlob(response.data as Blob, filename)
 }
 
 export async function exportSelectedOperations(ids: number[]): Promise<void> {
@@ -217,7 +236,8 @@ export async function exportSelectedOperations(ids: number[]): Promise<void> {
     { ids },
     { responseType: 'blob' },
   )
-  downloadBlob(response.data as Blob, 'trebovanie-nakladnaya.xlsx')
+  const filename = filenameFromContentDisposition(response.headers['content-disposition'], 'trebovanie-nakladnaya.xlsx')
+  downloadBlob(response.data as Blob, filename)
 }
 
 export interface OperationFilters {

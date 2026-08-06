@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
 import { fetchNomenclature, type Nomenclature } from '@/lib/warehouse-api.tsx'
 import { usePaginatedList } from '@/hooks/usePaginatedList.tsx'
-import { useLoadMoreSentinel } from '@/hooks/useLoadMoreSentinel.tsx'
 import { PaginationBar } from './PaginationBar.tsx'
 import { Spinner } from '@/components/ui/spinner.tsx'
-import { fieldClass, panelClass, panelStyle, secondaryButtonClass } from './shared.tsx'
+import { fieldClass, panelClass, panelStyle, scrollBoxClass, secondaryButtonClass } from './shared.tsx'
 
 interface NomenclatureTableProps {
   /** Меняется снаружи (после ручного «Обновить» или синка с 1С) — форсирует рефетч. */
@@ -34,12 +33,10 @@ export function NomenclatureTable({
     return () => clearTimeout(timer)
   }, [searchInput])
 
-  const { mode, setMode, page, setPage, totalPages, items, total, loading, loadMore, hasMore } = usePaginatedList<Nomenclature>(
+  const { mode, setMode, page, setPage, totalPages, items, total, loading } = usePaginatedList<Nomenclature>(
     (p, pageSize) => fetchNomenclature({ query, page: p, pageSize }),
     `${query}|${refreshToken}`,
   )
-
-  const sentinelRef = useLoadMoreSentinel(loadMore, mode === 'scroll' && hasMore)
 
   return (
     <div className={panelClass} style={panelStyle}>
@@ -75,29 +72,31 @@ export function NomenclatureTable({
           {total === 0 && !query ? 'Номенклатуры пока нет — нажми «Обновить данные из 1С».' : 'Ничего не найдено.'}
         </div>
       ) : (
-        <table className="w-full min-w-[680px] border-collapse text-[13px] text-[#e8f8ff]/85">
-          <thead>
-            <tr>
-              {['Код', 'Номенклатура', 'Ед.', 'Остаток из 1С', 'Движение через портал', 'Итоговый остаток'].map((h) => (
-                <th key={h} className="bg-white/6 px-2.5 py-2 text-left font-bold text-[var(--plasma-color)]">
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item) => (
-              <tr key={item.id} className="hover:bg-white/4">
-                <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2 text-[#e8f8ff]/60 whitespace-nowrap">{item.code ?? '—'}</td>
-                <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{item.name}</td>
-                <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2 text-[#e8f8ff]/60">{item.unit ?? '—'}</td>
-                <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{item.baseQuantity}</td>
-                <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{item.portalQuantity > 0 ? `+${item.portalQuantity}` : item.portalQuantity}</td>
-                <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2 font-bold">{item.totalQuantity}</td>
+        <div className={mode === 'scroll' ? scrollBoxClass : undefined}>
+          <table className="w-full min-w-[680px] border-collapse text-[13px] text-[#e8f8ff]/85">
+            <thead>
+              <tr>
+                {['Код', 'Номенклатура', 'Ед.', 'Остаток из 1С', 'Движение через портал', 'Итоговый остаток'].map((h) => (
+                  <th key={h} className="sticky top-0 z-10 bg-[#14172c] px-2.5 py-2 text-left font-bold text-[var(--plasma-color)]">
+                    {h}
+                  </th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {items.map((item) => (
+                <tr key={item.id} className="hover:bg-white/4">
+                  <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2 text-[#e8f8ff]/60 whitespace-nowrap">{item.code ?? '—'}</td>
+                  <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{item.name}</td>
+                  <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2 text-[#e8f8ff]/60">{item.unit ?? '—'}</td>
+                  <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{item.baseQuantity}</td>
+                  <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{item.portalQuantity > 0 ? `+${item.portalQuantity}` : item.portalQuantity}</td>
+                  <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2 font-bold">{item.totalQuantity}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {loading && items.length === 0 && (
@@ -108,7 +107,6 @@ export function NomenclatureTable({
       )}
 
       {total > 0 && <PaginationBar mode={mode} onModeChange={setMode} page={page} totalPages={totalPages} onPageChange={setPage} loading={loading} />}
-      {mode === 'scroll' && hasMore && <div ref={sentinelRef} style={{ height: 1 }} />}
     </div>
   )
 }

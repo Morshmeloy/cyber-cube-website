@@ -2,10 +2,9 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { confirmAllExportedIn1c, exportSelectedOperations, fetchOperations, type OperationType, type StockOperation } from '@/lib/warehouse-api.tsx'
 import { usePaginatedList } from '@/hooks/usePaginatedList.tsx'
-import { useLoadMoreSentinel } from '@/hooks/useLoadMoreSentinel.tsx'
 import { PaginationBar } from './PaginationBar.tsx'
 import { Spinner } from '@/components/ui/spinner.tsx'
-import { fieldClass, formatDate, labelClass, panelClass, panelStyle, extractErrorMessage, selectClass } from './shared.tsx'
+import { fieldClass, formatDate, labelClass, panelClass, panelStyle, extractErrorMessage, scrollBoxClass, selectClass } from './shared.tsx'
 
 function operationLabel(type: OperationType): string {
   return type === 'issue' ? '📤 Выдача' : '📥 Возврат'
@@ -37,7 +36,7 @@ export function ExportPanel({ refreshToken: externalRefreshToken }: ExportPanelP
 
   const filterKey = `${query}|${dateFrom}|${dateTo}|${operationType}|${person}|${destination}|${exportStatus}|${externalRefreshToken}|${localRefreshToken}`
 
-  const { mode, setMode, page, setPage, totalPages, items, total, loading, loadMore, hasMore } = usePaginatedList<StockOperation>(
+  const { mode, setMode, page, setPage, totalPages, items, total, loading } = usePaginatedList<StockOperation>(
     (p, pageSize) =>
       fetchOperations({
         query,
@@ -52,8 +51,6 @@ export function ExportPanel({ refreshToken: externalRefreshToken }: ExportPanelP
       }),
     filterKey,
   )
-
-  const sentinelRef = useLoadMoreSentinel(loadMore, mode === 'scroll' && hasMore)
 
   function toggleSelected(op: StockOperation): void {
     setSelectedIds((prev) => {
@@ -142,32 +139,34 @@ export function ExportPanel({ refreshToken: externalRefreshToken }: ExportPanelP
       {items.length === 0 && !loading ? (
         <div className="px-2.5 py-4 text-center text-[13px] text-[#e8f8ff]/50">Ничего не найдено по этим фильтрам.</div>
       ) : (
-        <table className="w-full min-w-[720px] border-collapse text-[13px] text-[#e8f8ff]/85">
-          <thead>
-            <tr>
-              {['', 'Дата', 'Номенклатура', 'Тип', 'Кол-во', 'ФИО', 'Адрес/объект'].map((h) => (
-                <th key={h} className="bg-white/6 px-2.5 py-2 text-left font-bold text-[var(--plasma-color)]">
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((op) => (
-              <tr key={op.id} className="cursor-pointer hover:bg-white/4" onClick={() => toggleSelected(op)}>
-                <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">
-                  <input type="checkbox" checked={selectedIds.has(op.id)} onChange={() => toggleSelected(op)} onClick={(e) => e.stopPropagation()} />
-                </td>
-                <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2 whitespace-nowrap">{formatDate(op.createdAt)}</td>
-                <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{op.nomenclatureName}</td>
-                <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{operationLabel(op.operationType)}</td>
-                <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{op.quantity}</td>
-                <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{op.person}</td>
-                <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{op.destination}</td>
+        <div className={mode === 'scroll' ? scrollBoxClass : undefined}>
+          <table className="w-full min-w-[720px] border-collapse text-[13px] text-[#e8f8ff]/85">
+            <thead>
+              <tr>
+                {['', 'Дата', 'Номенклатура', 'Тип', 'Кол-во', 'ФИО', 'Адрес/объект'].map((h) => (
+                  <th key={h} className="sticky top-0 z-10 bg-[#14172c] px-2.5 py-2 text-left font-bold text-[var(--plasma-color)]">
+                    {h}
+                  </th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {items.map((op) => (
+                <tr key={op.id} className="cursor-pointer hover:bg-white/4" onClick={() => toggleSelected(op)}>
+                  <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">
+                    <input type="checkbox" checked={selectedIds.has(op.id)} onChange={() => toggleSelected(op)} onClick={(e) => e.stopPropagation()} />
+                  </td>
+                  <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2 whitespace-nowrap">{formatDate(op.createdAt)}</td>
+                  <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{op.nomenclatureName}</td>
+                  <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{operationLabel(op.operationType)}</td>
+                  <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{op.quantity}</td>
+                  <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{op.person}</td>
+                  <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{op.destination}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {loading && items.length === 0 && (
@@ -178,7 +177,6 @@ export function ExportPanel({ refreshToken: externalRefreshToken }: ExportPanelP
       )}
 
       {total > 0 && <PaginationBar mode={mode} onModeChange={setMode} page={page} totalPages={totalPages} onPageChange={setPage} loading={loading} />}
-      {mode === 'scroll' && hasMore && <div ref={sentinelRef} style={{ height: 1 }} />}
 
       <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-[#e8f8ff]/10 pt-3.5">
         <span className="text-[13px] text-[#e8f8ff]/70">

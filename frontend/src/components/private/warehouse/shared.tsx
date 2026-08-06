@@ -15,6 +15,9 @@ export const formPanelStyle = {
   background: 'color-mix(in srgb, var(--plasma-color) 7%, #171b30)',
   borderColor: 'color-mix(in srgb, var(--plasma-color) 20%, transparent)',
 }
+/** Режим «Листать вниз» — таблица остаётся в рамке такой же высоты, что и постранично
+ * (примерно под 10 строк), прокрутка/подгрузка идёт ВНУТРИ неё, страница не растёт. */
+export const scrollBoxClass = 'max-h-[440px] overflow-y-auto'
 
 export function formatDate(iso: string): string {
   const d = new Date(iso)

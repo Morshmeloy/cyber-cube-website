@@ -125,21 +125,25 @@ export function OperationForm({ onCreated }: OperationFormProps) {
       <div className="mb-3 space-y-2">
         {lines.map((line) => (
           <div key={line.key} className="flex items-center gap-2">
-            <input
-              type="text"
-              list="nomenclature-options"
-              value={line.name}
-              onChange={(e) => updateLine(line.key, { name: e.target.value })}
-              placeholder="Название товара"
-              className={`${fieldClass} flex-1`}
-            />
-            <input
-              type="number"
-              value={line.quantity}
-              onChange={(e) => updateLine(line.key, { quantity: e.target.value })}
-              placeholder="Кол-во"
-              className={`${fieldClass} w-28`}
-            />
+            <div className="min-w-0 flex-1">
+              <input
+                type="text"
+                list="nomenclature-options"
+                value={line.name}
+                onChange={(e) => updateLine(line.key, { name: e.target.value })}
+                placeholder="Название товара"
+                className={fieldClass}
+              />
+            </div>
+            <div className="w-28 shrink-0">
+              <input
+                type="number"
+                value={line.quantity}
+                onChange={(e) => updateLine(line.key, { quantity: e.target.value })}
+                placeholder="Кол-во"
+                className={fieldClass}
+              />
+            </div>
             <button
               type="button"
               onClick={() => removeLine(line.key)}
