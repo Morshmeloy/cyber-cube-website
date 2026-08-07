@@ -7,6 +7,7 @@ import { NomenclatureTable } from './warehouse/NomenclatureTable.tsx'
 import { OperationsTable } from './warehouse/OperationsTable.tsx'
 import { OperationForm } from './warehouse/OperationForm.tsx'
 import { ExportPanel } from './warehouse/ExportPanel.tsx'
+import { ExportHistoryPanel } from './warehouse/ExportHistoryPanel.tsx'
 import { extractErrorMessage, formatDate, panelClass, panelStyle, secondaryButtonClass } from './warehouse/shared.tsx'
 
 /** Человекочитаемое описание записи журнала аудита — action/entity_type/JSON из БД
@@ -133,7 +134,9 @@ export function WarehousePage() {
 
       <OperationsTable refreshToken={refreshToken} canManageOps={canManageOps} onDataChanged={bumpRefresh} />
 
-      {canManageOps && <ExportPanel refreshToken={refreshToken} />}
+      {canManageOps && <ExportPanel refreshToken={refreshToken} onExported={bumpRefresh} />}
+
+      {canManageOps && <ExportHistoryPanel refreshToken={refreshToken} />}
 
       {canView && (
         <div className={panelClass} style={panelStyle}>

@@ -12,9 +12,10 @@ function operationLabel(type: OperationType): string {
 
 interface ExportPanelProps {
   refreshToken: number
+  onExported?: () => void
 }
 
-export function ExportPanel({ refreshToken: externalRefreshToken }: ExportPanelProps) {
+export function ExportPanel({ refreshToken: externalRefreshToken, onExported }: ExportPanelProps) {
   const [searchInput, setSearchInput] = useState('')
   const [query, setQuery] = useState('')
   const [dateFrom, setDateFrom] = useState('')
@@ -22,7 +23,7 @@ export function ExportPanel({ refreshToken: externalRefreshToken }: ExportPanelP
   const [operationType, setOperationType] = useState<OperationType | ''>('')
   const [person, setPerson] = useState('')
   const [destination, setDestination] = useState('')
-  const [exportStatus, setExportStatus] = useState<'exported' | 'not_exported' | ''>('not_exported')
+  const [exportStatus, setExportStatus] = useState<'exported' | 'not_exported' | ''>('')
 
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [generating, setGenerating] = useState(false)
@@ -107,6 +108,7 @@ export function ExportPanel({ refreshToken: externalRefreshToken }: ExportPanelP
       setReleasedBy('')
       setReceivedBy('')
       setLocalRefreshToken((t) => t + 1)
+      onExported?.()
     } catch (error) {
       toast.error(extractErrorMessage(error, 'Не удалось сформировать документ.'))
     } finally {
@@ -150,9 +152,9 @@ export function ExportPanel({ refreshToken: externalRefreshToken }: ExportPanelP
         <div>
           <label className={labelClass}>Статус экспорта</label>
           <select value={exportStatus} onChange={(e) => setExportStatus(e.target.value as 'exported' | 'not_exported' | '')} className={selectClass}>
+            <option value="">Всё</option>
             <option value="not_exported">Не экспортировано</option>
             <option value="exported">Уже экспортировано</option>
-            <option value="">Всё</option>
           </select>
         </div>
       </div>
@@ -225,7 +227,12 @@ export function ExportPanel({ refreshToken: externalRefreshToken }: ExportPanelP
                         <input type="checkbox" checked={selectedIds.has(op.id)} onChange={() => toggleSelected(op)} onClick={(e) => e.stopPropagation()} />
                       </td>
                       <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2 whitespace-nowrap">{formatDate(op.createdAt)}</td>
-                      <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{op.nomenclatureName}</td>
+                      <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">
+                        {op.nomenclatureName}
+                        {op.exportedAt && (
+                          <div className="mt-0.5 text-[11px] whitespace-nowrap text-[#e8f8ff]/45">Уже экспортировано {formatDate(op.exportedAt)}</div>
+                        )}
+                      </td>
                       <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{operationLabel(op.operationType)}</td>
                       <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{op.quantity}</td>
                       <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{op.person}</td>

@@ -58,6 +58,36 @@ export interface AuditLogEntry {
   createdAt: string
 }
 
+export interface ExportListItem {
+  id: number
+  title: string
+  createdAt: string
+  createdBy: string
+  itemsCount: number
+}
+
+export interface ExportItemDetail {
+  nomenclatureName: string
+  nomenclatureCode: string | null
+  unit: string | null
+  quantity: number
+  operationType: OperationType
+  person: string
+  destination: string
+}
+
+export interface ExportDetail {
+  id: number
+  invoiceNumber: string | null
+  contractName: string | null
+  releasedBy: string | null
+  receivedBy: string | null
+  objectName: string
+  createdAt: string
+  createdBy: string
+  items: ExportItemDetail[]
+}
+
 interface NomenclatureDto {
   id: number
   name: string
@@ -114,6 +144,36 @@ interface AuditLogDto {
   created_at: string
 }
 
+interface ExportListItemDto {
+  id: number
+  title: string
+  created_at: string
+  created_by: string
+  items_count: number
+}
+
+interface ExportItemDetailDto {
+  nomenclature_name: string
+  nomenclature_code: string | null
+  unit: string | null
+  quantity: number
+  operation_type: OperationType
+  person: string
+  destination: string
+}
+
+interface ExportDetailDto {
+  id: number
+  invoice_number: string | null
+  contract_name: string | null
+  released_by: string | null
+  received_by: string | null
+  object_name: string
+  created_at: string
+  created_by: string
+  items: ExportItemDetailDto[]
+}
+
 function fromNomenclatureDto(dto: NomenclatureDto): Nomenclature {
   return {
     id: dto.id,
@@ -157,6 +217,38 @@ function fromAuditDto(dto: AuditLogDto): AuditLogEntry {
     entityId: dto.entity_id,
     details: dto.details,
     createdAt: dto.created_at,
+  }
+}
+
+function fromExportListItemDto(dto: ExportListItemDto): ExportListItem {
+  return {
+    id: dto.id,
+    title: dto.title,
+    createdAt: dto.created_at,
+    createdBy: dto.created_by,
+    itemsCount: dto.items_count,
+  }
+}
+
+function fromExportDetailDto(dto: ExportDetailDto): ExportDetail {
+  return {
+    id: dto.id,
+    invoiceNumber: dto.invoice_number,
+    contractName: dto.contract_name,
+    releasedBy: dto.released_by,
+    receivedBy: dto.received_by,
+    objectName: dto.object_name,
+    createdAt: dto.created_at,
+    createdBy: dto.created_by,
+    items: dto.items.map((item) => ({
+      nomenclatureName: item.nomenclature_name,
+      nomenclatureCode: item.nomenclature_code,
+      unit: item.unit,
+      quantity: item.quantity,
+      operationType: item.operation_type,
+      person: item.person,
+      destination: item.destination,
+    })),
   }
 }
 
@@ -348,4 +440,31 @@ export async function unconfirmOperationIn1c(id: number): Promise<StockOperation
 export async function fetchAuditLog(): Promise<AuditLogEntry[]> {
   const response = await apiClient.get<AuditLogDto[]>('/warehouse/audit-log')
   return response.data.map(fromAuditDto)
+}
+
+export async function fetchExports(page = 1, pageSize = 10): Promise<Page<ExportListItem>> {
+  const response = await apiClient.get<PageDto<ExportListItemDto>>('/warehouse/exports', {
+    params: { page, page_size: pageSize },
+  })
+  return {
+    items: response.data.items.map(fromExportListItemDto),
+    total: response.data.total,
+    page: response.data.page,
+    pageSize: response.data.page_size,
+  }
+}
+
+export async function fetchExportDetail(id: number): Promise<ExportDetail> {
+  const response = await apiClient.get<ExportDetailDto>(`/warehouse/exports/${id}`)
+  return fromExportDetailDto(response.data)
+}
+
+export async function downloadExport(id: number): Promise<void> {
+  const response = await apiClient.get(`/warehouse/exports/${id}/download`, { responseType: 'blob' })
+  const filename = filenameFromContentDisposition(response.headers['content-disposition'], 'trebovanie-nakladnaya.xlsx')
+  downloadBlob(response.data as Blob, filename)
+}
+
+export async function deleteExport(id: number): Promise<void> {
+  await apiClient.delete(`/warehouse/exports/${id}`)
 }
