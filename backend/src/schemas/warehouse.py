@@ -101,3 +101,40 @@ class ConfirmOperationsRequest(BaseModel):
 
 class ConfirmResult(BaseModel):
     count: int
+
+
+class ExportListItemResponse(BaseModel):
+    id: int
+    title: str
+    created_at: datetime
+    created_by: str
+    items_count: int
+
+
+class ExportListPageResponse(BaseModel):
+    items: list[ExportListItemResponse]
+    total: int
+    page: int
+    page_size: int
+
+
+class ExportItemDetail(BaseModel):
+    nomenclature_name: str
+    nomenclature_code: Optional[str]
+    unit: Optional[str]
+    quantity: float
+    operation_type: OperationType
+    person: str
+    destination: str
+
+
+class ExportDetailResponse(BaseModel):
+    id: int
+    invoice_number: Optional[str]
+    contract_name: Optional[str]
+    released_by: Optional[str]
+    received_by: Optional[str]
+    object_name: str
+    created_at: datetime
+    created_by: str
+    items: list[ExportItemDetail]
