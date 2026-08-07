@@ -477,3 +477,11 @@ class ExportRepository:
         export_row.is_active = False
         await self.db.commit()
         return export_row
+
+    async def has_export_items(self, stock_operation_id: int) -> bool:
+        result = await self.db.execute(
+            select(ExportItem.id)
+            .where(ExportItem.stock_operation_id == stock_operation_id)
+            .limit(1)
+        )
+        return result.first() is not None
