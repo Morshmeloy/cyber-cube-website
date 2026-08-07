@@ -17,6 +17,8 @@ from src.schemas.warehouse import (
     ConfirmOperationsRequest,
     ConfirmResult,
     ExportSelectedRequest,
+    ExportListPageResponse,
+    ExportDetailResponse,
     OperationType,
 )
 from src.schemas.audit import AuditLogResponse
@@ -204,3 +206,58 @@ async def get_audit_log(
 ):
     service = WarehouseService(db)
     return await service.list_audit_log(current_user)
+
+
+@router.get("/exports", response_model=ExportListPageResponse)
+async def list_exports(
+    page: int = 1,
+    page_size: int = 10,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    service = WarehouseService(db)
+    return await service.list_exports(current_user, page=page, page_size=page_size)
+
+
+@router.get("/exports/{export_id}", response_model=ExportDetailResponse)
+async def get_export_detail(
+    export_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    service = WarehouseService(db)
+    return await service.get_export_detail(export_id, current_user)
+
+
+@router.get("/exports/{export_id}/download")
+async def download_export(
+    export_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    service = WarehouseService(db)
+    detail = await service.get_export_detail(export_id, current_user)
+    content = await service.download_export(export_id, current_user)
+    number_part = f"№ {detail.invoice_number} " if detail.invoice_number else ""
+    filename = f"Требование-накладная {number_part}от {detail.created_at.strftime('%d.%m.%Y')}.xlsx"
+    return Response(
+        content=content,
+        media_type=XLSX_MEDIA_TYPE,
+        headers={
+            "Content-Disposition": (
+                "attachment; filename=trebovanie-nakladnaya.xlsx; "
+                f"filename*=UTF-8''{quote(filename)}"
+            )
+        },
+    )
+
+
+@router.delete("/exports/{export_id}")
+async def delete_export(
+    export_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    service = WarehouseService(db)
+    await service.delete_export(export_id, current_user)
+    return {"message": "Экспорт удалён"}
