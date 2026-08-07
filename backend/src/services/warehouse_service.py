@@ -410,6 +410,12 @@ class WarehouseService:
         if not before:
             raise HTTPException(status_code=404, detail="Операция не найдена")
 
+        if await self.export_repo.has_export_items(operation_id):
+            raise HTTPException(
+                status_code=422,
+                detail="Нельзя удалить: операция уже входит в историю экспортов.",
+            )
+
         portal_qty = await self.nomenclature_repo.portal_quantity_for(
             before.nomenclature_id
         )
@@ -490,3 +496,56 @@ class WarehouseService:
         _require_view(current_user)
         entries = await self.audit_repo.get_all()
         return [_audit_to_response(entry) for entry in entries]
+
+    async def list_exports(
+        self, current_user: User, page: int = 1, page_size: int = 10
+    ) -> ExportListPageResponse:
+        _require_ops(current_user)
+        rows, total = await self.export_repo.list_page(page=page, page_size=page_size)
+        return ExportListPageResponse(
+            items=[
+                _export_to_list_item(export_row, items_count)
+                for export_row, items_count in rows
+            ],
+            total=total,
+            page=page,
+            page_size=page_size,
+        )
+
+    async def get_export_detail(
+        self, export_id: int, current_user: User
+    ) -> ExportDetailResponse:
+        _require_ops(current_user)
+        export_row = await self.export_repo.get_active(export_id)
+        if not export_row:
+            raise HTTPException(status_code=404, detail="Экспорт не найден")
+        return _export_to_detail(export_row)
+
+    async def download_export(self, export_id: int, current_user: User) -> bytes:
+        _require_ops(current_user)
+        export_row = await self.export_repo.get_active(export_id)
+        if not export_row:
+            raise HTTPException(status_code=404, detail="Экспорт не найден")
+        operations = [
+            item.stock_operation for item in export_row.items if item.stock_operation
+        ]
+        return build_requirement_invoice_export(
+            operations,
+            invoice_number=export_row.invoice_number,
+            contract_name=export_row.contract_name,
+            released_by=export_row.released_by,
+            received_by=export_row.received_by,
+        )
+
+    async def delete_export(self, export_id: int, current_user: User) -> None:
+        _require_ops(current_user)
+        deactivated = await self.export_repo.deactivate(export_id)
+        if not deactivated:
+            raise HTTPException(status_code=404, detail="Экспорт не найден")
+        await self.audit_repo.log(
+            user_id=current_user.id,
+            action="export_deleted",
+            entity_type="export",
+            entity_id=export_id,
+            details={},
+        )
