@@ -55,3 +55,39 @@ class StockOperation(Base):
 
     nomenclature = relationship("Nomenclature", back_populates="operations")
     user = relationship("User", back_populates="stock_operations")
+
+
+class Export(Base):
+    __tablename__ = "exports"
+
+    id = Column(Integer, primary_key=True, index=True)
+    invoice_number = Column(String(50), nullable=True)
+    contract_name = Column(String(200), nullable=True)
+    released_by = Column(String(150), nullable=True)
+    received_by = Column(String(150), nullable=True)
+    is_active = Column(Boolean, nullable=False, default=True, server_default="true")
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User")
+    items = relationship(
+        "ExportItem", back_populates="export", cascade="all, delete-orphan"
+    )
+
+
+class ExportItem(Base):
+    __tablename__ = "export_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    export_id = Column(
+        Integer,
+        ForeignKey("exports.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    stock_operation_id = Column(
+        Integer, ForeignKey("stock_operations.id"), nullable=False, index=True
+    )
+
+    export = relationship("Export", back_populates="items")
+    stock_operation = relationship("StockOperation")
