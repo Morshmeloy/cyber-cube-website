@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.repositories.warehouse_repository import (
     NomenclatureRepository,
     StockOperationRepository,
+    ExportRepository,
 )
 from src.repositories.audit_repository import AuditRepository
 from src.schemas.warehouse import (
@@ -15,11 +16,15 @@ from src.schemas.warehouse import (
     StockOperationResponse,
     StockOperationPageResponse,
     ConfirmResult,
+    ExportListItemResponse,
+    ExportListPageResponse,
+    ExportItemDetail,
+    ExportDetailResponse,
 )
 from src.schemas.audit import AuditLogResponse
 from src.schemas.onec import SyncStatusResponse
 from src.models.user import User
-from src.models.warehouse import OperationType, StockOperation
+from src.models.warehouse import OperationType, StockOperation, Export
 from src.models.audit import AuditLog
 from src.services.excel_service import (
     build_operations_export,
@@ -81,11 +86,56 @@ def _audit_to_response(entry: AuditLog) -> AuditLogResponse:
     )
 
 
+def _export_title(export_row: Export) -> str:
+    number = export_row.invoice_number or "_____"
+    date_str = export_row.created_at.strftime("%d.%m.%Y")
+    return f"Требование-накладная № {number} от {date_str} г."
+
+
+def _export_to_list_item(export_row: Export, items_count: int) -> ExportListItemResponse:
+    return ExportListItemResponse(
+        id=export_row.id,
+        title=_export_title(export_row),
+        created_at=export_row.created_at,
+        created_by=export_row.user.username,
+        items_count=items_count,
+    )
+
+
+def _export_to_detail(export_row: Export) -> ExportDetailResponse:
+    linked_ops = [item.stock_operation for item in export_row.items if item.stock_operation]
+    items = [
+        ExportItemDetail(
+            nomenclature_name=op.nomenclature.name,
+            nomenclature_code=op.nomenclature.code,
+            unit=op.nomenclature.unit,
+            quantity=op.quantity,
+            operation_type=op.operation_type.value,
+            person=op.person,
+            destination=op.destination,
+        )
+        for op in linked_ops
+    ]
+    object_name = ", ".join(sorted({op.destination for op in linked_ops}))
+    return ExportDetailResponse(
+        id=export_row.id,
+        invoice_number=export_row.invoice_number,
+        contract_name=export_row.contract_name,
+        released_by=export_row.released_by,
+        received_by=export_row.received_by,
+        object_name=object_name,
+        created_at=export_row.created_at,
+        created_by=export_row.user.username,
+        items=items,
+    )
+
+
 class WarehouseService:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.nomenclature_repo = NomenclatureRepository(db)
         self.operation_repo = StockOperationRepository(db)
+        self.export_repo = ExportRepository(db)
         self.audit_repo = AuditRepository(db)
 
     async def list_nomenclature(
@@ -185,6 +235,14 @@ class WarehouseService:
             received_by=received_by,
         )
         await self.operation_repo.mark_exported([op.id for op in operations])
+        await self.export_repo.create(
+            user_id=current_user.id,
+            operation_ids=[op.id for op in operations],
+            invoice_number=invoice_number,
+            contract_name=contract_name,
+            released_by=released_by,
+            received_by=received_by,
+        )
         await self.audit_repo.log(
             user_id=current_user.id,
             action="operations_exported",
