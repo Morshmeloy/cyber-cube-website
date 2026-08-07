@@ -49,7 +49,7 @@ export interface SyncStatus {
 
 export interface AuditLogEntry {
   id: number
-  userId: number
+  userId: number | null
   username: string
   action: string
   entityType: string
@@ -135,7 +135,7 @@ interface SyncStatusDto {
 
 interface AuditLogDto {
   id: number
-  user_id: number
+  user_id: number | null
   username: string
   action: string
   entity_type: string

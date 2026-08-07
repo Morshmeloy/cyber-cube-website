@@ -5,7 +5,7 @@ from typing import Optional, Any
 
 class AuditLogResponse(BaseModel):
     id: int
-    user_id: int
+    user_id: Optional[int]
     username: str
     action: str
     entity_type: str
