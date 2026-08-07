@@ -5,7 +5,13 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql import func
 from typing import List, Optional
-from src.models.warehouse import Nomenclature, StockOperation, OperationType
+from src.models.warehouse import (
+    Nomenclature,
+    StockOperation,
+    OperationType,
+    Export,
+    ExportItem,
+)
 
 
 def normalize_name(name: str) -> str:
@@ -36,7 +42,9 @@ class NomenclatureRepository:
                 | func.lower(Nomenclature.code).like(pattern)
             )
         total = (
-            await self.db.execute(select(func.count(Nomenclature.id)).where(*conditions))
+            await self.db.execute(
+                select(func.count(Nomenclature.id)).where(*conditions)
+            )
         ).scalar_one()
         result = await self.db.execute(
             select(Nomenclature)
@@ -265,7 +273,9 @@ class StockOperationRepository:
             )
         if destination:
             conditions.append(
-                func.lower(StockOperation.destination).like(f"%{destination.strip().lower()}%")
+                func.lower(StockOperation.destination).like(
+                    f"%{destination.strip().lower()}%"
+                )
             )
         if export_status == "exported":
             conditions.append(StockOperation.exported_at.is_not(None))
@@ -283,7 +293,9 @@ class StockOperationRepository:
             conditions.append(StockOperation.nomenclature_id.in_(nomenclature_ids))
 
         total = (
-            await self.db.execute(select(func.count(StockOperation.id)).where(*conditions))
+            await self.db.execute(
+                select(func.count(StockOperation.id)).where(*conditions)
+            )
         ).scalar_one()
         result = await self.db.execute(
             select(StockOperation)
@@ -389,3 +401,79 @@ class StockOperationRepository:
         await self.db.delete(op_row)
         await self.db.commit()
         return op_row
+
+
+class ExportRepository:
+    def __init__(self, db: AsyncSession):
+        self.db = db
+
+    async def list_page(self, page: int = 1, page_size: int = 10) -> tuple[list, int]:
+        """Возвращает ([(Export, items_count), ...], total) — только активные (is_active) экспорты."""
+        total = (
+            await self.db.execute(
+                select(func.count(Export.id)).where(Export.is_active.is_(True))
+            )
+        ).scalar_one()
+        result = await self.db.execute(
+            select(Export, func.count(ExportItem.id).label("items_count"))
+            .outerjoin(ExportItem, ExportItem.export_id == Export.id)
+            .options(selectinload(Export.user))
+            .where(Export.is_active.is_(True))
+            .group_by(Export.id)
+            .order_by(Export.created_at.desc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
+        return result.all(), total
+
+    async def get_active(self, export_id: int) -> Optional[Export]:
+        """Один экспорт со всеми позициями (номенклатура каждой позиции подтянута сразу) — для предпросмотра и скачивания. None, если не найден или уже мягко удалён."""
+        result = await self.db.execute(
+            select(Export)
+            .where(Export.id == export_id, Export.is_active.is_(True))
+            .options(
+                selectinload(Export.user),
+                selectinload(Export.items)
+                .selectinload(ExportItem.stock_operation)
+                .selectinload(StockOperation.nomenclature),
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def create(
+        self,
+        *,
+        user_id: int,
+        operation_ids: list[int],
+        invoice_number: Optional[str],
+        contract_name: Optional[str],
+        released_by: Optional[str],
+        received_by: Optional[str],
+    ) -> Export:
+        export_row = Export(
+            invoice_number=invoice_number,
+            contract_name=contract_name,
+            released_by=released_by,
+            received_by=received_by,
+            user_id=user_id,
+        )
+        self.db.add(export_row)
+        await self.db.flush()
+        self.db.add_all(
+            ExportItem(export_id=export_row.id, stock_operation_id=op_id)
+            for op_id in operation_ids
+        )
+        await self.db.commit()
+        await self.db.refresh(export_row)
+        return export_row
+
+    async def deactivate(self, export_id: int) -> Optional[Export]:
+        result = await self.db.execute(
+            select(Export).where(Export.id == export_id, Export.is_active.is_(True))
+        )
+        export_row = result.scalar_one_or_none()
+        if export_row is None:
+            return None
+        export_row.is_active = False
+        await self.db.commit()
+        return export_row
