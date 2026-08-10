@@ -89,9 +89,23 @@ export function useCube(options: UseCubeOptions): RefObject<CubeHandle> {
     let prevMouse = { x: 0, y: 0 }
     let dragStartMouse = { x: 0, y: 0 }
     let hasDragged = false
+    let pendingDragFrame: number | null = null
 
     const topFaceContent = topFaceContentRef.current
     const bottomFaceContent = bottomFaceContentRef.current
+
+    // Драг (onMouseMove/onTouchMove) раньше писал transform синхронно на каждое сырое
+    // событие — на мобильных события могут прилетать чаще, чем браузер успевает
+    // отрисовывать кадры, они копятся, а рендер потом "догоняет" рывком. Здесь события
+    // только обновляют rotation/velocity (дёшево), а сама запись в DOM — не чаще
+    // одного раза за кадр через rAF-коалессинг.
+    function scheduleDragTransformUpdate(): void {
+      if (pendingDragFrame !== null) return
+      pendingDragFrame = requestAnimationFrame(() => {
+        pendingDragFrame = null
+        updateCubeTransform()
+      })
+    }
 
     function updateCubeTransform(): void {
       cubeEl!.style.transform = `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`
@@ -212,7 +226,7 @@ export function useCube(options: UseCubeOptions): RefObject<CubeHandle> {
       velocity.y = dx * 0.4
       rotation.y += velocity.y
       rotation.x = Math.max(-90, Math.min(90, rotation.x - velocity.x))
-      updateCubeTransform()
+      scheduleDragTransformUpdate()
       prevMouse = { x: e.clientX, y: e.clientY }
     }
 
@@ -251,7 +265,7 @@ export function useCube(options: UseCubeOptions): RefObject<CubeHandle> {
       velocity.y = dx * 0.7
       rotation.y += velocity.y
       rotation.x = Math.max(-90, Math.min(90, rotation.x - velocity.x))
-      updateCubeTransform()
+      scheduleDragTransformUpdate()
       prevMouse = { x: touch.clientX, y: touch.clientY }
     }
 
@@ -311,6 +325,7 @@ export function useCube(options: UseCubeOptions): RefObject<CubeHandle> {
       document.removeEventListener('contextmenu', onContextMenu)
       sceneEl.removeEventListener('click', onSceneClick)
       if (autoRotationId !== null) cancelAnimationFrame(autoRotationId)
+      if (pendingDragFrame !== null) cancelAnimationFrame(pendingDragFrame)
       if (idleTimeout) clearTimeout(idleTimeout)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- refs и audio стабильны на весь жизненный цикл куба
