@@ -481,7 +481,28 @@ class ExportRepository:
     async def has_export_items(self, stock_operation_id: int) -> bool:
         result = await self.db.execute(
             select(ExportItem.id)
-            .where(ExportItem.stock_operation_id == stock_operation_id)
+            .join(Export, Export.id == ExportItem.export_id)
+            .where(
+                ExportItem.stock_operation_id == stock_operation_id,
+                Export.is_active.is_(True),
+            )
             .limit(1)
         )
         return result.first() is not None
+
+    async def delete_orphaned_items(self, stock_operation_id: int) -> None:
+        """Удаляет ExportItem, ссылающиеся на эту операцию из уже мягко удалённых
+        (is_active=False) экспортов — чтобы не упереться в FK при удалении самой
+        операции. На активные экспорты не влияет — те по-прежнему блокируют
+        удаление операции через has_export_items."""
+        result = await self.db.execute(
+            select(ExportItem)
+            .join(Export, Export.id == ExportItem.export_id)
+            .where(
+                ExportItem.stock_operation_id == stock_operation_id,
+                Export.is_active.is_(False),
+            )
+        )
+        for item in result.scalars().all():
+            await self.db.delete(item)
+        await self.db.commit()

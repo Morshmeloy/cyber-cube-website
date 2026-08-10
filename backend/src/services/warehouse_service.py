@@ -432,6 +432,7 @@ class WarehouseService:
                 detail="Нельзя удалить: без этой операции остаток товара станет отрицательным.",
             )
 
+        await self.export_repo.delete_orphaned_items(operation_id)
         deleted = await self.operation_repo.delete(operation_id)
         if not deleted:
             raise HTTPException(status_code=404, detail="Операция не найдена")
