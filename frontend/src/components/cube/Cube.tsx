@@ -92,6 +92,12 @@ export const Cube = forwardRef<CubeHandle, CubeProps>(function Cube({ audio, onF
   const bottomFaceContentRef = useRef<HTMLAnchorElement>(null)
   const frontLogoCanvasRef = useRef<HTMLCanvasElement>(null)
 
+  // Эксперимент по лагам куба на мобильных (см. обсуждение): box-shadow/inset-тени на 6
+  // гранях + drop-shadow-фильтры на иконках и лого внутри preserve-3d — дорогая для
+  // мобильного GPU комбинация. На touch-устройствах убираем их целиком, чтобы проверить,
+  // даёт ли это ощутимую разницу — если нет, откатить вместе с этим комментарием.
+  const isCoarsePointer = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
+
   const handleRef = useCube({
     sceneRef,
     cubeRef,
@@ -122,7 +128,7 @@ export const Cube = forwardRef<CubeHandle, CubeProps>(function Cube({ audio, onF
           return (
             <div
               key={face.name}
-              style={{ background: visuals.background, boxShadow: visuals.boxShadow, transform: visuals.transform, color: visuals.color }}
+              style={{ background: visuals.background, boxShadow: isCoarsePointer ? 'none' : visuals.boxShadow, transform: visuals.transform, color: visuals.color }}
               // Без backdrop-blur: в паре с transform-style:preserve-3d у родителя Chromium
               // некорректно компонует размытие на повёрнутых гранях — собственный
               // background грани будто не рисуется, сквозь неё виден резкий фон страницы.
@@ -147,12 +153,20 @@ export const Cube = forwardRef<CubeHandle, CubeProps>(function Cube({ audio, onF
               >
                 {face.name === 'front' ? (
                   <div className="flex h-full w-full items-center justify-center">
-                    <canvas ref={frontLogoCanvasRef} className="mx-auto block h-auto w-[110%]" style={{ filter: 'drop-shadow(0 0 15px rgba(0, 255, 255, 0.9))' }} width={600} height={216} />
+                    <canvas
+                      ref={frontLogoCanvasRef}
+                      className="mx-auto block h-auto w-[110%]"
+                      style={{ filter: isCoarsePointer ? 'none' : 'drop-shadow(0 0 15px rgba(0, 255, 255, 0.9))' }}
+                      width={600}
+                      height={216}
+                    />
                   </div>
                 ) : (
-                  <div className="h-14 w-14 [&_svg]:h-full [&_svg]:w-full" style={FACE_ICON_FILTER} dangerouslySetInnerHTML={{ __html: face.iconHtml }} />
+                  <div className="h-14 w-14 [&_svg]:h-full [&_svg]:w-full" style={isCoarsePointer ? undefined : FACE_ICON_FILTER} dangerouslySetInnerHTML={{ __html: face.iconHtml }} />
                 )}
-                {face.label && <span className="text-center text-[13px] font-bold tracking-[0.12em] uppercase [text-shadow:0_0_10px_currentColor]">{face.label}</span>}
+                {face.label && (
+                  <span className={`text-center text-[13px] font-bold tracking-[0.12em] uppercase ${isCoarsePointer ? '' : '[text-shadow:0_0_10px_currentColor]'}`}>{face.label}</span>
+                )}
               </a>
             </div>
           )
