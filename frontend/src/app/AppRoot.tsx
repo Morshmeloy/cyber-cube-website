@@ -72,6 +72,12 @@ export function AppRoot() {
   const headerLogoCanvas = useRef<HTMLCanvasElement>(null)
   useLumaKeyCutout(headerLogoCanvas, LOGO_IMAGE_PATH, { sizeToImage: true })
 
+  // Эксперимент по лагам куба на мобильных: заголовок визуально перекрывает куб (z-[100])
+  // и постоянно анимирует text-shadow/clip-path (neonTitlePulse/glitch/glitchLayer1-2) —
+  // это не композитор-friendly свойства, каждый кадр требуют реальной перерисовки прямо
+  // над кубом. На touch-устройствах отключаем анимацию, оставляя статичное свечение.
+  const isCoarsePointer = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
+
   // Курсор "рука для перетаскивания" нужен только пока виден сам куб — на открытой
   // странице курсор должен быть обычным (см. body.plasma-open в прежней cube.css).
   useEffect(() => {
@@ -221,7 +227,11 @@ export function AppRoot() {
           // перекрывается кубом (z-[100] выше z-10 куба) — без этого драг мышью,
           // начатый на буквах заголовка, запускал нативное выделение/перетаскивание
           // текста браузером вместо вращения куба под ним.
-          className={`relative z-[100] pointer-events-none text-center text-[clamp(18px,3.5vw,36px)] font-bold tracking-[0.2em] text-[#e0ffff] uppercase select-none [animation:neonTitlePulse_2s_ease-in-out_infinite_alternate,glitch_5s_infinite] [text-shadow:0_0_10px_rgba(0,255,255,1),0_0_25px_rgba(0,255,255,0.8),0_0_50px_rgba(0,255,255,0.6),0_0_100px_rgba(0,255,255,0.4)] before:absolute before:inset-0 before:-z-10 before:text-[#f0f] before:content-[attr(data-text)] before:[animation:glitchLayer1_5s_infinite] after:absolute after:inset-0 after:-z-10 after:text-[#0ff] after:content-[attr(data-text)] after:[animation:glitchLayer2_5s_infinite] ${target ? 'hidden' : ''}`}
+          className={`relative z-[100] pointer-events-none text-center text-[clamp(18px,3.5vw,36px)] font-bold tracking-[0.2em] text-[#e0ffff] uppercase select-none [text-shadow:0_0_10px_rgba(0,255,255,1),0_0_25px_rgba(0,255,255,0.8),0_0_50px_rgba(0,255,255,0.6),0_0_100px_rgba(0,255,255,0.4)] ${
+            isCoarsePointer
+              ? ''
+              : '[animation:neonTitlePulse_2s_ease-in-out_infinite_alternate,glitch_5s_infinite] before:absolute before:inset-0 before:-z-10 before:text-[#f0f] before:content-[attr(data-text)] before:[animation:glitchLayer1_5s_infinite] after:absolute after:inset-0 after:-z-10 after:text-[#0ff] after:content-[attr(data-text)] after:[animation:glitchLayer2_5s_infinite]'
+          } ${target ? 'hidden' : ''}`}
         >
           Д4 Технологии
         </h1>
