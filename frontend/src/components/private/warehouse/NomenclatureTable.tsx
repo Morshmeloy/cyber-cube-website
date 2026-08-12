@@ -5,6 +5,19 @@ import { PaginationBar } from './PaginationBar.tsx'
 import { Spinner } from '@/components/ui/spinner.tsx'
 import { fieldClass, panelClass, panelStyle, scrollBoxClass, secondaryButtonClass } from './shared.tsx'
 
+const HIGHLIGHT_STORAGE_KEY = 'd4_nomenclature_highlighted'
+
+/** Отметки строк — только id, без данных самих позиций (см. обсуждение): работают
+ * только в режиме "Листать вниз", где весь список и так загружен одним запросом. */
+function readStoredHighlights(): Set<number> {
+  try {
+    const raw = localStorage.getItem(HIGHLIGHT_STORAGE_KEY)
+    return raw ? new Set(JSON.parse(raw)) : new Set()
+  } catch {
+    return new Set()
+  }
+}
+
 interface NomenclatureTableProps {
   /** Меняется снаружи (после ручного «Обновить» или синка с 1С) — форсирует рефетч. */
   refreshToken: number
@@ -27,6 +40,8 @@ export function NomenclatureTable({
 }: NomenclatureTableProps) {
   const [searchInput, setSearchInput] = useState('')
   const [query, setQuery] = useState('')
+  const [highlightedIds, setHighlightedIds] = useState<Set<number>>(readStoredHighlights)
+  const [onlyHighlighted, setOnlyHighlighted] = useState(false)
 
   useEffect(() => {
     const timer = setTimeout(() => setQuery(searchInput.trim()), 300)
@@ -37,6 +52,32 @@ export function NomenclatureTable({
     (p, pageSize) => fetchNomenclature({ query, page: p, pageSize }),
     `${query}|${refreshToken}`,
   )
+
+  useEffect(() => {
+    localStorage.setItem(HIGHLIGHT_STORAGE_KEY, JSON.stringify([...highlightedIds]))
+  }, [highlightedIds])
+
+  // Отметки — только фишка режима "Листать вниз" (там весь список уже загружен разом).
+  // При выходе из этого режима сам набор отметок не теряется (лежит в localStorage),
+  // просто фильтр/кнопки скрываются, пока не вернёшься в scroll.
+  useEffect(() => {
+    if (mode !== 'scroll') setOnlyHighlighted(false)
+  }, [mode])
+
+  function toggleHighlight(id: number): void {
+    setHighlightedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function clearHighlights(): void {
+    setHighlightedIds(new Set())
+  }
+
+  const displayedItems = mode === 'scroll' && onlyHighlighted ? items.filter((item) => highlightedIds.has(item.id)) : items
 
   return (
     <div className={panelClass} style={panelStyle}>
@@ -67,9 +108,32 @@ export function NomenclatureTable({
         className={`${fieldClass} mb-3`}
       />
 
-      {items.length === 0 && !loading ? (
+      {mode === 'scroll' && (
+        <div className="mb-3 flex flex-wrap items-center gap-3 text-[13px] text-[var(--cab-text)]/70">
+          <label className="flex cursor-pointer items-center gap-1.5 select-none">
+            <input type="checkbox" checked={onlyHighlighted} onChange={(e) => setOnlyHighlighted(e.target.checked)} />
+            Показывать только отмеченные
+          </label>
+          {highlightedIds.size > 0 && (
+            <>
+              <span>
+                Отмечено: <strong className="text-[var(--plasma-color)]">{highlightedIds.size}</strong>
+              </span>
+              <button type="button" onClick={clearHighlights} className="text-[12px] text-[var(--cab-text)]/50 underline hover:text-[var(--cab-text)]/80">
+                Снять все отметки
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
+      {displayedItems.length === 0 && !loading ? (
         <div className="px-2.5 py-4 text-center text-[14px] text-[var(--cab-text)]/50">
-          {total === 0 && !query ? 'Номенклатуры пока нет — нажми «Обновить данные из 1С».' : 'Ничего не найдено.'}
+          {onlyHighlighted
+            ? 'Нет отмеченных позиций.'
+            : total === 0 && !query
+              ? 'Номенклатуры пока нет — нажми «Обновить данные из 1С».'
+              : 'Ничего не найдено.'}
         </div>
       ) : (
         <div className={mode === 'scroll' ? scrollBoxClass : undefined}>
@@ -84,8 +148,16 @@ export function NomenclatureTable({
               </tr>
             </thead>
             <tbody>
-              {items.map((item) => (
-                <tr key={item.id} className="hover:bg-white/4">
+              {displayedItems.map((item) => (
+                <tr
+                  key={item.id}
+                  onDoubleClick={() => mode === 'scroll' && toggleHighlight(item.id)}
+                  className={`${mode === 'scroll' ? 'cursor-pointer select-none' : ''} ${
+                    // Хайлайт не смешиваем с ховером — иначе наведение мышью гасит отметку
+                    // на строке, будто её сняли. У отмеченных строк своя заливка без hover-класса.
+                    highlightedIds.has(item.id) ? 'bg-[var(--plasma-color)]/12' : 'hover:bg-white/4'
+                  }`}
+                >
                   <td className="border-b border-[var(--cab-text)]/8 px-2.5 py-2 text-[var(--cab-text)]/60 whitespace-nowrap">{item.code ?? '—'}</td>
                   <td className="border-b border-[var(--cab-text)]/8 px-2.5 py-2">{item.name}</td>
                   <td className="border-b border-[var(--cab-text)]/8 px-2.5 py-2 text-[var(--cab-text)]/60">{item.unit ?? '—'}</td>
