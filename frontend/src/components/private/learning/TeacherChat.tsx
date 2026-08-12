@@ -318,22 +318,22 @@ export function TeacherChat({ mistakes }: TeacherChatProps) {
   return (
     <div
       className="mt-5 rounded-xl border p-4.5 text-left"
-      style={{ background: 'color-mix(in srgb, var(--plasma-color) 5%, #14172c)', borderColor: 'color-mix(in srgb, var(--plasma-color) 16%, transparent)' }}
+      style={{ background: 'color-mix(in srgb, var(--plasma-color) 5%, var(--cab-panel))', borderColor: 'color-mix(in srgb, var(--plasma-color) 16%, transparent)' }}
     >
       <h3 className="mb-2.5 text-xs font-bold tracking-wide text-[var(--plasma-color)] uppercase">Ваши ошибки</h3>
       <div className="mb-4 flex flex-col gap-2.5">
         {mistakes.map((m) => (
           <div key={m.id} className="rounded-lg border-l-[3px] border-l-[var(--secondary)] px-3.5 py-2.5" style={{ background: 'color-mix(in srgb, var(--secondary) 6%, rgba(255,255,255,0.04))' }}>
-            <div className="mb-1 text-[13px] text-[#e8f8ff]">{m.question}</div>
-            <div className="flex flex-wrap gap-3.5 text-xs text-[#e8f8ff]/60">
+            <div className="mb-1 text-[14px] text-[var(--cab-text)]">{m.question}</div>
+            <div className="flex flex-wrap gap-3.5 text-xs text-[var(--cab-text)]/60">
               <span>Ваш ответ: {m.userAnswer !== null ? m.options[m.userAnswer] : '(не выбрано)'}</span>
-              <span className="text-[#6ee7a0]">Правильный: {m.options[m.correct]}</span>
+              <span className="text-[var(--cab-success)]">Правильный: {m.options[m.correct]}</span>
             </div>
           </div>
         ))}
       </div>
 
-      <h3 className="mt-5.5 mb-2.5 border-t border-[#e8f8ff]/10 pt-4.5 text-xs font-bold tracking-wide text-[var(--plasma-color)] uppercase">Диалог с учителем</h3>
+      <h3 className="mt-5.5 mb-2.5 border-t border-[var(--cab-text)]/10 pt-4.5 text-xs font-bold tracking-wide text-[var(--plasma-color)] uppercase">Диалог с учителем</h3>
       <div ref={messagesRef} className="mb-3.5 flex max-h-[380px] flex-col gap-3 overflow-y-auto pr-1">
         {displayMessages.map((msg, i) => (
           <ChatRow
@@ -354,8 +354,8 @@ export function TeacherChat({ mistakes }: TeacherChatProps) {
         ))}
         {isLoading && !streamingMessage && (
           <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#e8f8ff]/15 bg-white/5 text-sm">🤖</div>
-            <div className="flex items-center gap-2 rounded-2xl rounded-tl-[4px] border border-[#e8f8ff]/10 bg-white/5 px-3.5 py-2.5 text-[13px] text-[#e8f8ff]/70">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[var(--cab-text)]/15 bg-white/5 text-sm">🤖</div>
+            <div className="flex items-center gap-2 rounded-2xl rounded-tl-[4px] border border-[var(--cab-text)]/10 bg-white/5 px-3.5 py-2.5 text-[14px] text-[var(--cab-text)]/70">
               <Spinner className="h-3.5 w-3.5" />
               Печатает…
             </div>
@@ -372,7 +372,7 @@ export function TeacherChat({ mistakes }: TeacherChatProps) {
             if (e.key === 'Enter') void handleSendFreeQuestion()
           }}
           placeholder="Задайте вопрос учителю…"
-          className="flex-1 rounded-lg border border-[#e8f8ff]/20 bg-[#0a0c18a6] px-3 py-2.5 text-[13px] text-[#e8f8ff] placeholder:text-[#e8f8ff]/35 focus:border-[var(--plasma-color)] focus:outline-none"
+          className="flex-1 rounded-lg border border-[var(--cab-text)]/20 bg-[var(--cab-field-bg)]/65 px-3 py-2.5 text-[14px] text-[var(--cab-text)] placeholder:text-[var(--cab-text)]/35 focus:border-[var(--plasma-color)] focus:outline-none"
           disabled={isLoading}
         />
         <button type="button" disabled={isLoading || !input.trim()} onClick={() => void handleSendFreeQuestion()} className={`${CTA_PRIMARY} flex items-center gap-1.5`}>
@@ -412,14 +412,14 @@ function ChatRow({
             : { background: 'rgba(255, 255, 255, 0.05)', borderColor: 'rgba(232, 248, 255, 0.1)' }
         }
       >
-        {msg.contextLabel && <div className="mb-1 text-[11px] font-bold tracking-wide text-[var(--plasma-color)] uppercase opacity-85">{msg.contextLabel}</div>}
-        <div className={`text-[13px] leading-relaxed whitespace-pre-wrap ${isUser ? 'text-[#e8f8ff]' : 'text-[#e8f8ff]/90'}`}>{msg.text}</div>
+        {msg.contextLabel && <div className="mb-1 text-[12px] font-bold tracking-wide text-[var(--plasma-color)] uppercase opacity-85">{msg.contextLabel}</div>}
+        <div className={`text-[14px] leading-relaxed whitespace-pre-wrap ${isUser ? 'text-[var(--cab-text)]' : 'text-[var(--cab-text)]/90'}`}>{msg.text}</div>
         {showDetailButton && (
           <button
             type="button"
             disabled={detailLoading}
             onClick={onRequestDetail}
-            className="mt-2 flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[11px] text-[var(--plasma-color)] transition-colors hover:bg-[color-mix(in_srgb,var(--plasma-color)_14%,transparent)] disabled:opacity-60"
+            className="mt-2 flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[12px] text-[var(--plasma-color)] transition-colors hover:bg-[color-mix(in_srgb,var(--plasma-color)_14%,transparent)] disabled:opacity-60"
             style={{ borderColor: 'color-mix(in srgb, var(--plasma-color) 40%, transparent)' }}
           >
             {detailLoading && <Spinner className="h-3 w-3" />}

@@ -43,7 +43,7 @@ export function NomenclatureTable({
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div>
           <h3 className="text-sm font-bold text-[var(--plasma-color)]">Остатки по номенклатуре</h3>
-          <p className="text-[11px] text-[#e8f8ff]/50">{syncStatusLabel}</p>
+          <p className="text-[12px] text-[var(--cab-text)]/50">{syncStatusLabel}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={onManualRefresh} disabled={manualRefreshing} className={secondaryButtonClass}>
@@ -68,16 +68,16 @@ export function NomenclatureTable({
       />
 
       {items.length === 0 && !loading ? (
-        <div className="px-2.5 py-4 text-center text-[13px] text-[#e8f8ff]/50">
+        <div className="px-2.5 py-4 text-center text-[14px] text-[var(--cab-text)]/50">
           {total === 0 && !query ? 'Номенклатуры пока нет — нажми «Обновить данные из 1С».' : 'Ничего не найдено.'}
         </div>
       ) : (
         <div className={mode === 'scroll' ? scrollBoxClass : undefined}>
-          <table className="w-full min-w-[680px] border-collapse text-[13px] text-[#e8f8ff]/85">
+          <table className="w-full min-w-[680px] border-collapse text-[16px] text-[var(--cab-text)]/85">
             <thead>
               <tr>
                 {['Код', 'Номенклатура', 'Ед.', 'Остаток из 1С', 'Движение через портал', 'Итоговый остаток'].map((h) => (
-                  <th key={h} className="sticky top-0 z-10 bg-[#14172c] px-2.5 py-2 text-left font-bold text-[var(--plasma-color)]">
+                  <th key={h} className="sticky top-0 z-10 bg-[var(--cab-panel)] px-2.5 py-2 text-left font-bold text-[var(--plasma-color)]">
                     {h}
                   </th>
                 ))}
@@ -86,12 +86,12 @@ export function NomenclatureTable({
             <tbody>
               {items.map((item) => (
                 <tr key={item.id} className="hover:bg-white/4">
-                  <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2 text-[#e8f8ff]/60 whitespace-nowrap">{item.code ?? '—'}</td>
-                  <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{item.name}</td>
-                  <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2 text-[#e8f8ff]/60">{item.unit ?? '—'}</td>
-                  <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{item.baseQuantity}</td>
-                  <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{item.portalQuantity > 0 ? `+${item.portalQuantity}` : item.portalQuantity}</td>
-                  <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2 font-bold">{item.totalQuantity}</td>
+                  <td className="border-b border-[var(--cab-text)]/8 px-2.5 py-2 text-[var(--cab-text)]/60 whitespace-nowrap">{item.code ?? '—'}</td>
+                  <td className="border-b border-[var(--cab-text)]/8 px-2.5 py-2">{item.name}</td>
+                  <td className="border-b border-[var(--cab-text)]/8 px-2.5 py-2 text-[var(--cab-text)]/60">{item.unit ?? '—'}</td>
+                  <td className="border-b border-[var(--cab-text)]/8 px-2.5 py-2">{item.baseQuantity}</td>
+                  <td className="border-b border-[var(--cab-text)]/8 px-2.5 py-2">{item.portalQuantity > 0 ? `+${item.portalQuantity}` : item.portalQuantity}</td>
+                  <td className="border-b border-[var(--cab-text)]/8 px-2.5 py-2 font-bold">{item.totalQuantity}</td>
                 </tr>
               ))}
             </tbody>
@@ -100,7 +100,7 @@ export function NomenclatureTable({
       )}
 
       {loading && items.length === 0 && (
-        <div className="flex items-center justify-center gap-2 py-3 text-sm text-[#e8f8ff]/70">
+        <div className="flex items-center justify-center gap-2 py-3 text-sm text-[var(--cab-text)]/70">
           <Spinner className="h-4 w-4" />
           Загрузка…
         </div>

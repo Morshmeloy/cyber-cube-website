@@ -105,7 +105,9 @@ export function AppRoot() {
     if (window.location.pathname !== path) window.history.pushState(null, '', path)
   }
 
-  function showPage(color: string, content: PageContent, onClose?: () => void): void {
+  /** isPrivate — только для личного кабинета (Dashboard/Warehouse/Docs/Finance/Admin):
+   * включает шрифт/размер/переключатель темы кабинета в PageShell (см. PageShellTarget). */
+  function showPage(color: string, content: PageContent, onClose?: () => void, isPrivate?: boolean): void {
     window.scrollTo({ top: 0, behavior: 'smooth' })
     if (target === null) {
       // Открытие с нуля — вспышка/сжатие куба, затем открытие панели (было прямой
@@ -115,11 +117,11 @@ export function AppRoot() {
       if (closeTimerRef.current) clearTimeout(closeTimerRef.current)
       closeTimerRef.current = window.setTimeout(() => {
         setCubeVisual('hidden')
-        setTarget({ color, content, onClose })
+        setTarget({ color, content, onClose, isPrivate })
       }, 450)
     } else {
       // Панель уже открыта — просто переключаем контент, PageShell сам сделает кросс-фейд.
-      setTarget({ color, content, onClose })
+      setTarget({ color, content, onClose, isPrivate })
     }
   }
 
@@ -148,16 +150,16 @@ export function AppRoot() {
         return
       }
       if (navTarget.private === 'dashboard') {
-        showPage(PRIVATE_PAGE_COLORS.dashboard, dashboardPageContent())
+        showPage(PRIVATE_PAGE_COLORS.dashboard, dashboardPageContent(), undefined, true)
       } else {
-        showPage(PRIVATE_PAGE_COLORS[navTarget.private], PRIVATE_PAGE_CONTENT[navTarget.private], () => navigateTo({ private: 'dashboard' }))
+        showPage(PRIVATE_PAGE_COLORS[navTarget.private], PRIVATE_PAGE_CONTENT[navTarget.private], () => navigateTo({ private: 'dashboard' }), true)
       }
       syncUrl({ kind: 'nav', target: navTarget })
       setUser(getUser())
       return
     }
     if (navTarget.face === 'front' && isAuthenticated()) {
-      showPage(PRIVATE_PAGE_COLORS.dashboard, dashboardPageContent())
+      showPage(PRIVATE_PAGE_COLORS.dashboard, dashboardPageContent(), undefined, true)
       syncUrl({ kind: 'nav', target: { private: 'dashboard' } })
       setUser(getUser())
       return
@@ -180,7 +182,7 @@ export function AppRoot() {
       navigateTo({ private: 'dashboard' })
       return
     }
-    showPage(ADMIN_COLOR, adminPageContent(), () => navigateTo({ private: 'dashboard' }))
+    showPage(ADMIN_COLOR, adminPageContent(), () => navigateTo({ private: 'dashboard' }), true)
     syncUrl({ kind: 'admin' })
     setUser(getUser())
   }

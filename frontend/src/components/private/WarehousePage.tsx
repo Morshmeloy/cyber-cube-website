@@ -147,12 +147,12 @@ export function WarehousePage() {
           {showAudit && (
             <div className="mt-3.5">
               {auditLog === null ? (
-                <div className="flex items-center gap-2 py-2 text-sm text-[#e8f8ff]/70">
+                <div className="flex items-center gap-2 py-2 text-sm text-[var(--cab-text)]/70">
                   <Spinner className="h-4 w-4" />
                   Загрузка…
                 </div>
               ) : (
-                <table className="w-full min-w-[640px] border-collapse text-[13px] text-[#e8f8ff]/85">
+                <table className="w-full min-w-[640px] border-collapse text-[16px] text-[var(--cab-text)]/85">
                   <thead>
                     <tr>
                       {['Дата', 'Пользователь', 'Что сделал'].map((h) => (
@@ -165,14 +165,14 @@ export function WarehousePage() {
                   <tbody>
                     {auditLog.map((entry) => (
                       <tr key={entry.id} className="hover:bg-white/4">
-                        <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2 whitespace-nowrap">{formatDate(entry.createdAt)}</td>
-                        <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2 whitespace-nowrap">{entry.username}</td>
-                        <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{describeAuditEntry(entry)}</td>
+                        <td className="border-b border-[var(--cab-text)]/8 px-2.5 py-2 whitespace-nowrap">{formatDate(entry.createdAt)}</td>
+                        <td className="border-b border-[var(--cab-text)]/8 px-2.5 py-2 whitespace-nowrap">{entry.username}</td>
+                        <td className="border-b border-[var(--cab-text)]/8 px-2.5 py-2">{describeAuditEntry(entry)}</td>
                       </tr>
                     ))}
                     {auditLog.length === 0 && (
                       <tr>
-                        <td colSpan={3} className="px-2.5 py-4 text-center text-[#e8f8ff]/50">
+                        <td colSpan={3} className="px-2.5 py-4 text-center text-[var(--cab-text)]/50">
                           Журнал пуст.
                         </td>
                       </tr>

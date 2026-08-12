@@ -148,7 +148,7 @@ export function OperationForm({ onCreated }: OperationFormProps) {
               type="button"
               onClick={() => removeLine(line.key)}
               disabled={lines.length === 1}
-              className="shrink-0 rounded-md border border-red-400/35 px-2.5 py-2 text-[13px] text-red-300 transition-colors hover:bg-red-500/15 disabled:opacity-30"
+              className="shrink-0 rounded-md border border-red-400/35 px-2.5 py-2 text-[14px] text-red-300 transition-colors hover:bg-red-500/15 disabled:opacity-30"
               aria-label="Убрать позицию"
             >
               ✕
@@ -161,14 +161,14 @@ export function OperationForm({ onCreated }: OperationFormProps) {
         <button
           type="button"
           onClick={addLine}
-          className="rounded-md border border-[#e8f8ff]/20 px-3 py-2 text-[13px] text-[#e8f8ff]/80 transition-colors hover:bg-white/6"
+          className="rounded-md border border-[var(--cab-text)]/20 px-3 py-2 text-[14px] text-[var(--cab-text)]/80 transition-colors hover:bg-white/6"
         >
           + Ещё позиция
         </button>
         <button
           type="submit"
           disabled={submitting}
-          className="flex items-center gap-2 rounded-lg border border-[var(--plasma-color)] bg-[var(--plasma-color)] px-5 py-2.5 font-bold text-[#050510] disabled:opacity-60"
+          className="flex items-center gap-2 rounded-lg border border-[var(--plasma-color)] bg-[var(--plasma-color)] px-5 py-2.5 font-bold text-[var(--cab-bg)] disabled:opacity-60"
         >
           {submitting && <Spinner className="h-4 w-4" />}
           Сохранить

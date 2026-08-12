@@ -88,6 +88,85 @@
   --gradient-neon-5: #9c27b0;
 }
 
+/* Личный кабинет (Dashboard/Warehouse/Docs/Finance/Admin — панель PageShell с
+ * target.isPrivate) — единственное место на сайте с отдельным шрифтом (Times New Roman),
+ * увеличенным на 1pt текстом и переключаемой светлой темой. Публичный сайт (куб, "О нас"
+ * и т.п.) не имеет атрибута [data-private-area] вообще, поэтому его не затрагивает ничего
+ * из этого блока — переменные ниже переопределяются только в этом скоупе, а не в :root. */
+[data-private-area] {
+  --cab-font: 'Times New Roman', Times, serif;
+  font-family: var(--cab-font);
+  font-size: 17px; /* было 16px (браузерный дефолт) — +1px (~1pt) */
+
+  /* +1px к тем шагам шкалы Tailwind (--text-*), которые реально используются в кабинете —
+   * Tailwind v4 генерирует утилиты через var(), поэтому локальный оверрайд здесь меняет
+   * ambient text-xs/text-sm/text-2xl у всех потомков без правки каждого класса. */
+  --text-xs: 0.8125rem; /* было 0.75rem (12px) → 13px */
+  --text-sm: 0.9375rem; /* было 0.875rem (14px) → 15px */
+  --text-2xl: 1.5625rem; /* было 1.5rem (24px) → 25px */
+
+  /* Тёмная версия (дефолт, пока не переключили) — те же цвета, что были захардкожены
+   * по компонентам склада/дашборда, вынесены сюда в переменные. */
+  --cab-bg: #050510;
+  --cab-panel: #14172c;
+  --cab-panel-form: #171b30;
+  --cab-field-bg: #0a0c18;
+  --cab-text: #e8f8ff;
+  --cab-success: #6ee7a0;
+  --cab-warning: #f0c95f;
+  --cab-danger: #ff8080;
+  --cab-danger-text: #ff9a9a;
+  --cab-panel-grad-start: rgba(6, 8, 20, 0.97);
+  --cab-panel-grad-end: rgba(4, 4, 12, 0.97);
+
+  /* Декоративные слои панели (PageShell) — цветное свечение по --plasma-color и полоски
+   * сканлайнов. На тёмном фоне это малозаметная атмосфера, но на светлом фоне та же
+   * интенсивность выглядит как грубые полосы и мутный цветной налёт — поэтому тоже
+   * переменные, приглушаются отдельно под светлой темой ниже. */
+  --cab-glow-opacity: 0.12;
+  --cab-scanline-color: rgba(0, 0, 0, 0.1);
+
+  /* Карточки разделов на Dashboard (DashboardPage.tsx) — цвет каждой карточки свой
+   * (--card-color), но подмешивается к этим переменным, а не жёстко к black/white —
+   * иначе в светлой теме карточки остаются тёмными "как для тёмной темы". */
+  --cab-card-shade: black;
+  --cab-card-icon-shade: white;
+  --cab-card-text: white;
+  --cab-card-text-muted: rgba(255, 255, 255, 0.75);
+}
+[data-private-area] * {
+  font-family: var(--cab-font) !important;
+}
+
+/* Светлая тема кабинета — включается тумблером в шапке панели (см. PageShell.tsx),
+ * запоминается в localStorage. Основной фон — тёплый оттенок, не чистый белый. */
+[data-cabinet-theme='light'] {
+  --cab-bg: #f5f3ef;
+  --cab-panel: #fdfcfa;
+  --cab-panel-form: #f7f5f0;
+  --cab-field-bg: #ffffff;
+  --cab-text: #1c1d22;
+  --cab-success: #1f9d5c;
+  --cab-warning: #a8760a;
+  --cab-danger: #d64545;
+  --cab-danger-text: #c23838;
+  --cab-panel-grad-start: #fdfcfa;
+  --cab-panel-grad-end: #f5f3ef;
+
+  /* Та же цветная подсветка и сканлайны, что и в тёмной теме, но сильно приглушённые —
+   * на светлом фоне даже небольшая интенсивность режет глаза и мутит цвет. */
+  --cab-glow-opacity: 0.035;
+  --cab-scanline-color: rgba(0, 0, 0, 0.03);
+
+  /* Карточки Dashboard в светлой теме — светлый пастельный оттенок фирменного цвета
+   * карточки вместо тёмного, с тёмным текстом поверх (белый текст на светлой карточке
+   * был бы нечитаем). */
+  --cab-card-shade: white;
+  --cab-card-icon-shade: black;
+  --cab-card-text: #1c1d22;
+  --cab-card-text-muted: rgba(28, 29, 34, 0.65);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

@@ -270,7 +270,7 @@ function ContactFormBlock({ heading, recipientEmail, style, appear }: { heading:
  * акцентный цвет страницы динамический — --plasma-color, читается через var()). */
 export function PageRenderer({ content, navigateTo }: PageRendererProps) {
   return (
-    <div className="mx-auto block max-w-[1180px] font-heading text-[#e8f8ff]">
+    <div className="mx-auto block max-w-[1180px] font-heading text-[var(--cab-text,#e8f8ff)]">
       {content.title && (
         <h1 className="mb-6 text-[clamp(22px,3.6vw,34px)] leading-[1.3] font-black tracking-wide text-[var(--plasma-color)] [text-shadow:0_0_8px_color-mix(in_srgb,var(--plasma-color)_60%,transparent),0_0_20px_color-mix(in_srgb,var(--plasma-color)_30%,transparent)]">
           {content.title}

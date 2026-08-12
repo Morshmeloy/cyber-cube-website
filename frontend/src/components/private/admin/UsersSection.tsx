@@ -91,19 +91,19 @@ export function UsersSection({ roles }: UsersSectionProps) {
 
   return (
     <div>
-      {error && <div className="mb-3.5 rounded-lg border border-red-400/35 bg-red-500/10 px-3 py-2.5 text-[13px] text-red-300">{error}</div>}
+      {error && <div className="mb-3.5 rounded-lg border border-red-400/35 bg-red-500/10 px-3 py-2.5 text-[14px] text-red-300">{error}</div>}
 
       {!users ? (
-        <div className="mb-4 flex items-center gap-2 text-sm text-[#e8f8ff]/70">
+        <div className="mb-4 flex items-center gap-2 text-sm text-[var(--cab-text)]/70">
           <Spinner className="h-4 w-4" />
           Загрузка пользователей…
         </div>
       ) : (
         <div
           className="mb-4 overflow-x-auto rounded-xl border p-4"
-          style={{ background: 'color-mix(in srgb, var(--plasma-color) 6%, #14172c)', borderColor: 'color-mix(in srgb, var(--plasma-color) 16%, transparent)' }}
+          style={{ background: 'color-mix(in srgb, var(--plasma-color) 6%, var(--cab-panel))', borderColor: 'color-mix(in srgb, var(--plasma-color) 16%, transparent)' }}
         >
-          <table className="w-full min-w-[720px] border-collapse text-[13px] text-[#e8f8ff]/85">
+          <table className="w-full min-w-[720px] border-collapse text-[16px] text-[var(--cab-text)]/85">
             <thead>
               <tr>
                 {['Логин', 'Email', 'Имя', 'Роль', 'Статус'].map((h) => (
@@ -121,10 +121,10 @@ export function UsersSection({ roles }: UsersSectionProps) {
                 const locked = u.role.isSystem && !viewerIsSystem
                 return (
                   <tr key={u.id} className="hover:bg-white/4">
-                    <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2 font-semibold">{u.username}</td>
-                    <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2 text-[#e8f8ff]/70">{u.email}</td>
-                    <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2 text-[#e8f8ff]/70">{u.fullName ?? '—'}</td>
-                    <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">
+                    <td className="border-b border-[var(--cab-text)]/8 px-2.5 py-2 font-semibold">{u.username}</td>
+                    <td className="border-b border-[var(--cab-text)]/8 px-2.5 py-2 text-[var(--cab-text)]/70">{u.email}</td>
+                    <td className="border-b border-[var(--cab-text)]/8 px-2.5 py-2 text-[var(--cab-text)]/70">{u.fullName ?? '—'}</td>
+                    <td className="border-b border-[var(--cab-text)]/8 px-2.5 py-2">
                       <select
                         value={u.role.id}
                         disabled={busy || locked}
@@ -132,19 +132,19 @@ export function UsersSection({ roles }: UsersSectionProps) {
                         className={`${selectClass} py-1.5`}
                       >
                         {roles.map((role) => (
-                          <option key={role.id} value={role.id} className="bg-[#0a0c18]">
+                          <option key={role.id} value={role.id} className="bg-[var(--cab-field-bg)]">
                             {role.name}
                           </option>
                         ))}
                       </select>
                     </td>
-                    <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">
+                    <td className="border-b border-[var(--cab-text)]/8 px-2.5 py-2">
                       <button
                         type="button"
                         disabled={busy || locked}
                         onClick={() => void handleToggleActive(u.id, !u.isActive)}
-                        className={`rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide transition-colors disabled:opacity-50 ${
-                          u.isActive ? 'border-[#6ee7a0]/40 text-[#6ee7a0] hover:bg-[#6ee7a01a]' : 'border-[#ff8080]/40 text-[#ff8080] hover:bg-[#ff80801a]'
+                        className={`rounded-full border px-2.5 py-1 text-[12px] font-bold uppercase tracking-wide transition-colors disabled:opacity-50 ${
+                          u.isActive ? 'border-[var(--cab-success)]/40 text-[var(--cab-success)] hover:bg-[var(--cab-success)]/10' : 'border-[var(--cab-danger)]/40 text-[var(--cab-danger)] hover:bg-[var(--cab-danger)]/10'
                         }`}
                       >
                         {u.isActive ? 'Активен' : 'Заблокирован'}
@@ -155,7 +155,7 @@ export function UsersSection({ roles }: UsersSectionProps) {
               })}
               {users.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-2.5 py-4 text-center text-[#e8f8ff]/50">
+                  <td colSpan={5} className="px-2.5 py-4 text-center text-[var(--cab-text)]/50">
                     Пользователей пока нет.
                   </td>
                 </tr>
@@ -169,7 +169,7 @@ export function UsersSection({ roles }: UsersSectionProps) {
         <form
           onSubmit={(e) => void handleCreate(e)}
           className="max-w-[420px] rounded-xl border p-4"
-          style={{ background: 'color-mix(in srgb, var(--plasma-color) 7%, #171b30)', borderColor: 'color-mix(in srgb, var(--plasma-color) 20%, transparent)' }}
+          style={{ background: 'color-mix(in srgb, var(--plasma-color) 7%, var(--cab-panel-form))', borderColor: 'color-mix(in srgb, var(--plasma-color) 20%, transparent)' }}
         >
           <div className="mb-3">
             <label className={labelClass}>Логин</label>
@@ -195,11 +195,11 @@ export function UsersSection({ roles }: UsersSectionProps) {
               required
               className={selectClass}
             >
-              <option value="" disabled className="bg-[#0a0c18]">
+              <option value="" disabled className="bg-[var(--cab-field-bg)]">
                 Выбери роль
               </option>
               {roles.map((role) => (
-                <option key={role.id} value={role.id} className="bg-[#0a0c18]">
+                <option key={role.id} value={role.id} className="bg-[var(--cab-field-bg)]">
                   {role.name}
                 </option>
               ))}
@@ -209,7 +209,7 @@ export function UsersSection({ roles }: UsersSectionProps) {
             <button
               type="submit"
               disabled={submitting}
-              className="flex items-center gap-2 rounded-lg border border-[var(--plasma-color)] bg-[var(--plasma-color)] px-4 py-2 text-[13px] font-bold text-[#050510] disabled:opacity-60"
+              className="flex items-center gap-2 rounded-lg border border-[var(--plasma-color)] bg-[var(--plasma-color)] px-4 py-2 text-[14px] font-bold text-[var(--cab-bg)] disabled:opacity-60"
             >
               {submitting && <Spinner className="h-3.5 w-3.5" />}
               Создать
@@ -217,7 +217,7 @@ export function UsersSection({ roles }: UsersSectionProps) {
             <button
               type="button"
               onClick={() => setCreating(false)}
-              className="rounded-lg border border-[#e8f8ff]/20 px-4 py-2 text-[13px] text-[#e8f8ff]/70 transition-colors hover:bg-white/6"
+              className="rounded-lg border border-[var(--cab-text)]/20 px-4 py-2 text-[14px] text-[var(--cab-text)]/70 transition-colors hover:bg-white/6"
             >
               Отмена
             </button>
@@ -227,7 +227,7 @@ export function UsersSection({ roles }: UsersSectionProps) {
         <button
           type="button"
           onClick={() => setCreating(true)}
-          className="rounded-lg border border-[var(--plasma-color)] px-4 py-2 text-[13px] font-bold text-[var(--plasma-color)] transition-colors hover:bg-[color-mix(in_srgb,var(--plasma-color)_15%,transparent)]"
+          className="rounded-lg border border-[var(--plasma-color)] px-4 py-2 text-[14px] font-bold text-[var(--plasma-color)] transition-colors hover:bg-[color-mix(in_srgb,var(--plasma-color)_15%,transparent)]"
         >
           + Новый пользователь
         </button>

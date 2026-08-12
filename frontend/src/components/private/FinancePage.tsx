@@ -19,8 +19,8 @@ interface FinanceDraft {
 const EMPTY_DRAFT: FinanceDraft = { amount: '', description: '' }
 
 const fieldClass =
-  'w-full rounded-md border border-[#e8f8ff]/20 bg-[#0a0c18a6] px-2.5 py-2 font-inherit text-[#e8f8ff] transition-colors focus:border-[var(--plasma-color)] focus:outline-none'
-const labelClass = 'mb-1 block text-xs font-semibold text-[#e8f8ff]/70'
+  'w-full rounded-md border border-[var(--cab-text)]/20 bg-[var(--cab-field-bg)]/65 px-2.5 py-2 font-inherit text-[var(--cab-text)] transition-colors focus:border-[var(--plasma-color)] focus:outline-none'
+const labelClass = 'mb-1 block text-xs font-semibold text-[var(--cab-text)]/70'
 
 /** React-порт settings/navigation/pages/private/finance.ts — чеки/затраты, видимость по роли
  * (admin/accountant видят все, остальные — только свои), черновик формы через lib/storage.ts.
@@ -80,7 +80,7 @@ export function FinancePage() {
       <form
         onSubmit={handleSubmit}
         className="mb-5.5 max-w-[480px] rounded-xl border p-4.5"
-        style={{ background: 'color-mix(in srgb, var(--plasma-color) 7%, #171b30)', borderColor: 'color-mix(in srgb, var(--plasma-color) 20%, transparent)' }}
+        style={{ background: 'color-mix(in srgb, var(--plasma-color) 7%, var(--cab-panel-form))', borderColor: 'color-mix(in srgb, var(--plasma-color) 20%, transparent)' }}
       >
         <h3 className="mb-3 text-sm font-bold text-[var(--plasma-color)] [text-shadow:0_0_6px_color-mix(in_srgb,var(--plasma-color)_50%,transparent)]">Добавить чек/затрату</h3>
         <div className="mb-3">
@@ -109,20 +109,20 @@ export function FinancePage() {
             >
               Выбрать файл
             </label>
-            <span className="overflow-hidden text-xs text-ellipsis whitespace-nowrap text-[#e8f8ff]/55">{receiptName}</span>
+            <span className="overflow-hidden text-xs text-ellipsis whitespace-nowrap text-[var(--cab-text)]/55">{receiptName}</span>
           </div>
         </div>
-        <button type="submit" className="rounded-lg border border-[var(--plasma-color)] bg-[var(--plasma-color)] px-5 py-2.5 font-bold text-[#050510]">
+        <button type="submit" className="rounded-lg border border-[var(--plasma-color)] bg-[var(--plasma-color)] px-5 py-2.5 font-bold text-[var(--cab-bg)]">
           Добавить
         </button>
       </form>
 
       <div
         className="mb-5.5 overflow-x-auto rounded-xl border p-4"
-        style={{ background: 'color-mix(in srgb, var(--plasma-color) 6%, #14172c)', borderColor: 'color-mix(in srgb, var(--plasma-color) 16%, transparent)' }}
+        style={{ background: 'color-mix(in srgb, var(--plasma-color) 6%, var(--cab-panel))', borderColor: 'color-mix(in srgb, var(--plasma-color) 16%, transparent)' }}
       >
         <h3 className="mb-3 text-sm font-bold text-[var(--plasma-color)]">Мои расходы</h3>
-        <table className="w-full min-w-[480px] border-collapse text-[13px] text-[#e8f8ff]/85">
+        <table className="w-full min-w-[480px] border-collapse text-[16px] text-[var(--cab-text)]/85">
           <thead>
             <tr>
               {['#', 'Сумма', 'Описание', 'Дата', 'Кто', 'Чек'].map((h) => (
@@ -135,12 +135,12 @@ export function FinancePage() {
           <tbody>
             {filtered.map((item, i) => (
               <tr key={item.id} className="hover:bg-white/4">
-                <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{i + 1}</td>
-                <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{item.amount.toFixed(2)}</td>
-                <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{item.description}</td>
-                <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{item.date}</td>
-                <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{item.username}</td>
-                <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">
+                <td className="border-b border-[var(--cab-text)]/8 px-2.5 py-2">{i + 1}</td>
+                <td className="border-b border-[var(--cab-text)]/8 px-2.5 py-2">{item.amount.toFixed(2)}</td>
+                <td className="border-b border-[var(--cab-text)]/8 px-2.5 py-2">{item.description}</td>
+                <td className="border-b border-[var(--cab-text)]/8 px-2.5 py-2">{item.date}</td>
+                <td className="border-b border-[var(--cab-text)]/8 px-2.5 py-2">{item.username}</td>
+                <td className="border-b border-[var(--cab-text)]/8 px-2.5 py-2">
                   {item.receipt ? (
                     <a href={item.receipt} target="_blank" rel="noopener" className="text-[var(--plasma-color)] underline">
                       Просмотр

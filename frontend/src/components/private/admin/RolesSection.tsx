@@ -33,12 +33,12 @@ function RoleForm({ initialName, initialPermissions, submitLabel, busy, onSubmit
           type="button"
           disabled={busy || !name.trim()}
           onClick={() => onSubmit(name.trim(), permissions)}
-          className="flex items-center gap-2 rounded-lg border border-[var(--plasma-color)] bg-[var(--plasma-color)] px-4 py-2 text-[13px] font-bold text-[#050510] disabled:opacity-60"
+          className="flex items-center gap-2 rounded-lg border border-[var(--plasma-color)] bg-[var(--plasma-color)] px-4 py-2 text-[14px] font-bold text-[var(--cab-bg)] disabled:opacity-60"
         >
           {busy && <Spinner className="h-3.5 w-3.5" />}
           {submitLabel}
         </button>
-        <button type="button" onClick={onCancel} className="rounded-lg border border-[#e8f8ff]/20 px-4 py-2 text-[13px] text-[#e8f8ff]/70 transition-colors hover:bg-white/6">
+        <button type="button" onClick={onCancel} className="rounded-lg border border-[var(--cab-text)]/20 px-4 py-2 text-[14px] text-[var(--cab-text)]/70 transition-colors hover:bg-white/6">
           Отмена
         </button>
       </div>
@@ -101,14 +101,14 @@ export function RolesSection({ roles, onChanged }: RolesSectionProps) {
 
   return (
     <div>
-      {error && <div className="mb-3.5 rounded-lg border border-red-400/35 bg-red-500/10 px-3 py-2.5 text-[13px] text-red-300">{error}</div>}
+      {error && <div className="mb-3.5 rounded-lg border border-red-400/35 bg-red-500/10 px-3 py-2.5 text-[14px] text-red-300">{error}</div>}
 
       <div className="mb-4 space-y-3">
         {roles.map((role) => (
           <div
             key={role.id}
             className="rounded-xl border p-4"
-            style={{ background: 'color-mix(in srgb, var(--plasma-color) 6%, #14172c)', borderColor: 'color-mix(in srgb, var(--plasma-color) 16%, transparent)' }}
+            style={{ background: 'color-mix(in srgb, var(--plasma-color) 6%, var(--cab-panel))', borderColor: 'color-mix(in srgb, var(--plasma-color) 16%, transparent)' }}
           >
             {editingId === role.id ? (
               <RoleForm
@@ -125,16 +125,16 @@ export function RolesSection({ roles, onChanged }: RolesSectionProps) {
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-bold text-[var(--plasma-color)]">{role.name}</span>
                     {role.isSystem && (
-                      <span className="rounded-full border border-[var(--plasma-color)] px-2 py-0.5 text-[10px] font-bold text-[var(--plasma-color)]">Системная</span>
+                      <span className="rounded-full border border-[var(--plasma-color)] px-2 py-0.5 text-[11px] font-bold text-[var(--plasma-color)]">Системная</span>
                     )}
                   </div>
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                     {PERMISSION_FIELDS.filter((f) => role[f.key]).map((f) => (
-                      <span key={f.key} className="rounded-full border border-[#e8f8ff]/20 px-2 py-0.5 text-[11px] text-[#e8f8ff]/70">
+                      <span key={f.key} className="rounded-full border border-[var(--cab-text)]/20 px-2 py-0.5 text-[12px] text-[var(--cab-text)]/70">
                         {f.label}
                       </span>
                     ))}
-                    {PERMISSION_FIELDS.every((f) => !role[f.key]) && <span className="text-[11px] text-[#e8f8ff]/40">Без прав</span>}
+                    {PERMISSION_FIELDS.every((f) => !role[f.key]) && <span className="text-[12px] text-[var(--cab-text)]/40">Без прав</span>}
                   </div>
                 </div>
                 {!role.isSystem && (
@@ -142,7 +142,7 @@ export function RolesSection({ roles, onChanged }: RolesSectionProps) {
                     <button
                       type="button"
                       onClick={() => setEditingId(role.id)}
-                      className="rounded-md border border-[#e8f8ff]/20 px-2.5 py-1.5 text-[12px] text-[#e8f8ff]/80 transition-colors hover:bg-white/6"
+                      className="rounded-md border border-[var(--cab-text)]/20 px-2.5 py-1.5 text-[13px] text-[var(--cab-text)]/80 transition-colors hover:bg-white/6"
                     >
                       Изменить
                     </button>
@@ -150,7 +150,7 @@ export function RolesSection({ roles, onChanged }: RolesSectionProps) {
                       type="button"
                       disabled={busy}
                       onClick={() => void handleDelete(role)}
-                      className="rounded-md border border-red-400/35 px-2.5 py-1.5 text-[12px] text-red-300 transition-colors hover:bg-red-500/15 disabled:opacity-50"
+                      className="rounded-md border border-red-400/35 px-2.5 py-1.5 text-[13px] text-red-300 transition-colors hover:bg-red-500/15 disabled:opacity-50"
                     >
                       Удалить
                     </button>
@@ -165,7 +165,7 @@ export function RolesSection({ roles, onChanged }: RolesSectionProps) {
       {creating ? (
         <div
           className="max-w-[420px] rounded-xl border p-4"
-          style={{ background: 'color-mix(in srgb, var(--plasma-color) 7%, #171b30)', borderColor: 'color-mix(in srgb, var(--plasma-color) 20%, transparent)' }}
+          style={{ background: 'color-mix(in srgb, var(--plasma-color) 7%, var(--cab-panel-form))', borderColor: 'color-mix(in srgb, var(--plasma-color) 20%, transparent)' }}
         >
           <RoleForm
             initialName=""
@@ -180,7 +180,7 @@ export function RolesSection({ roles, onChanged }: RolesSectionProps) {
         <button
           type="button"
           onClick={() => setCreating(true)}
-          className="rounded-lg border border-[var(--plasma-color)] px-4 py-2 text-[13px] font-bold text-[var(--plasma-color)] transition-colors hover:bg-[color-mix(in_srgb,var(--plasma-color)_15%,transparent)]"
+          className="rounded-lg border border-[var(--plasma-color)] px-4 py-2 text-[14px] font-bold text-[var(--plasma-color)] transition-colors hover:bg-[color-mix(in_srgb,var(--plasma-color)_15%,transparent)]"
         >
           + Новая роль
         </button>

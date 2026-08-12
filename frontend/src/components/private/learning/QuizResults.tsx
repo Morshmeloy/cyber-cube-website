@@ -96,20 +96,20 @@ export function QuizResults({ total, done, correct, skipped, wrong, pct, mistake
       </div>
 
       <h2 className="mb-1 text-[clamp(19px,2.6vw,24px)] font-extrabold text-[var(--plasma-color)] [text-shadow:0_0_8px_color-mix(in_srgb,var(--plasma-color)_40%,transparent)]">{title}</h2>
-      <p className="text-[13px] text-[#e8f8ff]/60">
+      <p className="text-[14px] text-[var(--cab-text)]/60">
         Отвечено: {done} из {total}
       </p>
 
       <div className="my-4.5 flex flex-wrap justify-center gap-5.5">
-        <Stat value={correct} label="Верно" colorClass="text-[#6ee7a0]" />
-        <Stat value={wrong} label="Неверно" colorClass="text-[#ff8080]" />
-        <Stat value={skipped} label="Пропущено" colorClass="text-[#f0c95f]" />
+        <Stat value={correct} label="Верно" colorClass="text-[var(--cab-success)]" />
+        <Stat value={wrong} label="Неверно" colorClass="text-[var(--cab-danger)]" />
+        <Stat value={skipped} label="Пропущено" colorClass="text-[var(--cab-warning)]" />
         <Stat value={total} label="Всего" />
       </div>
 
       {pendingAction ? (
-        <div className="mt-4.5 flex flex-wrap items-center justify-center gap-3 rounded-xl border border-[#f0c95f4d] bg-[#f0c95f14] px-4 py-3">
-          <span className="text-[13px] text-[#f0c95f]">
+        <div className="mt-4.5 flex flex-wrap items-center justify-center gap-3 rounded-xl border border-[var(--cab-warning)]/30 bg-[var(--cab-warning)]/8 px-4 py-3">
+          <span className="text-[14px] text-[var(--cab-warning)]">
             Текущие результаты и чат с ИИ будут скрыты (но диалог, если он ещё генерируется, доучится в фоне). Точно{' '}
             {pendingAction === 'restart' ? 'начать заново' : 'повторить ошибки'}?
           </span>
@@ -142,34 +142,34 @@ export function QuizResults({ total, done, correct, skipped, wrong, pct, mistake
       {showBreakdown && (
         <div
           className="mt-5 rounded-xl border p-4.5 text-left"
-          style={{ background: 'color-mix(in srgb, var(--plasma-color) 5%, #14172c)', borderColor: 'color-mix(in srgb, var(--plasma-color) 16%, transparent)' }}
+          style={{ background: 'color-mix(in srgb, var(--plasma-color) 5%, var(--cab-panel))', borderColor: 'color-mix(in srgb, var(--plasma-color) 16%, transparent)' }}
         >
           <h3 className="mb-3.5 text-sm text-[var(--plasma-color)]">Разбор по вопросам</h3>
           {finishedOrder.map((orderIdx, i) => {
             const q = resolveQuestion(i)
             const ans = finishedAnswers[q.id]
             return (
-              <div key={orderIdx} className={`py-3.5 ${i > 0 ? 'border-t border-[#e8f8ff]/8' : ''}`}>
+              <div key={orderIdx} className={`py-3.5 ${i > 0 ? 'border-t border-[var(--cab-text)]/8' : ''}`}>
                 <div className="mb-2.5 flex items-start gap-2.5">
                   <span
-                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[13px] font-bold ${
-                      ans?.checked ? (ans.correct ? 'bg-[#6ee7a02e] text-[#6ee7a0]' : 'bg-[#ff80802e] text-[#ff9a9a]') : 'bg-[#f0c95f29] text-[#f0c95f]'
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[14px] font-bold ${
+                      ans?.checked ? (ans.correct ? 'bg-[var(--cab-success)]/18 text-[var(--cab-success)]' : 'bg-[var(--cab-danger)]/18 text-[var(--cab-danger-text)]') : 'bg-[var(--cab-warning)]/16 text-[var(--cab-warning)]'
                     }`}
                   >
                     {ans?.checked ? (ans.correct ? '✓' : '✗') : '?'}
                   </span>
-                  <div className="text-sm leading-relaxed text-[#e8f8ff]">
+                  <div className="text-sm leading-relaxed text-[var(--cab-text)]">
                     Вопрос {q.id}. {q.q}
                   </div>
                 </div>
-                <div className="ml-8.5 flex flex-col gap-1 text-[13px]">
+                <div className="ml-8.5 flex flex-col gap-1 text-[14px]">
                   {q.o.map((opt, oi) => {
                     const isCorrect = q.a.includes(oi)
                     const isSelected = !!ans?.selected.includes(oi)
-                    let cls = 'text-[#e8f8ff]/60'
-                    if (isCorrect && isSelected) cls = 'text-[#6ee7a0]'
-                    else if (isSelected && !isCorrect) cls = 'text-[#ff9a9a]'
-                    else if (isCorrect && !isSelected) cls = 'text-[#f0c95f]'
+                    let cls = 'text-[var(--cab-text)]/60'
+                    if (isCorrect && isSelected) cls = 'text-[var(--cab-success)]'
+                    else if (isSelected && !isCorrect) cls = 'text-[var(--cab-danger-text)]'
+                    else if (isCorrect && !isSelected) cls = 'text-[var(--cab-warning)]'
                     return (
                       <div key={oi} className={cls}>
                         {isCorrect && isSelected ? '✓' : isSelected ? '✗' : isCorrect ? '!' : '○'} {opt}
@@ -177,7 +177,7 @@ export function QuizResults({ total, done, correct, skipped, wrong, pct, mistake
                     )
                   })}
                 </div>
-                {q.src && <div className="ml-8.5 mt-2 text-xs text-[#e8f8ff]/50">{q.src}</div>}
+                {q.src && <div className="ml-8.5 mt-2 text-xs text-[var(--cab-text)]/50">{q.src}</div>}
               </div>
             )
           })}
@@ -192,8 +192,8 @@ export function QuizResults({ total, done, correct, skipped, wrong, pct, mistake
 function Stat({ value, label, colorClass }: { value: number; label: string; colorClass?: string }) {
   return (
     <div className="text-center">
-      <div className={`text-2xl font-extrabold ${colorClass ?? 'text-[#e8f8ff]'}`}>{value}</div>
-      <div className="mt-0.5 text-xs text-[#e8f8ff]/55">{label}</div>
+      <div className={`text-2xl font-extrabold ${colorClass ?? 'text-[var(--cab-text)]'}`}>{value}</div>
+      <div className="mt-0.5 text-xs text-[var(--cab-text)]/55">{label}</div>
     </div>
   )
 }

@@ -19,18 +19,18 @@ export function DocsPage() {
 
   return (
     <div>
-      <h3 className="mb-3.5 text-[15px] font-bold text-[var(--plasma-color)] [text-shadow:0_0_6px_color-mix(in_srgb,var(--plasma-color)_50%,transparent)]">
+      <h3 className="mb-3.5 text-[16px] font-bold text-[var(--plasma-color)] [text-shadow:0_0_6px_color-mix(in_srgb,var(--plasma-color)_50%,transparent)]">
         Документы, доступные для роли «{role}»
       </h3>
       {accessible.length === 0 ? (
-        <p className="text-[#e8f8ff]/85">Нет доступных документов для вашей роли.</p>
+        <p className="text-[var(--cab-text)]/85">Нет доступных документов для вашей роли.</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {accessible.map((doc) => (
             <li
               key={doc.title}
-              className="rounded-lg border-l-[3px] border-l-[var(--plasma-color)] px-4 py-3 text-[#e8f8ff]/90"
-              style={{ background: 'color-mix(in srgb, var(--plasma-color) 6%, #171b30)' }}
+              className="rounded-lg border-l-[3px] border-l-[var(--plasma-color)] px-4 py-3 text-[var(--cab-text)]/90"
+              style={{ background: 'color-mix(in srgb, var(--plasma-color) 6%, var(--cab-panel-form))' }}
             >
               {doc.title}
             </li>

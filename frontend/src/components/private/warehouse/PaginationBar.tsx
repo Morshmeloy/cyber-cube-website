@@ -11,12 +11,12 @@ interface PaginationBarProps {
 }
 
 const buttonClass =
-  'rounded-md border border-[#e8f8ff]/20 px-2.5 py-1 text-[12px] text-[#e8f8ff]/80 transition-colors hover:bg-white/6 disabled:opacity-40'
+  'rounded-md border border-[var(--cab-text)]/20 px-2.5 py-1 text-[13px] text-[var(--cab-text)]/80 transition-colors hover:bg-white/6 disabled:opacity-40'
 const activeButtonClass = 'border-[var(--plasma-color)] text-[var(--plasma-color)]'
 
 export function PaginationBar({ mode, onModeChange, page, totalPages, onPageChange, loading }: PaginationBarProps) {
   return (
-    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[12px] text-[#e8f8ff]/70">
+    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[13px] text-[var(--cab-text)]/70">
       <div className="flex items-center gap-1.5">
         <button
           type="button"

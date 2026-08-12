@@ -33,8 +33,8 @@ export function AdminPage() {
   }, [])
 
   function tabButtonClass(active: boolean): string {
-    return `rounded-lg border px-4 py-2 text-[13px] font-bold transition-colors ${
-      active ? 'border-[var(--plasma-color)] bg-[var(--plasma-color)] text-[#050510]' : 'border-[#e8f8ff]/20 text-[#e8f8ff]/70 hover:bg-white/6'
+    return `rounded-lg border px-4 py-2 text-[14px] font-bold transition-colors ${
+      active ? 'border-[var(--plasma-color)] bg-[var(--plasma-color)] text-[var(--cab-bg)]' : 'border-[var(--cab-text)]/20 text-[var(--cab-text)]/70 hover:bg-white/6'
     }`
   }
 
@@ -49,10 +49,10 @@ export function AdminPage() {
         </button>
       </div>
 
-      {error && <div className="mb-3.5 rounded-lg border border-red-400/35 bg-red-500/10 px-3 py-2.5 text-[13px] text-red-300">{error}</div>}
+      {error && <div className="mb-3.5 rounded-lg border border-red-400/35 bg-red-500/10 px-3 py-2.5 text-[14px] text-red-300">{error}</div>}
 
       {roles === null ? (
-        <div className="flex items-center gap-2 text-sm text-[#e8f8ff]/70">
+        <div className="flex items-center gap-2 text-sm text-[var(--cab-text)]/70">
           <Spinner className="h-4 w-4" />
           Загрузка…
         </div>

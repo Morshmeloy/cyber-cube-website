@@ -160,7 +160,7 @@ export function ExportPanel({ refreshToken: externalRefreshToken, onExported }: 
       </div>
 
       {showDocumentModal ? (
-        <div ref={documentFormRef} className="rounded-lg border border-[#e8f8ff]/15 bg-[#0a0c18a6] p-4">
+        <div ref={documentFormRef} className="rounded-lg border border-[var(--cab-text)]/15 bg-[var(--cab-field-bg)]/65 p-4">
           <h4 className="mb-3 text-sm font-bold text-[var(--plasma-color)]">Данные документа</h4>
           <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
             <div>
@@ -184,12 +184,12 @@ export function ExportPanel({ refreshToken: externalRefreshToken, onExported }: 
               <input type="text" value={receivedBy} onChange={(e) => setReceivedBy(e.target.value)} className={fieldClass} />
             </div>
           </div>
-          <div className="mt-4 flex justify-end gap-2 border-t border-[#e8f8ff]/10 pt-3.5">
+          <div className="mt-4 flex justify-end gap-2 border-t border-[var(--cab-text)]/10 pt-3.5">
             <button
               type="button"
               disabled={generating}
               onClick={() => setShowDocumentModal(false)}
-              className="rounded-md border border-[#e8f8ff]/20 px-3 py-2 text-[12px] text-[#e8f8ff]/80 hover:bg-white/6 disabled:opacity-50"
+              className="rounded-md border border-[var(--cab-text)]/20 px-3 py-2 text-[13px] text-[var(--cab-text)]/80 hover:bg-white/6 disabled:opacity-50"
             >
               Отмена
             </button>
@@ -197,7 +197,7 @@ export function ExportPanel({ refreshToken: externalRefreshToken, onExported }: 
               type="button"
               disabled={generating}
               onClick={() => void handleGenerate({ invoiceNumber, contractName, releasedBy, receivedBy })}
-              className="flex items-center gap-2 rounded-lg border border-[var(--plasma-color)] bg-[var(--plasma-color)] px-4 py-2 text-[12px] font-bold text-[#050510] disabled:opacity-50"
+              className="flex items-center gap-2 rounded-lg border border-[var(--plasma-color)] bg-[var(--plasma-color)] px-4 py-2 text-[13px] font-bold text-[var(--cab-bg)] disabled:opacity-50"
             >
               {generating && <Spinner className="h-3.5 w-3.5" />}
               Сформировать документ
@@ -207,14 +207,14 @@ export function ExportPanel({ refreshToken: externalRefreshToken, onExported }: 
       ) : (
         <>
           {items.length === 0 && !loading ? (
-            <div className="px-2.5 py-4 text-center text-[13px] text-[#e8f8ff]/50">Ничего не найдено по этим фильтрам.</div>
+            <div className="px-2.5 py-4 text-center text-[14px] text-[var(--cab-text)]/50">Ничего не найдено по этим фильтрам.</div>
           ) : (
             <div className={mode === 'scroll' ? scrollBoxClass : undefined}>
-              <table className="w-full min-w-[720px] border-collapse text-[13px] text-[#e8f8ff]/85">
+              <table className="w-full min-w-[720px] border-collapse text-[16px] text-[var(--cab-text)]/85">
                 <thead>
                   <tr>
                     {['', 'Дата', 'Номенклатура', 'Тип', 'Кол-во', 'ФИО', 'Адрес/объект'].map((h) => (
-                      <th key={h} className="sticky top-0 z-10 bg-[#14172c] px-2.5 py-2 text-left font-bold text-[var(--plasma-color)]">
+                      <th key={h} className="sticky top-0 z-10 bg-[var(--cab-panel)] px-2.5 py-2 text-left font-bold text-[var(--plasma-color)]">
                         {h}
                       </th>
                     ))}
@@ -223,20 +223,20 @@ export function ExportPanel({ refreshToken: externalRefreshToken, onExported }: 
                 <tbody>
                   {items.map((op) => (
                     <tr key={op.id} className="cursor-pointer hover:bg-white/4" onClick={() => toggleSelected(op)}>
-                      <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">
+                      <td className="border-b border-[var(--cab-text)]/8 px-2.5 py-2">
                         <input type="checkbox" checked={selectedIds.has(op.id)} onChange={() => toggleSelected(op)} onClick={(e) => e.stopPropagation()} />
                       </td>
-                      <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2 whitespace-nowrap">{formatDate(op.createdAt)}</td>
-                      <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">
+                      <td className="border-b border-[var(--cab-text)]/8 px-2.5 py-2 whitespace-nowrap">{formatDate(op.createdAt)}</td>
+                      <td className="border-b border-[var(--cab-text)]/8 px-2.5 py-2">
                         {op.nomenclatureName}
                         {op.exportedAt && (
-                          <div className="mt-0.5 text-[11px] whitespace-nowrap text-[#e8f8ff]/45">Уже экспортировано {formatDate(op.exportedAt)}</div>
+                          <div className="mt-0.5 text-[12px] whitespace-nowrap text-[var(--cab-text)]/45">Уже экспортировано {formatDate(op.exportedAt)}</div>
                         )}
                       </td>
-                      <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{operationLabel(op.operationType)}</td>
-                      <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{op.quantity}</td>
-                      <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{op.person}</td>
-                      <td className="border-b border-[#e8f8ff]/8 px-2.5 py-2">{op.destination}</td>
+                      <td className="border-b border-[var(--cab-text)]/8 px-2.5 py-2">{operationLabel(op.operationType)}</td>
+                      <td className="border-b border-[var(--cab-text)]/8 px-2.5 py-2">{op.quantity}</td>
+                      <td className="border-b border-[var(--cab-text)]/8 px-2.5 py-2">{op.person}</td>
+                      <td className="border-b border-[var(--cab-text)]/8 px-2.5 py-2">{op.destination}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -245,7 +245,7 @@ export function ExportPanel({ refreshToken: externalRefreshToken, onExported }: 
           )}
 
           {loading && items.length === 0 && (
-            <div className="flex items-center justify-center gap-2 py-3 text-sm text-[#e8f8ff]/70">
+            <div className="flex items-center justify-center gap-2 py-3 text-sm text-[var(--cab-text)]/70">
               <Spinner className="h-4 w-4" />
               Загрузка…
             </div>
@@ -253,12 +253,12 @@ export function ExportPanel({ refreshToken: externalRefreshToken, onExported }: 
 
           {total > 0 && <PaginationBar mode={mode} onModeChange={setMode} page={page} totalPages={totalPages} onPageChange={setPage} loading={loading} />}
 
-          <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-[#e8f8ff]/10 pt-3.5">
-            <span className="text-[13px] text-[#e8f8ff]/70">
+          <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-[var(--cab-text)]/10 pt-3.5">
+            <span className="text-[14px] text-[var(--cab-text)]/70">
               Выбрано позиций: <strong className="text-[var(--plasma-color)]">{selectedIds.size}</strong>
             </span>
             {selectedIds.size > 0 && (
-              <button type="button" onClick={clearSelection} className="text-[12px] text-[#e8f8ff]/50 underline hover:text-[#e8f8ff]/80">
+              <button type="button" onClick={clearSelection} className="text-[13px] text-[var(--cab-text)]/50 underline hover:text-[var(--cab-text)]/80">
                 Сбросить выбор
               </button>
             )}
@@ -266,7 +266,7 @@ export function ExportPanel({ refreshToken: externalRefreshToken, onExported }: 
               type="button"
               disabled={confirmingAll}
               onClick={() => void handleConfirmAllExported()}
-              className="ml-auto flex items-center gap-1.5 rounded-md border border-[#e8f8ff]/20 px-2.5 py-1.5 text-[12px] text-[#e8f8ff]/80 transition-colors hover:bg-white/6 disabled:opacity-50"
+              className="ml-auto flex items-center gap-1.5 rounded-md border border-[var(--cab-text)]/20 px-2.5 py-1.5 text-[13px] text-[var(--cab-text)]/80 transition-colors hover:bg-white/6 disabled:opacity-50"
             >
               {confirmingAll && <Spinner className="h-3.5 w-3.5" />}
               Подтвердить перенос всех выгруженных
@@ -275,7 +275,7 @@ export function ExportPanel({ refreshToken: externalRefreshToken, onExported }: 
               type="button"
               disabled={selectedIds.size === 0 || generating}
               onClick={() => setShowDocumentModal(true)}
-              className="flex items-center gap-2 rounded-lg border border-[var(--plasma-color)] bg-[var(--plasma-color)] px-5 py-2.5 text-[13px] font-bold text-[#050510] disabled:opacity-50"
+              className="flex items-center gap-2 rounded-lg border border-[var(--plasma-color)] bg-[var(--plasma-color)] px-5 py-2.5 text-[14px] font-bold text-[var(--cab-bg)] disabled:opacity-50"
             >
               {generating && <Spinner className="h-4 w-4" />}
               Сформировать документ

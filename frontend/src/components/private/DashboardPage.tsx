@@ -25,7 +25,7 @@ export function DashboardPage({ navigateTo }: DashboardPageProps) {
 
   return (
     <div>
-      <div className="mb-6.5 flex items-start justify-between gap-4 border-b border-[#e8f8ff]/12 pb-5">
+      <div className="mb-6.5 flex items-start justify-between gap-4 border-b border-[var(--cab-text)]/12 pb-5">
         <div>
           <p className="mb-1.5 text-xs font-bold tracking-[0.16em] text-[var(--plasma-color)] uppercase [text-shadow:0_0_6px_color-mix(in_srgb,var(--plasma-color)_60%,transparent)]">
             Личный кабинет
@@ -33,7 +33,7 @@ export function DashboardPage({ navigateTo }: DashboardPageProps) {
           <h2 className="mb-1 text-[clamp(20px,3vw,28px)] font-extrabold text-[var(--plasma-color)] [text-shadow:0_0_8px_color-mix(in_srgb,var(--plasma-color)_40%,transparent)]">
             Добро пожаловать, {user?.fullName || user?.username || 'пользователь'}
           </h2>
-          <p className="text-[13px] text-[#e8f8ff]/60">{user?.role.name ?? ''}</p>
+          <p className="text-[14px] text-[var(--cab-text)]/60">{user?.role.name ?? ''}</p>
         </div>
       </div>
 
@@ -56,7 +56,10 @@ export function DashboardPage({ navigateTo }: DashboardPageProps) {
             >
               <div
                 className="absolute inset-0"
-                style={{ background: 'linear-gradient(to top, color-mix(in srgb, var(--card-color) 55%, black) 0%, color-mix(in srgb, var(--card-color) 22%, black) 100%)' }}
+                style={{
+                  background:
+                    'linear-gradient(to top, color-mix(in srgb, var(--card-color) 55%, var(--cab-card-shade, black)) 0%, color-mix(in srgb, var(--card-color) 22%, var(--cab-card-shade, black)) 100%)',
+                }}
               />
               <svg
                 viewBox="0 0 24 24"
@@ -66,7 +69,10 @@ export function DashboardPage({ navigateTo }: DashboardPageProps) {
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 dangerouslySetInnerHTML={{ __html: card.icon }}
-                style={{ color: 'color-mix(in srgb, var(--card-color) 70%, white)', filter: 'drop-shadow(0 0 6px color-mix(in srgb, var(--card-color) 70%, transparent))' }}
+                style={{
+                  color: 'color-mix(in srgb, var(--card-color) 70%, var(--cab-card-icon-shade, white))',
+                  filter: 'drop-shadow(0 0 6px color-mix(in srgb, var(--card-color) 70%, transparent))',
+                }}
                 className={`absolute left-1/2 h-7.5 w-7.5 -translate-x-1/2 transition-[top,transform] duration-400 ease-in-out max-sm:top-1/2! max-sm:left-5! max-sm:-translate-y-1/2! max-sm:translate-x-0! ${
                   isActive ? 'top-7 -translate-y-0' : 'top-1/2 -translate-y-1/2'
                 }`}
@@ -76,8 +82,8 @@ export function DashboardPage({ navigateTo }: DashboardPageProps) {
                   isActive ? 'translate-y-0 opacity-100' : 'translate-y-1.5 opacity-0'
                 }`}
               >
-                <span className="text-[15px] font-extrabold whitespace-nowrap text-white">{card.title}</span>
-                <span className="text-xs leading-snug text-white/75">{card.desc}</span>
+                <span className="text-[16px] font-extrabold whitespace-nowrap text-[var(--cab-card-text,white)]">{card.title}</span>
+                <span className="text-xs leading-snug text-[var(--cab-card-text-muted,rgba(255,255,255,0.75))]">{card.desc}</span>
               </div>
             </button>
           )
