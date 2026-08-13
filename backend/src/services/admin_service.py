@@ -28,6 +28,7 @@ class AdminService:
             can_sync_warehouse_1c=data.can_sync_warehouse_1c,
             can_manage_users=data.can_manage_users,
             can_manage_roles=data.can_manage_roles,
+            can_view_all_documents=data.can_view_all_documents,
         )
         await self.audit_repo.log(
             user_id=current_user.id,
@@ -56,6 +57,7 @@ class AdminService:
             can_sync_warehouse_1c=data.can_sync_warehouse_1c,
             can_manage_users=data.can_manage_users,
             can_manage_roles=data.can_manage_roles,
+            can_view_all_documents=data.can_view_all_documents,
         )
         await self.audit_repo.log(
             user_id=current_user.id,
