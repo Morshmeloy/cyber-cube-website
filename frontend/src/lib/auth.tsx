@@ -10,6 +10,7 @@ export interface Role {
   canSyncWarehouse1c: boolean
   canManageUsers: boolean
   canManageRoles: boolean
+  canViewAllDocuments: boolean
 }
 
 export interface User {
@@ -30,6 +31,7 @@ export interface RoleDto {
   can_sync_warehouse_1c: boolean
   can_manage_users: boolean
   can_manage_roles: boolean
+  can_view_all_documents: boolean
 }
 
 interface UserResponseDto {
@@ -53,6 +55,7 @@ export function mapRole(dto: RoleDto): Role {
     canSyncWarehouse1c: dto.can_sync_warehouse_1c,
     canManageUsers: dto.can_manage_users,
     canManageRoles: dto.can_manage_roles,
+    canViewAllDocuments: dto.can_view_all_documents,
   }
 }
 

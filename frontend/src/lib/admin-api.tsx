@@ -29,6 +29,7 @@ export interface RolePermissions {
   canSyncWarehouse1c: boolean
   canManageUsers: boolean
   canManageRoles: boolean
+  canViewAllDocuments: boolean
 }
 
 function permissionsToDto(permissions: RolePermissions) {
@@ -38,6 +39,7 @@ function permissionsToDto(permissions: RolePermissions) {
     can_sync_warehouse_1c: permissions.canSyncWarehouse1c,
     can_manage_users: permissions.canManageUsers,
     can_manage_roles: permissions.canManageRoles,
+    can_view_all_documents: permissions.canViewAllDocuments,
   }
 }
 

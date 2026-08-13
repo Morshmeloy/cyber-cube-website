@@ -21,6 +21,7 @@ export const PERMISSION_FIELDS: { key: keyof RolePermissions; label: string; sen
   { key: 'canSyncWarehouse1c', label: 'Склад — синхронизация с 1С' },
   { key: 'canManageUsers', label: 'Пользователи — управление', sensitive: true },
   { key: 'canManageRoles', label: 'Роли — управление', sensitive: true },
+  { key: 'canViewAllDocuments', label: 'Документы — просмотр и скачивание чужих' },
 ]
 
 export const EMPTY_PERMISSIONS: RolePermissions = {
@@ -29,6 +30,7 @@ export const EMPTY_PERMISSIONS: RolePermissions = {
   canSyncWarehouse1c: false,
   canManageUsers: false,
   canManageRoles: false,
+  canViewAllDocuments: false,
 }
 
 /** Тумблер в стиле Дискорда — своя мини-реализация на кнопке, отдельного Switch-компонента
