@@ -16,6 +16,7 @@ class Role(Base):
     can_manage_users = Column(Boolean, nullable=False, default=False)
     can_manage_roles = Column(Boolean, nullable=False, default=False)
     can_view_all_documents = Column(Boolean, nullable=False, default=False)
+    can_view_all_expenses = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     users = relationship("User", back_populates="role")
