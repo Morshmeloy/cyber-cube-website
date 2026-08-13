@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     ONEC_USERNAME: str = Field(..., env="ONEC_USERNAME")
     ONEC_PASSWORD: str = Field(..., env="ONEC_PASSWORD")
     DOCUMENTS_STORAGE_DIR: str = Field("/app/data/documents", env="DOCUMENTS_STORAGE_DIR")
+    EXPENSES_STORAGE_DIR: str = Field("/app/data/expenses", env="EXPENSES_STORAGE_DIR")
 
     class Config:
         env_file = ".env.dev"
