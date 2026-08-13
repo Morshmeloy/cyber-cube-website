@@ -32,6 +32,8 @@ services:
     env_file: .env.production
     ports:
       - "127.0.0.1:8001:8000"
+    volumes:
+      - documents_data:/app/data/documents
     healthcheck:
       test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/ping')" ]
       interval: 10s
@@ -43,3 +45,4 @@ services:
         condition: service_completed_successfully
 volumes:
   pgdata:
+  documents_data:
