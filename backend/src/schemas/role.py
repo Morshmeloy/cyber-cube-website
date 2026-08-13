@@ -9,6 +9,7 @@ class RoleBase(BaseModel):
     can_manage_users: bool = False
     can_manage_roles: bool = False
     can_view_all_documents: bool = False
+    can_view_all_expenses: bool = False
 
 
 class RoleCreate(RoleBase):
@@ -23,6 +24,7 @@ class RoleUpdate(BaseModel):
     can_manage_users: Optional[bool] = None
     can_manage_roles: Optional[bool] = None
     can_view_all_documents: Optional[bool] = None
+    can_view_all_expenses: Optional[bool] = None
 
 
 class RoleResponse(RoleBase):
