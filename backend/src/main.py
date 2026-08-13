@@ -8,6 +8,7 @@ from src.routes import auth
 from src.routes import warehouse
 from src.routes import admin
 from src.routes import documents
+from src.routes import expenses
 from src.services.warehouse_service import WarehouseService
 
 scheduler = AsyncIOScheduler()
@@ -36,6 +37,7 @@ app.include_router(auth.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
 app.include_router(warehouse.router, prefix="/api")
 app.include_router(documents.router, prefix="/api")
+app.include_router(expenses.router, prefix="/api")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ALLOWED_ORIGINS,
