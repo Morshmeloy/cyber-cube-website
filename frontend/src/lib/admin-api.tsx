@@ -30,6 +30,7 @@ export interface RolePermissions {
   canManageUsers: boolean
   canManageRoles: boolean
   canViewAllDocuments: boolean
+  canViewAllExpenses: boolean
 }
 
 function permissionsToDto(permissions: RolePermissions) {
@@ -40,6 +41,7 @@ function permissionsToDto(permissions: RolePermissions) {
     can_manage_users: permissions.canManageUsers,
     can_manage_roles: permissions.canManageRoles,
     can_view_all_documents: permissions.canViewAllDocuments,
+    can_view_all_expenses: permissions.canViewAllExpenses,
   }
 }
 

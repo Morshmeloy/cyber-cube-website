@@ -11,6 +11,7 @@ export interface Role {
   canManageUsers: boolean
   canManageRoles: boolean
   canViewAllDocuments: boolean
+  canViewAllExpenses: boolean
 }
 
 export interface User {
@@ -32,6 +33,7 @@ export interface RoleDto {
   can_manage_users: boolean
   can_manage_roles: boolean
   can_view_all_documents: boolean
+  can_view_all_expenses: boolean
 }
 
 interface UserResponseDto {
@@ -56,6 +58,7 @@ export function mapRole(dto: RoleDto): Role {
     canManageUsers: dto.can_manage_users,
     canManageRoles: dto.can_manage_roles,
     canViewAllDocuments: dto.can_view_all_documents,
+    canViewAllExpenses: dto.can_view_all_expenses,
   }
 }
 
