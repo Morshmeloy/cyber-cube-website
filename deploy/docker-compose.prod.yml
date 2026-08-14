@@ -34,6 +34,7 @@ services:
       - "127.0.0.1:8001:8000"
     volumes:
       - documents_data:/app/data/documents
+      - expenses_data:/app/data/expenses
     healthcheck:
       test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/ping')" ]
       interval: 10s
@@ -46,3 +47,4 @@ services:
 volumes:
   pgdata:
   documents_data:
+  expenses_data:
