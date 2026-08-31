@@ -4,8 +4,12 @@ import { Cube, type CubeHandle, type CubeVisualState } from '@/components/cube/C
 import { PageShell, type PageShellTarget } from '@/components/page-shell/PageShell.tsx'
 import { SiteFooter } from '@/components/layout/SiteFooter.tsx'
 import { UserMenu } from '@/components/layout/UserMenu.tsx'
-import { BackgroundSlideshow } from '@/components/background/BackgroundSlideshow.tsx'
-import { Rain } from '@/components/background/Rain.tsx'
+// BackgroundSlideshow (фотослайдшоу), Rain (кибер-дождь) и NetworkBackground
+// (сетевой граф) отключены — фон теперь картинка energy_ring_1920x1080.webp ниже.
+// Компоненты не удалены, импорты закомментированы, чтобы noUnusedLocals не ронял сборку.
+// import { BackgroundSlideshow } from '@/components/background/BackgroundSlideshow.tsx'
+// import { Rain } from '@/components/background/Rain.tsx'
+// import { NetworkBackground } from '@/components/background/NetworkBackground.tsx'
 import { useLumaKeyCutout } from '@/hooks/useLumaKeyCutout.tsx'
 import { createAudioEngine } from '@/lib/audio-engine.tsx'
 import { faceColors } from '@/data/navigation/faces.tsx'
@@ -217,8 +221,12 @@ export function AppRoot() {
 
   return (
     <>
-      <BackgroundSlideshow />
-      <Rain />
+      <img
+        src="/images/energy_ring_1920x1080.webp"
+        alt=""
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-[-3] h-full w-full object-cover select-none"
+      />
 
       <UserMenu user={user} navigateTo={navigateTo} onLoggedOut={() => navigateTo({ face: 'front' })} />
 
@@ -232,11 +240,17 @@ export function AppRoot() {
           className={`relative z-[100] pointer-events-none text-center text-[clamp(18px,3.5vw,36px)] font-bold tracking-[0.2em] text-[#e0ffff] uppercase select-none [text-shadow:0_0_10px_rgba(0,255,255,1),0_0_25px_rgba(0,255,255,0.8),0_0_50px_rgba(0,255,255,0.6),0_0_100px_rgba(0,255,255,0.4)] ${
             isCoarsePointer
               ? ''
-              : '[animation:neonTitlePulse_2s_ease-in-out_infinite_alternate,glitch_5s_infinite] before:absolute before:inset-0 before:-z-10 before:text-[#f0f] before:content-[attr(data-text)] before:[animation:glitchLayer1_5s_infinite] after:absolute after:inset-0 after:-z-10 after:text-[#0ff] after:content-[attr(data-text)] after:[animation:glitchLayer2_5s_infinite]'
+              : '[animation:neonTitlePulse_2s_ease-in-out_infinite_alternate,glitch_5s_infinite] before:absolute before:inset-0 before:-z-10 before:text-[var(--secondary)] before:content-[attr(data-text)] before:[animation:glitchLayer1_5s_infinite] after:absolute after:inset-0 after:-z-10 after:text-[#0ff] after:content-[attr(data-text)] after:[animation:glitchLayer2_5s_infinite]'
           } ${target ? 'hidden' : ''}`}
         >
           Д4 Технологии
         </h1>
+        <div
+          className={`relative z-[100] flex items-center justify-center gap-2 pointer-events-none text-[10px] font-semibold tracking-[0.35em] text-[var(--secondary)] uppercase select-none sm:text-[11px] ${target ? 'hidden' : ''}`}
+        >
+          <span className="h-1.5 w-1.5 rounded-full bg-[var(--primary)] shadow-[0_0_6px_var(--primary)] [animation:statusBlink_1.6s_ease-in-out_infinite]" />
+          Сети · Мониторинг · Метрики · Решения
+        </div>
         <canvas
           ref={headerLogoCanvas}
           aria-label="Д4 Технологии"

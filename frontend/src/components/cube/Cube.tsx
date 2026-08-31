@@ -21,50 +21,32 @@ interface CubeProps {
   visualState: CubeVisualState
 }
 
-/** Визуальные параметры каждой грани — фиксированные брендовые цвета/градиенты (не тема,
- * не должны течь через дизайн-токены), поэтому заданы как данные, а не Tailwind-классы:
- * многостоповые градиенты и 3D-transform с CSS-переменной размера читаемее как объект стилей,
- * чем как одна строка произвольного Tailwind-класса. Альфа-канал background — 0.9 (почти
- * непрозрачно, чуть светлее и лёгкий эффект стекла): полностью прозрачным (альфа < ~0.85)
- * быть не должно — сквозь грань просвечивает фон страницы позади всей сцены куба (грани —
- * это отдельные плоскости без непрозрачной "начинки", не закрытый со всех сторон объём). */
-const FACE_VISUALS: Record<FaceName, { background: string; boxShadow: string; transform: string; color: string }> = {
-  front: {
-    background: 'linear-gradient(135deg, rgba(0, 255, 255, 0.9), rgba(0, 110, 110, 0.9))',
-    boxShadow: '0 0 16px rgba(0, 255, 255, 0.25), inset 0 0 24px rgba(0, 255, 255, 0.08)',
-    transform: 'translateZ(var(--cube-half))',
-    color: faceColors.front,
-  },
-  back: {
-    background: 'linear-gradient(135deg, rgba(255, 0, 255, 0.9), rgba(110, 0, 110, 0.9))',
-    boxShadow: '0 0 16px rgba(255, 0, 255, 0.25), inset 0 0 24px rgba(255, 0, 255, 0.08)',
-    transform: 'rotateY(180deg) translateZ(var(--cube-half))',
-    color: faceColors.back,
-  },
-  right: {
-    background: 'linear-gradient(135deg, rgba(0, 255, 136, 0.9), rgba(0, 110, 60, 0.9))',
-    boxShadow: '0 0 16px rgba(0, 255, 136, 0.25), inset 0 0 24px rgba(0, 255, 136, 0.08)',
-    transform: 'rotateY(90deg) translateZ(var(--cube-half))',
-    color: faceColors.right,
-  },
-  left: {
-    background: 'linear-gradient(135deg, rgba(255, 136, 0, 0.9), rgba(110, 60, 0, 0.9))',
-    boxShadow: '0 0 16px rgba(255, 136, 0, 0.25), inset 0 0 24px rgba(255, 136, 0, 0.08)',
-    transform: 'rotateY(-90deg) translateZ(var(--cube-half))',
-    color: faceColors.left,
-  },
-  top: {
-    background: 'linear-gradient(135deg, rgba(136, 0, 255, 0.9), rgba(60, 0, 110, 0.9))',
-    boxShadow: '0 0 16px rgba(136, 0, 255, 0.25), inset 0 0 24px rgba(136, 0, 255, 0.08)',
-    transform: 'rotateX(90deg) translateZ(var(--cube-half))',
-    color: faceColors.top,
-  },
-  bottom: {
-    background: 'linear-gradient(135deg, rgba(0, 136, 255, 0.9), rgba(0, 60, 110, 0.9))',
-    boxShadow: '0 0 16px rgba(0, 136, 255, 0.25), inset 0 0 24px rgba(0, 136, 255, 0.08)',
-    transform: 'rotateX(-90deg) translateZ(var(--cube-half))',
-    color: faceColors.bottom,
-  },
+/** Визуальные параметры каждой грани — тёмное неоновое «стекло» с альфа-прозрачностью
+ * (грань пропускает сквозь себя сетевой фон/картинку-кольцо), а не сплошная радужная
+ * заливка, как в первой версии. Прозрачность — плавный переход по диагонали (один угол
+ * плотнее, другой прозрачнее), а не равномерная — так грань не выглядит просто "тусклой",
+ * а читается как стекло. Предыдущая итерация (88%/55%) оказалась почти непрозрачной на вид
+ * — вернул более прозрачные значения. backface-visibility: hidden на грани (см. ниже) уже
+ * снял риск "полого куба изнутри", которым раньше объяснялась более плотная заливка. */
+function faceVisual(accent: string, transform: string): { background: string; boxShadow: string; borderColor: string; transform: string; color: string } {
+  const glow = `radial-gradient(120% 100% at 15% -10%, color-mix(in srgb, ${accent} 26%, transparent) 0%, transparent 60%)`
+  const base = `linear-gradient(165deg, color-mix(in srgb, #06060f 60%, transparent) 0%, color-mix(in srgb, #06060f 32%, transparent) 100%)`
+  return {
+    background: `${glow}, ${base}`,
+    boxShadow: `0 0 18px color-mix(in srgb, ${accent} 45%, transparent), inset 0 0 28px color-mix(in srgb, ${accent} 12%, transparent)`,
+    borderColor: `color-mix(in srgb, ${accent} 45%, transparent)`,
+    transform,
+    color: accent,
+  }
+}
+
+const FACE_VISUALS: Record<FaceName, { background: string; boxShadow: string; borderColor: string; transform: string; color: string }> = {
+  front: faceVisual(faceColors.front, 'translateZ(var(--cube-half))'),
+  back: faceVisual(faceColors.back, 'rotateY(180deg) translateZ(var(--cube-half))'),
+  right: faceVisual(faceColors.right, 'rotateY(90deg) translateZ(var(--cube-half))'),
+  left: faceVisual(faceColors.left, 'rotateY(-90deg) translateZ(var(--cube-half))'),
+  top: faceVisual(faceColors.top, 'rotateX(90deg) translateZ(var(--cube-half))'),
+  bottom: faceVisual(faceColors.bottom, 'rotateX(-90deg) translateZ(var(--cube-half))'),
 }
 
 const SCENE_STYLE: CSSProperties = {
@@ -109,7 +91,9 @@ export const Cube = forwardRef<CubeHandle, CubeProps>(function Cube({ audio, onF
     <div
       ref={sceneRef}
       style={SCENE_STYLE}
-      className={`absolute top-1/2 left-1/2 z-10 -translate-x-1/2 -translate-y-1/2 cursor-pointer select-none ${visualState === 'hidden' ? 'hidden' : ''} ${
+      // top-[42%], а не top-1/2: центр кольца в energy_ring_1920x1080.webp (см.
+      // AppRoot.tsx) смещён выше геометрического центра картинки — подогнано под это.
+      className={`absolute top-[42%] left-1/2 z-10 -translate-x-1/2 -translate-y-1/2 cursor-pointer select-none ${visualState === 'hidden' ? 'hidden' : ''} ${
         visualState === 'closing'
           ? 'scale-0 rotate-45 opacity-0 transition-all duration-[330ms] ease-[cubic-bezier(0.55,0,0.675,0.19)]'
           : 'scale-100 rotate-0 opacity-100 transition-all duration-500 ease-in-out'
@@ -122,11 +106,14 @@ export const Cube = forwardRef<CubeHandle, CubeProps>(function Cube({ audio, onF
           return (
             <div
               key={face.name}
-              style={{ background: visuals.background, boxShadow: visuals.boxShadow, transform: visuals.transform, color: visuals.color }}
+              style={{ background: visuals.background, boxShadow: visuals.boxShadow, borderColor: visuals.borderColor, transform: visuals.transform, color: visuals.color }}
               // Без backdrop-blur: в паре с transform-style:preserve-3d у родителя Chromium
               // некорректно компонует размытие на повёрнутых гранях — собственный
               // background грани будто не рисуется, сквозь неё виден резкий фон страницы.
-              className="absolute inset-0 flex items-center justify-center overflow-hidden rounded-xl border border-white/18 before:absolute before:inset-0 before:rounded-xl before:bg-[inherit] before:opacity-15"
+              // backface-visibility:hidden — без него, после того как грани стали
+              // прозрачными, сквозь ближнюю грань было видно зеркальный (обратная сторона
+              // повёрнутой плоскости) текст/иконку дальней грани.
+              className="absolute inset-0 flex items-center justify-center overflow-hidden rounded-xl border [backface-visibility:hidden] before:absolute before:inset-0 before:rounded-xl before:bg-[inherit] before:opacity-15"
             >
               <a
                 href={`#${face.name}`}
@@ -143,7 +130,7 @@ export const Cube = forwardRef<CubeHandle, CubeProps>(function Cube({ audio, onF
                 // браузер ПАРАЛЛЕЛЬНО ещё и честно переходил по нативному href="#front",
                 // приклеивая хэш поверх пути, который только что задал pushState().
                 onClick={(e) => e.preventDefault()}
-                className={`flex h-full w-full cursor-pointer flex-col items-center justify-center rounded-xl text-inherit no-underline transition-colors duration-300 ${face.name === 'front' ? 'gap-0 p-0' : 'gap-3.5'} ${isTopOrBottom ? '' : ''}`}
+                className={`relative z-[2] flex h-full w-full cursor-pointer flex-col items-center justify-center rounded-xl text-inherit no-underline transition-colors duration-300 ${face.name === 'front' ? 'gap-0 p-0' : 'gap-3.5'} ${isTopOrBottom ? '' : ''}`}
               >
                 {face.name === 'front' ? (
                   <div className="flex h-full w-full items-center justify-center">
