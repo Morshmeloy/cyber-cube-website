@@ -264,7 +264,9 @@ export function useCube(options: UseCubeOptions): RefObject<CubeHandle> {
     }
 
     function onContextMenu(e: MouseEvent): void {
-      e.preventDefault()
+      // Блокируем контекстное меню только над интерактивной сценой куба. Глобальный
+      // document-listener запрещал меню «Копировать/Вставить» во всех формах сайта.
+      if (sceneEl!.contains(e.target as Node)) e.preventDefault()
     }
 
     function onSceneClick(): void {
@@ -282,7 +284,7 @@ export function useCube(options: UseCubeOptions): RefObject<CubeHandle> {
     document.addEventListener('touchstart', onTouchStart, { passive: true })
     document.addEventListener('touchmove', onTouchMove, { passive: false })
     document.addEventListener('touchend', onTouchEnd)
-    document.addEventListener('contextmenu', onContextMenu)
+    sceneEl.addEventListener('contextmenu', onContextMenu)
     sceneEl.addEventListener('click', onSceneClick)
 
     scheduleAutoRotation()
@@ -308,7 +310,7 @@ export function useCube(options: UseCubeOptions): RefObject<CubeHandle> {
       document.removeEventListener('touchstart', onTouchStart)
       document.removeEventListener('touchmove', onTouchMove)
       document.removeEventListener('touchend', onTouchEnd)
-      document.removeEventListener('contextmenu', onContextMenu)
+      sceneEl.removeEventListener('contextmenu', onContextMenu)
       sceneEl.removeEventListener('click', onSceneClick)
       if (autoRotationId !== null) cancelAnimationFrame(autoRotationId)
       if (idleTimeout) clearTimeout(idleTimeout)

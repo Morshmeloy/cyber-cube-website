@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { login } from '@/lib/auth.tsx'
 import { Spinner } from '@/components/ui/spinner.tsx'
+import { PasswordInput } from './PasswordInput.tsx'
 import type { PageNavigationTarget } from '@/types/page-content.tsx'
 
 interface LoginFormProps {
@@ -20,7 +21,7 @@ export function LoginForm({ navigateTo }: LoginFormProps) {
     setError(null)
     setIsSubmitting(true)
 
-    const result = await login(username.trim(), password.trim())
+    const result = await login(username.trim(), password)
     setIsSubmitting(false)
 
     if ('user' in result) {
@@ -49,13 +50,34 @@ export function LoginForm({ navigateTo }: LoginFormProps) {
             <label htmlFor="username" className="mb-1.5 block text-[13px] font-semibold tracking-wide text-cyan-300 uppercase">
               Логин
             </label>
-            <input id="username" type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Введите логин" required className={fieldClass} />
+            <input
+              id="username"
+              name="username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Введите логин"
+              autoComplete="username"
+              autoCapitalize="none"
+              spellCheck={false}
+              required
+              className={fieldClass}
+            />
           </div>
           <div className="mb-4.5">
             <label htmlFor="password" className="mb-1.5 block text-[13px] font-semibold tracking-wide text-cyan-300 uppercase">
               Пароль
             </label>
-            <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Введите пароль" required className={fieldClass} />
+            <PasswordInput
+              id="password"
+              name="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Введите пароль"
+              autoComplete="current-password"
+              required
+              className={fieldClass}
+            />
           </div>
           <button
             type="submit"

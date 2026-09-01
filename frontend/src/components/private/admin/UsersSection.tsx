@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { createUser, fetchUsers, setUserActive, updateUserRole, type AdminUser } from '@/lib/admin-api.tsx'
 import { getUser, type Role } from '@/lib/auth.tsx'
 import { Spinner } from '@/components/ui/spinner.tsx'
+import { PasswordInput } from '@/components/auth/PasswordInput.tsx'
 import { extractDetail, fieldClass, labelClass, selectClass } from './shared.tsx'
 
 interface UsersSectionProps {
@@ -37,7 +38,9 @@ export function UsersSection({ roles }: UsersSectionProps) {
   }
 
   useEffect(() => {
-    void reload()
+    // Запускаем начальную загрузку после синхронной фазы эффекта: reload обновляет
+    // React-state и не должен провоцировать каскадный рендер прямо из тела эффекта.
+    queueMicrotask(() => void reload())
   }, [])
 
   async function handleCreate(e: React.FormEvent<HTMLFormElement>): Promise<void> {
@@ -181,7 +184,14 @@ export function UsersSection({ roles }: UsersSectionProps) {
           </div>
           <div className="mb-3">
             <label className={labelClass}>Пароль</label>
-            <input type="text" value={draft.password} onChange={(e) => setDraft({ ...draft, password: e.target.value })} required className={fieldClass} />
+            <PasswordInput
+              name="new-password"
+              value={draft.password}
+              onChange={(e) => setDraft({ ...draft, password: e.target.value })}
+              autoComplete="new-password"
+              required
+              className={fieldClass}
+            />
           </div>
           <div className="mb-3">
             <label className={labelClass}>Имя (необязательно)</label>
