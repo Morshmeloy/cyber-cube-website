@@ -29,7 +29,9 @@ export function useLumaKeyCutout(canvasRef: RefObject<HTMLCanvasElement | null>,
         canvas.height = image.naturalHeight
       }
 
-      const ctx = canvas.getContext('2d')
+      // Хук сразу читает пиксели через getImageData; явный флаг позволяет браузеру
+      // выбрать подходящий backing store и убирает Canvas2D performance warning.
+      const ctx = canvas.getContext('2d', { willReadFrequently: true })
       if (!ctx) return
       ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
 

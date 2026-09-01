@@ -4,8 +4,9 @@ import { Cube, type CubeHandle, type CubeVisualState } from '@/components/cube/C
 import { PageShell, type PageShellTarget } from '@/components/page-shell/PageShell.tsx'
 import { SiteFooter } from '@/components/layout/SiteFooter.tsx'
 import { UserMenu } from '@/components/layout/UserMenu.tsx'
+import { ResponsiveBackground } from '@/components/background/ResponsiveBackground.tsx'
 // BackgroundSlideshow (фотослайдшоу), Rain (кибер-дождь) и NetworkBackground
-// (сетевой граф) отключены — фон теперь картинка energy_ring_1920x1080.webp ниже.
+// (сетевой граф) отключены — фон выбирается ResponsiveBackground ниже.
 // Компоненты не удалены, импорты закомментированы, чтобы noUnusedLocals не ронял сборку.
 // import { BackgroundSlideshow } from '@/components/background/BackgroundSlideshow.tsx'
 // import { Rain } from '@/components/background/Rain.tsx'
@@ -221,16 +222,14 @@ export function AppRoot() {
 
   return (
     <>
-      <img
-        src="/images/energy_ring_1920x1080.webp"
-        alt=""
-        aria-hidden
-        className="pointer-events-none fixed inset-0 z-[-3] h-full w-full object-cover select-none"
-      />
+      <ResponsiveBackground />
 
       <UserMenu user={user} navigateTo={navigateTo} onLoggedOut={() => navigateTo({ face: 'front' })} />
 
-      <div className="relative flex min-h-screen w-full flex-col items-center justify-start gap-[1vh] pt-[1vh]">
+      {/* Sticky hero: фон и куб остаются в одной системе координат, пока футер
+          поднимается поверх сцены. Раньше fixed-фон оставался на месте, а absolute-куб
+          прокручивался вместе с min-h-screen контейнером и выпадал из кольца. */}
+      <main className="sticky top-0 z-0 flex h-[100svh] w-full flex-col items-center justify-start gap-[1vh] overflow-clip pt-[1vh] [will-change:transform]">
         <h1
           data-text="Д4 Технологии"
           // pointer-events-none + select-none: чисто декоративный заголовок визуально
@@ -260,7 +259,7 @@ export function AppRoot() {
         <Cube ref={cubeHandleRef} audio={audio} onFaceActivated={(face) => navigateTo({ face })} canActivateFace={() => target === null} visualState={cubeVisual} />
 
         <PageShell target={target} navigateTo={navigateTo} audio={audio} onDefaultClose={hideToCube} />
-      </div>
+      </main>
 
       <SiteFooter navigateTo={navigateTo} />
     </>

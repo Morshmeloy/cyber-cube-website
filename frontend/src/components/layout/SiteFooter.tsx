@@ -13,7 +13,10 @@ interface SiteFooterProps {
  * (обычный регистр, без свечения) — так он читается как обычный подвал сайта. */
 export function SiteFooter({ navigateTo }: SiteFooterProps) {
   return (
-    <footer className="relative z-5 w-full cursor-auto px-[clamp(20px,6vw,64px)] pt-[180px] pb-8 font-sans text-[#e0ffffd9]" style={{ background: 'linear-gradient(to bottom, transparent, #050510 140px)' }}>
+    <footer
+      className="relative z-20 w-full cursor-auto px-[clamp(20px,6vw,64px)] pt-[180px] pb-8 font-sans text-[#e0ffffd9]"
+      style={{ background: 'linear-gradient(to bottom, transparent, rgba(5,5,16,0.96) 140px, #050510 220px)' }}
+    >
       <div className="mx-auto grid max-w-[1200px] grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-10 border-b border-white/12 pb-7">
         <div>
           <img src={LOGO_MARK_IMAGE_PATH} alt={SITE_NAME} className="h-auto w-40" />
