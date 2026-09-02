@@ -49,6 +49,12 @@ export function getAccessToken(): string | null {
   return accessToken
 }
 
+function withAuthorization(init: RequestInit, token: string | null): RequestInit {
+  const headers = new Headers(init.headers)
+  if (token) headers.set('Authorization', `Bearer ${token}`)
+  return { ...init, headers }
+}
+
 export const apiClient = axios.create({ baseURL: API_BASE_URL })
 
 // У этих путей ещё нет (или не нужен) access-токен: /login и /register вызываются
@@ -77,6 +83,31 @@ async function performRefresh(): Promise<string> {
   const response = await axios.post<{ access_token: string }>(`${API_BASE_URL}/auth/refresh`, { refresh_token: refreshToken })
   setAccessToken(response.data.access_token)
   return response.data.access_token
+}
+
+/** Авторизованный fetch для потоковых SSE-ответов Учителя. */
+export async function authenticatedFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
+  let response = await fetch(input, withAuthorization(init, accessToken))
+  if (response.status !== 401) return response
+  if (!refreshToken) {
+    clearTokens()
+    onSessionExpired?.()
+    return response
+  }
+  try {
+    refreshPromise ??= performRefresh().finally(() => { refreshPromise = null })
+    const token = await refreshPromise
+    response = await fetch(input, withAuthorization(init, token))
+    if (response.status === 401) {
+      clearTokens()
+      onSessionExpired?.()
+    }
+    return response
+  } catch {
+    clearTokens()
+    onSessionExpired?.()
+    return response
+  }
 }
 
 apiClient.interceptors.response.use(

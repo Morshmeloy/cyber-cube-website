@@ -27,13 +27,15 @@ export function QuizStart({ total, multiCount, hasWrongIds, onStart }: QuizStart
       .then((data) => {
         if (cancelled) return
         setStatus(
-          data.ready
-            ? { text: '🟢 ИИ-помощник готов объяснять ошибки', variant: 'ok' }
-            : { text: '🟡 ИИ-помощник ещё загружается — объяснения появятся чуть позже', variant: 'neutral' },
+          data.ready && data.rag_ready
+            ? { text: `🟢 ИИ-помощник ${data.model ?? ''} и база знаний готовы`, variant: 'ok' }
+            : data.ready
+              ? { text: `🟡 Модель ${data.model ?? ''} готова, база знаний индексируется`, variant: 'neutral' }
+              : { text: '🔴 ИИ-помощник пока недоступен — тест продолжит работать', variant: 'error' },
         )
       })
       .catch(() => {
-        if (!cancelled) setStatus({ text: '🔴 Сервис teacher/server.py недоступен (порт 5000) — объяснения ошибок будут недоступны, тест по-прежнему работает', variant: 'error' })
+        if (!cancelled) setStatus({ text: '🔴 Не удалось связаться с ИИ-помощником — тест продолжит работать', variant: 'error' })
       })
       .finally(() => {
         if (!cancelled) setIsChecking(false)

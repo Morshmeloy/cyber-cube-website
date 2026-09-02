@@ -1,7 +1,8 @@
 import { getData, setData } from './storage.tsx'
 import type { ChatMessage, Mistake } from '@/components/private/learning/types.tsx'
+import { authenticatedFetch } from './http-client.tsx'
 
-const TEACHER_API_BASE = 'http://localhost:5000'
+const TEACHER_API_BASE = '/api/teacher'
 const CHAT_HISTORY_KEY = 'learning_chat_history'
 
 /**
@@ -41,17 +42,6 @@ export function mistakesKey(mistakes: Mistake[]): string {
     .join(',')
 }
 
-function getUserId(): string {
-  try {
-    const u = localStorage.getItem('d4_user')
-    if (u) {
-      const parsed = JSON.parse(u)
-      return parsed.username || 'anonymous'
-    }
-  } catch (_) {}
-  return 'anonymous'
-}
-
 /** Вспомогательная функция для добавления сообщения в историю (localStorage). */
 function appendChatMessage(message: ChatMessage): void {
   const current = getData<ChatMessage[]>(CHAT_HISTORY_KEY, [])
@@ -63,7 +53,8 @@ function appendChatMessage(message: ChatMessage): void {
  * полученных из событий data: {...}.
  */
 async function* parseSSE(response: Response): AsyncGenerator<Record<string, unknown>> {
-  const reader = response.body!.getReader()
+  if (!response.body) throw new Error('Сервер вернул пустой поток')
+  const reader = response.body.getReader()
   const decoder = new TextDecoder()
   let buffer = ''
 
@@ -79,13 +70,24 @@ async function* parseSSE(response: Response): AsyncGenerator<Record<string, unkn
         if (jsonStr) {
           try {
             yield JSON.parse(jsonStr)
-          } catch (_) {
+          } catch {
             // игнорируем битые чанки
           }
         }
       }
     }
   }
+}
+
+async function teacherFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  const response = await authenticatedFetch(`${TEACHER_API_BASE}${path}`, init)
+  if (response.ok) return response
+  let message = `HTTP ${response.status}`
+  try {
+    const body = await response.json() as { detail?: string }
+    if (body.detail) message = body.detail
+  } catch { /* response is not JSON */ }
+  throw new Error(message)
 }
 
 // ============================================================================
@@ -105,14 +107,11 @@ export function explainMistakesStream(
 ): Promise<void> {
   const key = `explain:${chatKey}`
   return enqueue(key, async () => {
-    const response = await fetch(`${TEACHER_API_BASE}/api/chat/stream`, {
+    const response = await teacherFetch('/chat/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mistakes }),
     })
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`)
-    }
     for await (const event of parseSSE(response)) {
       if (event.id !== undefined && event.token !== undefined) {
         onToken(event.id as number, event.token as string)
@@ -144,14 +143,11 @@ export function requestMistakeDetailStream(
 ): Promise<void> {
   const key = `detail:${chatKey}:${payload.id}`
   return enqueue(key, async () => {
-    const response = await fetch(`${TEACHER_API_BASE}/api/chat/detail/stream`, {
+    const response = await teacherFetch('/chat/detail/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     })
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`)
-    }
     for await (const event of parseSSE(response)) {
       if (event.token !== undefined) {
         onToken(event.token as string)
@@ -177,18 +173,14 @@ export function sendFreeQuestionStream(
 ): Promise<void> {
   const key = `free:${chatKey}:${question}`
   return enqueue(key, async () => {
-    const response = await fetch(`${TEACHER_API_BASE}/api/chat/free/stream`, {
+    const response = await teacherFetch('/chat/free/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         question,
         context,
-        user_id: getUserId(),
       }),
     })
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`)
-    }
     for await (const event of parseSSE(response)) {
       if (event.token !== undefined) {
         onToken(event.token as string)
@@ -206,14 +198,22 @@ export function sendFreeQuestionStream(
 // ============================================================================
 
 /** Проверка статуса модели (не потоковая). */
-export function teacherModelStatus(): Promise<{ ready: boolean }> {
+export interface TeacherModelStatus {
+  ready: boolean
+  rag_ready: boolean
+  model?: string | null
+  embedding_model?: string | null
+  documents?: number
+  detail?: string | null
+}
+
+export function teacherModelStatus(): Promise<TeacherModelStatus> {
   return enqueue('model_status', () =>
-    fetch(`${TEACHER_API_BASE}/api/model_status`)
+    teacherFetch('/status')
       .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
         return res.json()
       })
-      .then((data) => data as { ready: boolean }),
+      .then((data) => data as TeacherModelStatus),
   )
 }
 
