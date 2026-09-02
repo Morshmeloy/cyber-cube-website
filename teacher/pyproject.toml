@@ -1,16 +1,20 @@
 [project]
 name = "teacher"
 version = "0.1.0"
-description = "Add your description here"
+description = "Internal D4 Technologies AI teacher service"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "chromadb>=1.5.9",
-    "flask>=3.1.3",
-    "flask-cors>=6.0.5",
-    "langchain-community>=0.4.2",
-    "langchain-text-splitters>=1.1.2",
-    "llama-cpp-python>=0.3.34",
+    "fastapi>=0.139.0",
+    "httpx>=0.28.1",
+    "pydantic-settings>=2.14.2",
     "pymupdf>=1.28.0",
-    "sentence-transformers>=5.6.0",
+    "uvicorn>=0.51.0",
 ]
+
+[dependency-groups]
+dev = ["pytest>=9.0.2"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

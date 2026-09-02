@@ -1,0 +1,30 @@
+services:
+  teacher:
+    build: .
+    image: d4tech-teacher:latest
+    container_name: d4teacher
+    restart: unless-stopped
+    network_mode: host
+    env_file: .env.ai
+    command: ["/bin/sh", "-c", "exec uvicorn teacher_service.main:app --host \"$${TEACHER_BIND_HOST}\" --port \"$${TEACHER_PORT}\""]
+    read_only: true
+    tmpfs: [/tmp:size=256m,mode=1777]
+    volumes: [teacher_chroma:/app/chroma_db]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import os,urllib.request; urllib.request.urlopen('http://' + os.environ['TEACHER_BIND_HOST'] + ':' + os.environ['TEACHER_PORT'] + '/health', timeout=3)\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+  teacher-index:
+    build: .
+    image: d4tech-teacher:latest
+    profiles: [index]
+    network_mode: host
+    env_file: .env.ai
+    command: ["python", "index_pdf.py"]
+    volumes: [teacher_chroma:/app/chroma_db]
+    security_opt: [no-new-privileges:true]
+volumes:
+  teacher_chroma:
