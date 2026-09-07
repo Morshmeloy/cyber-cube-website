@@ -26,6 +26,7 @@ import { DashboardPage } from '@/components/private/DashboardPage.tsx'
 import { DocsPage } from '@/components/private/DocsPage.tsx'
 import { WarehousePage } from '@/components/private/WarehousePage.tsx'
 import { FinancePage } from '@/components/private/FinancePage.tsx'
+import { MailPage } from '@/components/private/MailPage.tsx'
 import { AdminPage } from '@/components/private/AdminPage.tsx'
 import { LearningQuiz } from '@/components/private/learning/LearningQuiz.tsx'
 import type { PageContent, PageNavigationTarget, PrivatePageKey } from '@/types/page-content.tsx'
@@ -58,6 +59,7 @@ const PRIVATE_PAGE_CONTENT: Record<Exclude<PrivatePageKey, 'dashboard'>, PageCon
   warehouse: { title: 'Складской учёт', blocks: [{ kind: 'component', render: () => createElement(WarehousePage) }] },
   docs: { title: 'Корпоративная документация', blocks: [{ kind: 'component', render: () => createElement(DocsPage) }] },
   finance: { title: 'Финансы (чеки и командировки)', blocks: [{ kind: 'component', render: () => createElement(FinancePage) }] },
+  mail: { title: 'Корпоративная почта', blocks: [{ kind: 'component', render: () => createElement(MailPage) }] },
 }
 
 /**
@@ -169,7 +171,10 @@ export function AppRoot() {
       setUser(getUser())
       return
     }
-    showPage(faceColors[navTarget.face], navTarget.face === 'front' ? authPageContent() : pageContentByFace[navTarget.face as Exclude<typeof navTarget.face, 'front'>])
+    showPage(
+      faceColors[navTarget.face],
+      navTarget.face === 'front' ? authPageContent() : pageContentByFace[navTarget.face as Exclude<typeof navTarget.face, 'front'>],
+    )
     syncUrl({ kind: 'nav', target: navTarget })
     setUser(getUser())
   }
@@ -256,7 +261,13 @@ export function AppRoot() {
           className={`relative z-[100] block h-auto w-[clamp(280px,55vmin,500px)] [animation:neonGlowLogo_2s_ease-in-out_infinite_alternate] [filter:drop-shadow(0_0_12px_rgba(0,255,255,1))_drop-shadow(0_0_30px_rgba(0,255,255,0.8))_drop-shadow(0_0_60px_rgba(0,255,255,0.6))_drop-shadow(0_0_100px_rgba(0,255,255,0.4))] ${target ? '' : 'hidden'}`}
         />
 
-        <Cube ref={cubeHandleRef} audio={audio} onFaceActivated={(face) => navigateTo({ face })} canActivateFace={() => target === null} visualState={cubeVisual} />
+        <Cube
+          ref={cubeHandleRef}
+          audio={audio}
+          onFaceActivated={(face) => navigateTo({ face })}
+          canActivateFace={() => target === null}
+          visualState={cubeVisual}
+        />
 
         <PageShell target={target} navigateTo={navigateTo} audio={audio} onDefaultClose={hideToCube} />
       </main>
