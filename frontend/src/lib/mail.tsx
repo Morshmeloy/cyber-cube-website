@@ -9,9 +9,6 @@ export const MAIL_UI_URL = '/mail'
 
 export const MAIL_REFRESH_INTERVAL_MS = 60_000
 
-/** The cabinet route deliberately differs from /mail, which belongs to Nginx. */
-export const MAIL_CABINET_PATH = '/mail-info'
-
 export function resolveMailboxAddress(username: string, email?: string | null): string | null {
   const preferred = email?.trim() || username.trim()
   if (!preferred) return null
