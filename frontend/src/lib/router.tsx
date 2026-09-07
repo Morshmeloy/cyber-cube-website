@@ -1,6 +1,5 @@
 import type { FaceName } from '@/types/navigation.tsx'
 import type { PageNavigationTarget, PrivatePageKey } from '@/types/page-content.tsx'
-import { MAIL_CABINET_PATH } from '@/lib/mail.tsx'
 
 /**
  * Лёгкая синхронизация адресной строки с текущей открытой страницей — без роутера
@@ -33,7 +32,6 @@ export function pathForRoute(route: AppRoute): string {
   if (route.kind === 'admin') return '/admin'
   const { target } = route
   if ('legal' in target) return '/legal'
-  if ('private' in target && target.private === 'mail') return MAIL_CABINET_PATH
   if ('private' in target) return `/${target.private}`
   return `/${FACE_TO_SLUG[target.face]}`
 }
@@ -45,7 +43,6 @@ export function routeForPath(pathname: string): AppRoute {
   if (slug === '') return { kind: 'cube' }
   if (slug === 'admin') return { kind: 'admin' }
   if (slug === 'legal') return { kind: 'nav', target: { legal: true } }
-  if (`/${slug}` === MAIL_CABINET_PATH) return { kind: 'nav', target: { private: 'mail' } }
   if ((PRIVATE_KEYS as string[]).includes(slug)) return { kind: 'nav', target: { private: slug as PrivatePageKey } }
   if (slug in SLUG_TO_FACE) return { kind: 'nav', target: { face: SLUG_TO_FACE[slug] } }
   return { kind: 'cube' }

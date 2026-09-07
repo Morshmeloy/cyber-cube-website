@@ -1,4 +1,5 @@
 import type { PrivatePageKey } from '../../types/page-content.tsx'
+import { MAIL_UI_URL } from '../../lib/mail.tsx'
 
 /** Цвета страниц личного кабинета — приглушённая палитра, отдельная от неоновых цветов
  * граней куба (личный кабинет визуально — внутренний инструмент), но не тусклая: должна
@@ -9,11 +10,19 @@ export const PRIVATE_PAGE_COLORS: Record<PrivatePageKey, string> = {
   warehouse: '#b88a44',
   docs: '#3b6e8f',
   finance: '#8f4b6e',
-  mail: '#596fba',
 }
 
+interface DashboardCardBase {
+  title: string
+  desc: string
+  icon: string
+}
+
+export type DashboardNavigationCard = DashboardCardBase &
+  ({ key: Exclude<PrivatePageKey, 'dashboard'>; href?: never } | { key: 'mail'; href: typeof MAIL_UI_URL })
+
 /** Карточки-разделы личного кабинета: цвет (см. выше), иконка и переход по клику. */
-export const DASHBOARD_NAV_CARDS: { key: Exclude<PrivatePageKey, 'dashboard'>; title: string; desc: string; icon: string }[] = [
+export const DASHBOARD_NAV_CARDS: DashboardNavigationCard[] = [
   {
     key: 'learning',
     title: 'Обучение',
@@ -41,7 +50,8 @@ export const DASHBOARD_NAV_CARDS: { key: Exclude<PrivatePageKey, 'dashboard'>; t
   {
     key: 'mail',
     title: 'Почта',
-    desc: 'Корпоративные письма и уведомления',
+    desc: 'Письма и календарь · новая вкладка',
     icon: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
+    href: MAIL_UI_URL,
   },
 ]

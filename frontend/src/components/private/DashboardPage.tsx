@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
+import { ExternalLink } from 'lucide-react'
 import { fetchMe, getUser } from '@/lib/auth.tsx'
 import { DASHBOARD_NAV_CARDS, PRIVATE_PAGE_COLORS } from '@/data/navigation/private.tsx'
-import type { CSSProperties } from 'react'
 import type { PageNavigationTarget } from '@/types/page-content.tsx'
 
 interface DashboardPageProps {
@@ -40,20 +40,16 @@ export function DashboardPage({ navigateTo }: DashboardPageProps) {
       <div className="flex h-[clamp(260px,40vh,340px)] gap-2.5 max-sm:h-auto max-sm:flex-col" role="list">
         {DASHBOARD_NAV_CARDS.map((card, index) => {
           const isActive = index === activeIndex
-          return (
-            <button
-              key={card.key}
-              type="button"
-              onMouseEnter={() => setActiveIndex(index)}
-              onFocus={() => setActiveIndex(index)}
-              onClick={() => navigateTo({ private: card.key })}
-              style={{ '--card-color': PRIVATE_PAGE_COLORS[card.key], flex: isActive ? '3.4' : '1' } as CSSProperties}
-              className={`relative min-w-0 overflow-hidden rounded-2xl border-none p-0 transition-[flex,box-shadow] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] max-sm:!flex-none max-sm:h-16 ${
-                isActive
-                  ? 'shadow-[inset_0_0_0_1px_var(--card-color),0_0_22px_color-mix(in_srgb,var(--card-color)_45%,transparent)]'
-                  : 'shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--card-color)_45%,transparent)]'
-              }`}
-            >
+          const cardColor = card.key === 'mail' ? '#596fba' : PRIVATE_PAGE_COLORS[card.key]
+          const style = { '--card-color': cardColor, flex: isActive ? '3.4' : '1' } as CSSProperties
+          const className = `relative min-w-0 overflow-hidden rounded-2xl border-none p-0 transition-[flex,box-shadow] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] max-sm:!flex-none max-sm:h-16 ${
+            isActive
+              ? 'shadow-[inset_0_0_0_1px_var(--card-color),0_0_22px_color-mix(in_srgb,var(--card-color)_45%,transparent)]'
+              : 'shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--card-color)_45%,transparent)]'
+          }`
+
+          const cardContent: ReactNode = (
+            <>
               <div
                 className="absolute inset-0"
                 style={{
@@ -82,9 +78,41 @@ export function DashboardPage({ navigateTo }: DashboardPageProps) {
                   isActive ? 'translate-y-0 opacity-100' : 'translate-y-1.5 opacity-0'
                 }`}
               >
-                <span className="text-[16px] font-extrabold whitespace-nowrap text-[var(--cab-card-text,white)]">{card.title}</span>
+                <span className="flex items-center gap-1.5 text-[16px] font-extrabold whitespace-nowrap text-[var(--cab-card-text,white)]">
+                  {card.title}
+                  {card.href && <ExternalLink aria-hidden="true" className="h-3.5 w-3.5 opacity-75" />}
+                </span>
                 <span className="text-xs leading-snug text-[var(--cab-card-text-muted,rgba(255,255,255,0.75))]">{card.desc}</span>
               </div>
+            </>
+          )
+
+          const interactionProps = {
+            onMouseEnter: () => setActiveIndex(index),
+            onFocus: () => setActiveIndex(index),
+          }
+
+          if (card.href) {
+            return (
+              <a
+                key={card.key}
+                href={card.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`${card.title} — открыть в новой вкладке`}
+                title="Открыть рабочую почту в новой вкладке"
+                style={style}
+                className={className}
+                {...interactionProps}
+              >
+                {cardContent}
+              </a>
+            )
+          }
+
+          return (
+            <button key={card.key} type="button" onClick={() => navigateTo({ private: card.key })} style={style} className={className} {...interactionProps}>
+              {cardContent}
             </button>
           )
         })}
