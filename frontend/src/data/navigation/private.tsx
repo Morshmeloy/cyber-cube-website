@@ -9,6 +9,7 @@ export const PRIVATE_PAGE_COLORS: Record<PrivatePageKey, string> = {
   warehouse: '#b88a44',
   docs: '#3b6e8f',
   finance: '#8f4b6e',
+  mail: '#596fba',
 }
 
 /** Карточки-разделы личного кабинета: цвет (см. выше), иконка и переход по клику. */
@@ -36,5 +37,11 @@ export const DASHBOARD_NAV_CARDS: { key: Exclude<PrivatePageKey, 'dashboard'>; t
     title: 'Финансы',
     desc: 'Чеки и отчёты по командировкам',
     icon: '<rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>',
+  },
+  {
+    key: 'mail',
+    title: 'Почта',
+    desc: 'Корпоративные письма и уведомления',
+    icon: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
   },
 ]

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import type { FaceName } from './navigation.tsx'
 
 /** Ключ одной из приватных страниц личного кабинета (доступны только после входа). */
-export type PrivatePageKey = 'dashboard' | 'learning' | 'warehouse' | 'docs' | 'finance'
+export type PrivatePageKey = 'dashboard' | 'learning' | 'warehouse' | 'docs' | 'finance' | 'mail'
 
 /** Переключение на другую страницу сайта внутри плазмы: грань куба, «Правовая информация»
  * (у неё своей грани нет, см. settings/navigation/pages/legal.ts) или страница личного кабинета. */
