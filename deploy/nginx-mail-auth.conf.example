@@ -1,0 +1,32 @@
+# Mail gateway authorization for the production d4tech.ru server block
+
+The frontend first calls POST /api/auth/mail-session with its normal Bearer token.
+The API responds with a signed Secure HttpOnly d4_mail_access cookie. Nginx must
+validate that cookie before every Mailcow route by using auth_request.
+
+Add once inside the d4tech.ru server block:
+
+    location = /__d4_mail_auth {
+        internal;
+        proxy_pass http://127.0.0.1:8001/api/auth/mail-session/verify;
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length "";
+        proxy_set_header Cookie $http_cookie;
+        proxy_set_header X-Original-URI $request_uri;
+    }
+
+    location @d4_mail_login_required {
+        return 302 https://d4tech.ru/;
+    }
+
+Add these two directives to every location that proxies /mail, /SOGo,
+/SOGo.woa or /__mailcow/session/logout:
+
+    auth_request /__d4_mail_auth;
+    error_page 401 = @d4_mail_login_required;
+
+Important: a location containing an immediate return (for example location =
+/mail) completes in the rewrite phase before auth_request. Replace such a return
+with try_files to a named redirect location, or protect the destination itself.
+The production rollout must test anonymous 401/redirect and authorized access
+before removing the rollback copy.

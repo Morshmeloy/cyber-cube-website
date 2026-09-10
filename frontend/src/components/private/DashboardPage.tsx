@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { ExternalLink } from 'lucide-react'
 import { fetchMe, getUser } from '@/lib/auth.tsx'
+import { openMailWindow } from '@/lib/mail.tsx'
 import { DASHBOARD_NAV_CARDS, PRIVATE_PAGE_COLORS } from '@/data/navigation/private.tsx'
 import type { PageNavigationTarget } from '@/types/page-content.tsx'
 
@@ -94,11 +95,14 @@ export function DashboardPage({ navigateTo }: DashboardPageProps) {
 
           if (card.href) {
             return (
-              <a
+              <button
                 key={card.key}
-                href={card.href}
-                target="_blank"
-                rel="noopener noreferrer"
+                type="button"
+                onClick={() => {
+                  void openMailWindow().catch(() =>
+                    window.alert('Не удалось открыть почту. Разрешите всплывающие окна и повторите попытку.'),
+                  )
+                }}
                 aria-label={`${card.title} — открыть в новой вкладке`}
                 title="Открыть рабочую почту в новой вкладке"
                 style={style}
@@ -106,7 +110,7 @@ export function DashboardPage({ navigateTo }: DashboardPageProps) {
                 {...interactionProps}
               >
                 {cardContent}
-              </a>
+              </button>
             )
           }
 

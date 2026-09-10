@@ -1,13 +1,41 @@
-/**
- * Public entry point exposed by the WEB1 reverse proxy.
- *
- * Keep this URL relative: the browser reuses the current HTTPS origin, so the
- * link works in production without embedding a VPN address or environment-
- * specific hostname.
- */
+import { apiClient } from './http-client.tsx'
+
+/** Same-origin public entry point. Nginx admits it only with d4_mail_access. */
 export const MAIL_UI_URL = '/mail'
 
 export const MAIL_REFRESH_INTERVAL_MS = 60_000
+
+let mailSessionPromise: Promise<void> | null = null
+
+/**
+ * Exchanges the site's Bearer authentication for a signed HttpOnly gateway
+ * cookie. JavaScript can neither read nor forge the resulting cookie.
+ */
+export function ensureMailAccess(): Promise<void> {
+  mailSessionPromise ??= apiClient
+    .post('/auth/mail-session')
+    .then(() => undefined)
+    .finally(() => {
+      mailSessionPromise = null
+    })
+  return mailSessionPromise
+}
+
+/** Open a tab synchronously (to satisfy popup blockers), then navigate only
+ * after the server has issued the protected mail-gateway cookie. */
+export async function openMailWindow(): Promise<void> {
+  const popup = window.open('about:blank', '_blank')
+  if (!popup) throw new Error('MAIL_POPUP_BLOCKED')
+
+  popup.opener = null
+  try {
+    await ensureMailAccess()
+    if (!popup.closed) popup.location.replace(MAIL_UI_URL)
+  } catch (error) {
+    popup.close()
+    throw error
+  }
+}
 
 export function resolveMailboxAddress(username: string, email?: string | null): string | null {
   const preferred = email?.trim() || username.trim()

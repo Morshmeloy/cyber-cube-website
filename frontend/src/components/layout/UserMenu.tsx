@@ -3,7 +3,7 @@ import { ChevronDown, Mail } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu.tsx'
 import { getUser, logout } from '@/lib/auth.tsx'
 import { LOGO_MARK_IMAGE_PATH, SITE_NAME } from '@/data/site/site.tsx'
-import { MAIL_REFRESH_INTERVAL_MS, MAIL_UI_URL, resolveMailboxAddress, sumUnreadMail } from '@/lib/mail.tsx'
+import { ensureMailAccess, MAIL_REFRESH_INTERVAL_MS, openMailWindow, resolveMailboxAddress, sumUnreadMail } from '@/lib/mail.tsx'
 import type { PageNavigationTarget } from '@/types/page-content.tsx'
 
 interface UserMenuProps {
@@ -17,6 +17,7 @@ interface UserMenuProps {
  * страницы, виден поверх куба и любой открытой страницы. Пусто, пока пользователь не вошёл. */
 export function UserMenu({ user, navigateTo, onLoggedOut }: UserMenuProps) {
   const [unreadMailCount, setUnreadMailCount] = useState<number | null>(null)
+  const [mailOpening, setMailOpening] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -34,6 +35,7 @@ export function UserMenu({ user, navigateTo, onLoggedOut }: UserMenuProps) {
       activeController = controller
 
       try {
+        await ensureMailAccess()
         const response = await fetch(`/SOGo/so/${mailboxPath}/Mail/unseenCount`, {
           method: 'POST',
           credentials: 'include',
@@ -78,13 +80,18 @@ export function UserMenu({ user, navigateTo, onLoggedOut }: UserMenuProps) {
 
   return (
     <div className="fixed top-[clamp(10px,2vh,20px)] right-[clamp(10px,2vw,24px)] z-[600] flex items-center gap-2.5">
-      <a
-        href={MAIL_UI_URL}
-        target="_blank"
-        rel="noopener noreferrer"
+      <button
+        type="button"
+        disabled={mailOpening}
+        onClick={() => {
+          setMailOpening(true)
+          void openMailWindow()
+            .catch(() => window.alert('Не удалось открыть почту. Разрешите всплывающие окна и повторите попытку.'))
+            .finally(() => setMailOpening(false))
+        }}
         aria-label="Открыть рабочую почту"
         title="Открыть рабочую почту в новой вкладке"
-        className="relative flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-full border border-cyan-400/35 bg-[#050510bf] text-[#e8f8ff] shadow-[0_0_14px_rgba(0,255,255,0.15)] backdrop-blur-md transition-[border-color,color,box-shadow,transform] hover:scale-105 hover:border-cyan-400/75 hover:text-cyan-200 hover:shadow-[0_0_22px_rgba(0,255,255,0.35)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300"
+        className="relative flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-full border border-cyan-400/35 bg-[#050510bf] text-[#e8f8ff] shadow-[0_0_14px_rgba(0,255,255,0.15)] backdrop-blur-md transition-[border-color,color,box-shadow,transform] hover:scale-105 hover:border-cyan-400/75 hover:text-cyan-200 hover:shadow-[0_0_22px_rgba(0,255,255,0.35)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 disabled:cursor-wait disabled:opacity-60"
       >
         <Mail aria-hidden="true" className="h-6 w-6" strokeWidth={1.8} />
         {visibleUnreadCount !== null && (
@@ -95,7 +102,7 @@ export function UserMenu({ user, navigateTo, onLoggedOut }: UserMenuProps) {
             {unreadMailCount && unreadMailCount > 99 ? '99+' : visibleUnreadCount}
           </span>
         )}
-      </a>
+      </button>
 
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
