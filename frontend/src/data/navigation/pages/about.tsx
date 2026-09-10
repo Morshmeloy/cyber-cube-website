@@ -107,6 +107,7 @@ export const aboutPageContent: PageContent = {
         'Kaspersky B2C Partner',
         'MaxPatrol EDR / MaxPatrol VM — партнёрский статус Positive Technologies',
         'PT Multiscanner / PT Sandbox — партнёрский статус Positive Technologies',
+        'ИнфоТеКС — официальный партнёр по системам защиты информации ViPNet',
       ],
     },
     {
@@ -124,6 +125,7 @@ export const aboutPageContent: PageContent = {
         { src: '/images/about/cert-maxpatrol-vm.jpg', alt: 'MaxPatrol VM' },
         { src: '/images/about/cert-pt-multiscanner.jpg', alt: 'PT Multiscanner' },
         { src: '/images/about/cert-pt-sandbox.jpg', alt: 'PT Sandbox' },
+        { src: '/images/about/cert-infotecs-vipnet.webp', alt: 'ИнфоТеКС — официальный партнёр по ViPNet' },
         { src: '/images/about/cert-rusbitech-1.jpg', alt: 'РусБИТех-Астра' },
         { src: '/images/about/cert-rusbitech-2.jpg', alt: 'РусБИТех-Астра 2' },
         { src: '/images/about/cert-rusbitech-3.jpg', alt: 'РусБИТех-Астра 3' },
