@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import hashlib
 import os
 import time
 import uuid
@@ -26,6 +27,8 @@ def split_text(
     text: str, size: int = CHUNK_SIZE, overlap: int = CHUNK_OVERLAP
 ) -> list[str]:
     text = "\n".join(line.strip() for line in text.splitlines() if line.strip())
+    if size <= 0 or overlap < 0 or overlap >= size:
+        raise ValueError("Require 0 <= overlap < size")
     chunks, start = [], 0
     while start < len(text):
         hard_end, end = min(start + size, len(text)), min(start + size, len(text))
@@ -48,12 +51,18 @@ async def build_index() -> None:
     if not PDF_PATH.exists():
         raise FileNotFoundError(f"PDF не найден: {PDF_PATH}")
     documents, metadata = [], []
+    checksum = hashlib.sha256(PDF_PATH.read_bytes()).hexdigest()
     with fitz.open(PDF_PATH) as pdf:
+        toc = pdf.get_toc()
         for page_number, page in enumerate(pdf, 1):
+            chapter = ""
+            for _, title, start_page in toc:
+                if start_page <= page_number:
+                    chapter = title
             chunks = split_text(page.get_text())
             documents.extend(chunks)
             metadata.extend(
-                {"source": PDF_PATH.name, "page": page_number} for _ in chunks
+                {"source": PDF_PATH.name, "page": page_number, "page_label": page.get_label() or "", "chapter": chapter, "document_sha256": checksum} for _ in chunks
             )
     if not documents:
         raise RuntimeError("Из PDF не извлечён текст")
@@ -73,17 +82,24 @@ async def build_index() -> None:
         for start in range(0, len(documents), BATCH):
             docs = documents[start : start + BATCH]
             collection.add(
-                ids=[str(i) for i in range(start, start + len(docs))],
+                ids=[f"{checksum[:16]}:{i}" for i in range(start, start + len(docs))],
                 documents=docs,
                 metadatas=metadata[start : start + BATCH],
                 embeddings=await ollama.embed(docs),
             )
             LOGGER.info("Проиндексировано: %s/%s", start + len(docs), len(documents))
+        previous = next((c for c in client.list_collections() if c.name == settings.chroma_collection), None)
+        backup_name = f"teacher_backup_{uuid.uuid4().hex[:12]}"
+        if previous is not None:
+            previous.modify(name=backup_name)
         try:
-            client.delete_collection(settings.chroma_collection)
+            collection.modify(name=settings.chroma_collection)
         except Exception:
-            pass
-        collection.modify(name=settings.chroma_collection)
+            if previous is not None:
+                previous.modify(name=settings.chroma_collection)
+            raise
+        if previous is not None:
+            LOGGER.info("Previous index retained as %s", backup_name)
     except Exception:
         client.delete_collection(staging)
         raise

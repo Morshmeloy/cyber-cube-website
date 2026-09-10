@@ -7,6 +7,7 @@ import { TeacherChat } from './TeacherChat.tsx'
 const CHAT_OPEN_KEY = 'learning_chat_open'
 
 interface QuizResultsProps {
+  attemptId: string
   total: number
   done: number
   correct: number
@@ -26,15 +27,10 @@ const CIRCUMFERENCE = 314
 
 /** React-порт finishQuiz-рендера + renderFullBreakdown из navigation/learning-quiz.ts —
  * экран результатов: кольцо со счётом, статистика, разбор по вопросам, диалог с учителем. */
-export function QuizResults({ total, done, correct, skipped, wrong, pct, mistakes, finishedOrder, finishedAnswers, resolveQuestion, canRetryWrong, onRestart, onRetryWrong }: QuizResultsProps) {
+export function QuizResults({ attemptId, total, done, correct, skipped, wrong, pct, mistakes, finishedOrder, finishedAnswers, resolveQuestion, canRetryWrong, onRestart, onRetryWrong }: QuizResultsProps) {
   const [dashOffset, setDashOffset] = useState(CIRCUMFERENCE)
   const [showBreakdown, setShowBreakdown] = useState(false)
-  // Открыт ли чат с учителем — переживает закрытие/повторное открытие раздела (вместе
-  // с самими результатами, см. LearningQuiz.tsx), чтобы можно было вернуться и увидеть
-  // объяснение, которое всё это время продолжало генерироваться на сервере.
-  const [showChat, setShowChat] = useState(() => getData<boolean>(CHAT_OPEN_KEY, false))
-  // «Пройти заново»/«Повторить ошибки» стирают текущие результаты безвозвратно — один
-  // случайный клик уже не даст сюда вернуться, поэтому оба действия требуют подтверждения.
+  const [showChat, setShowChat] = useState(() => getData<boolean>(`${CHAT_OPEN_KEY}:${attemptId}`, false))
   const [pendingAction, setPendingAction] = useState<'restart' | 'retryWrong' | null>(null)
 
   let title = 'Нужно повторить материал'
@@ -47,28 +43,23 @@ export function QuizResults({ total, done, correct, skipped, wrong, pct, mistake
     return () => cancelAnimationFrame(id)
   }, [pct])
 
-  // «Подробный разбор» и «Объяснить ошибки» — взаимоисключающиеся блоки: открытие одного
-  // прячет другой (будто предыдущий сам закрылся), а не накапливается под ним. Диалог с
-  // ИИ при этом не обрывается по-настоящему — TeacherChat размонтируется, но запрос к
-  // teacher/server.py продолжает жить в общей очереди (см. lib/teacher-api.ts) и корректно
-  // переиспользуется/дорисовывается, если чат открыть снова (см. persist showChat выше).
   function toggleChat(): void {
     setShowBreakdown(false)
     setShowChat((visible) => {
       const next = !visible
-      setData(CHAT_OPEN_KEY, next)
+      setData(`${CHAT_OPEN_KEY}:${attemptId}`, next)
       return next
     })
   }
 
   function toggleBreakdown(): void {
     setShowChat(false)
-    setData(CHAT_OPEN_KEY, false)
+    setData(`${CHAT_OPEN_KEY}:${attemptId}`, false)
     setShowBreakdown((visible) => !visible)
   }
 
   function confirmPendingAction(): void {
-    setData(CHAT_OPEN_KEY, false)
+    setData(`${CHAT_OPEN_KEY}:${attemptId}`, false)
     if (pendingAction === 'restart') onRestart()
     else if (pendingAction === 'retryWrong') onRetryWrong()
     setPendingAction(null)
@@ -184,7 +175,7 @@ export function QuizResults({ total, done, correct, skipped, wrong, pct, mistake
         </div>
       )}
 
-      {showChat && <TeacherChat mistakes={mistakes} />}
+      {showChat && <TeacherChat key={attemptId} attemptId={attemptId} mistakes={mistakes} />}
     </div>
   )
 }

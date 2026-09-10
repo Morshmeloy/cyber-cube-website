@@ -20,6 +20,7 @@ function shuffle<T>(items: T[]): T[] {
 }
 
 interface FinishedResults {
+  attemptId: string
   total: number
   done: number
   correct: number
@@ -38,10 +39,6 @@ interface FinishedResults {
 export function LearningQuiz() {
   const [state, setState] = useState<QuizState>(() => getData<QuizState>(PROGRESS_KEY, emptyQuizState()))
   const [wrongIds, setWrongIds] = useState<number[]>([])
-  // Результаты последнего пройденного теста переживают закрытие/повторное открытие
-  // раздела «Обучение» — без этого случайно закрытая панель отрезала путь назад к уже
-  // пройденному тесту и его чату с ИИ, который тем временем мог продолжать генерироваться
-  // на сервере (см. lib/teacher-api.ts — запрос переживает размонтирование компонента).
   const [results, setResultsState] = useState<FinishedResults | null>(() => getData<FinishedResults | null>(RESULTS_KEY, null))
 
   function save(next: QuizState): void {
@@ -141,15 +138,14 @@ export function LearningQuiz() {
       const ans = state.answers[q.id]
       if (ans?.checked && !ans.correct) {
         nextWrongIds.push(qIdx)
-        mistakes.push({ id: q.id, question: q.q, options: q.o, correct: q.a[0], userAnswer: ans.selected[0] ?? null, src: q.src })
+        mistakes.push({ id: q.id, question: q.q, options: q.o, correct: q.a[0], correct_answers: [...q.a], selected_answers: [...ans.selected], userAnswer: ans.selected[0] ?? null, src: q.src })
       }
     }
     setWrongIds(nextWrongIds)
 
     const pct = total > 0 ? Math.round((correct / total) * 100) : 0
 
-    // Снимок прошедшего теста — берём до сброса progress, разбор показывается по нему.
-    setResults({ total, done, correct, skipped, wrong, pct, mistakes, finishedOrder: [...state.order], finishedAnswers: { ...state.answers } })
+    setResults({ attemptId: crypto.randomUUID(), total, done, correct, skipped, wrong, pct, mistakes, finishedOrder: [...state.order], finishedAnswers: { ...state.answers } })
     setData(PROGRESS_KEY, emptyQuizState())
     setState(emptyQuizState())
   }
@@ -165,6 +161,8 @@ export function LearningQuiz() {
     return (
       <QuizResults
         {...results}
+        key={results.attemptId ?? "legacy"}
+        attemptId={results.attemptId ?? "legacy"}
         resolveQuestion={(i) => resolveFinishedQuestion(results.finishedOrder, i)}
         canRetryWrong={wrongIds.length > 0}
         onRestart={restart}

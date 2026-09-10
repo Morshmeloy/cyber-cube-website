@@ -11,6 +11,7 @@ class TeacherGatewayError(RuntimeError):
 
 class TeacherGateway:
     def __init__(self):
+        self._active_users: set[str] = set()
         self._slots = asyncio.Semaphore(settings.TEACHER_MAX_CONCURRENT_STREAMS)
 
     def _check(self):
@@ -47,16 +48,25 @@ class TeacherGateway:
         except (httpx.HTTPError, ValueError) as error:
             raise TeacherGatewayError("ИИ-сервис недоступен") from error
 
-    async def acquire(self):
+    async def acquire(self, user_id: str):
         self._check()
+        if user_id in self._active_users:
+            raise TeacherGatewayError("Ваш предыдущий запрос ещё выполняется")
+        if len(self._active_users) >= settings.TEACHER_MAX_CONCURRENT_STREAMS + 16:
+            raise TeacherGatewayError("Очередь ИИ заполнена. Повторите позже")
+        self._active_users.add(user_id)
         try:
             await asyncio.wait_for(
                 self._slots.acquire(), timeout=settings.TEACHER_QUEUE_TIMEOUT_SECONDS
             )
-        except TimeoutError as error:
+        except BaseException as error:
+            self._active_users.discard(user_id)
+            if not isinstance(error, TimeoutError):
+                raise
             raise TeacherGatewayError("ИИ занят другим запросом") from error
 
-    def release(self):
+    def release(self, user_id: str):
+        self._active_users.discard(user_id)
         self._slots.release()
 
     async def stream(self, path: str, payload: dict) -> AsyncIterator[bytes]:
