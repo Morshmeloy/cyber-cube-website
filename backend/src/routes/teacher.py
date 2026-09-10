@@ -15,9 +15,9 @@ from src.services.teacher_gateway import TeacherGatewayError, teacher_gateway
 router = APIRouter(prefix="/teacher", tags=["teacher"])
 
 
-async def proxy(path: str, payload: dict):
+async def proxy(path: str, payload: dict, user_id: str):
     try:
-        await teacher_gateway.acquire()
+        await teacher_gateway.acquire(user_id)
     except TeacherGatewayError as error:
         raise HTTPException(status_code=503, detail=str(error)) from error
 
@@ -31,7 +31,7 @@ async def proxy(path: str, payload: dict):
             data = json.dumps({"error": str(error)}, ensure_ascii=False)
             yield f"data: {data}\n\n".encode()
         finally:
-            teacher_gateway.release()
+            teacher_gateway.release(user_id)
 
     return StreamingResponse(
         generate(),
@@ -45,7 +45,7 @@ async def proxy(path: str, payload: dict):
 
 
 @router.get("/status", response_model=StatusResponse)
-async def status(_: User = Depends(get_current_user)):
+async def status(user: User = Depends(get_current_user)):
     try:
         return await teacher_gateway.status()
     except TeacherGatewayError as error:
@@ -53,15 +53,15 @@ async def status(_: User = Depends(get_current_user)):
 
 
 @router.post("/chat/stream")
-async def mistakes(payload: MistakesRequest, _: User = Depends(get_current_user)):
-    return await proxy("/v1/chat/mistakes", payload.model_dump(by_alias=True))
+async def mistakes(payload: MistakesRequest, user: User = Depends(get_current_user)):
+    return await proxy("/v1/chat/mistakes", payload.model_dump(by_alias=True), str(user.id))
 
 
 @router.post("/chat/detail/stream")
-async def detail(payload: DetailRequest, _: User = Depends(get_current_user)):
-    return await proxy("/v1/chat/detail", payload.model_dump())
+async def detail(payload: DetailRequest, user: User = Depends(get_current_user)):
+    return await proxy("/v1/chat/detail", payload.model_dump(), str(user.id))
 
 
 @router.post("/chat/free/stream")
-async def free(payload: FreeQuestionRequest, _: User = Depends(get_current_user)):
-    return await proxy("/v1/chat/free", payload.model_dump())
+async def free(payload: FreeQuestionRequest, user: User = Depends(get_current_user)):
+    return await proxy("/v1/chat/free", payload.model_dump(), str(user.id))

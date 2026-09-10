@@ -1,5 +1,5 @@
 from typing import Literal
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 def _validate_options(options: list[str]) -> list[str]:
@@ -24,6 +24,20 @@ class Mistake(BaseModel):
 
     _options = field_validator("options")(_validate_options)
 
+    correct_answers: list[int] | None = Field(default=None, max_length=20)
+    selected_answers: list[int] | None = Field(default=None, max_length=20)
+
+    @model_validator(mode="after")
+    def validate_answer_sets(self):
+        for values in (self.correct_answers, self.selected_answers):
+            if values is not None and (len(set(values)) != len(values) or any(i < 0 or i >= len(self.options) for i in values)):
+                raise ValueError("Answer indices must be unique and inside options")
+        if hasattr(self, "user_answer") and self.user_answer is not None and self.user_answer >= len(self.options):
+            raise ValueError("Selected answer index is outside options")
+        if self.correct_answers == []:
+            raise ValueError("At least one correct answer is required")
+        return self
+
     @field_validator("correct")
     @classmethod
     def correct_must_exist(cls, value: int, info):
@@ -46,6 +60,20 @@ class DetailRequest(BaseModel):
 
     _options = field_validator("options")(_validate_options)
 
+    correct_answers: list[int] | None = Field(default=None, max_length=20)
+    selected_answers: list[int] | None = Field(default=None, max_length=20)
+
+    @model_validator(mode="after")
+    def validate_answer_sets(self):
+        for values in (self.correct_answers, self.selected_answers):
+            if values is not None and (len(set(values)) != len(values) or any(i < 0 or i >= len(self.options) for i in values)):
+                raise ValueError("Answer indices must be unique and inside options")
+        if hasattr(self, "user_answer") and self.user_answer is not None and self.user_answer >= len(self.options):
+            raise ValueError("Selected answer index is outside options")
+        if self.correct_answers == []:
+            raise ValueError("At least one correct answer is required")
+        return self
+
     @field_validator("correct")
     @classmethod
     def correct_must_exist(cls, value: int, info):
@@ -56,4 +84,10 @@ class DetailRequest(BaseModel):
 
 class FreeQuestionRequest(BaseModel):
     question: str = Field(min_length=1, max_length=2_000)
-    context: list[ChatTurn] = Field(default_factory=list, max_length=12)
+    context: list[ChatTurn] = Field(default_factory=list, max_length=6)
+
+    @model_validator(mode="after")
+    def bound_context(self):
+        if sum(len(turn.content) for turn in self.context) > 6000:
+            raise ValueError("Conversation context exceeds 6000 characters")
+        return self

@@ -1,6 +1,7 @@
 import asyncio
 import json
 import secrets
+import logging
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
@@ -29,6 +30,8 @@ async def lifespan(app: FastAPI):
     app.state.generation_slots = asyncio.Semaphore(
         settings.teacher_max_concurrent_generations
     )
+    app.state.waiting_requests = 0
+    app.state.admitted_requests = 0
     yield
 
 
@@ -53,15 +56,21 @@ def require_service_token(
 
 
 async def acquire_slot(request: Request) -> None:
+    state = request.app.state
+    # No await between capacity check and increment: atomic on this event loop.
+    if state.admitted_requests >= settings.teacher_max_concurrent_generations + settings.teacher_max_waiting_requests:
+        raise HTTPException(status_code=429, detail="Очередь ИИ заполнена. Повторите позже.", headers={"Retry-After": "10"})
+    state.admitted_requests += 1
+    state.waiting_requests += 1
     try:
-        await asyncio.wait_for(
-            request.app.state.generation_slots.acquire(),
-            timeout=settings.teacher_queue_timeout_seconds,
-        )
-    except TimeoutError as error:
-        raise HTTPException(
-            status_code=429, detail="ИИ занят другим запросом"
-        ) from error
+        await asyncio.wait_for(state.generation_slots.acquire(), timeout=settings.teacher_queue_timeout_seconds)
+    except BaseException as error:
+        state.admitted_requests -= 1
+        if not isinstance(error, TimeoutError):
+            raise
+        raise HTTPException(status_code=429, detail="ИИ занят другим запросом", headers={"Retry-After": "10"}) from error
+    finally:
+        state.waiting_requests -= 1
 
 
 def stream_response(
@@ -70,14 +79,17 @@ def stream_response(
     async def guarded():
         try:
             yield b": connected\n\n"
-            async for chunk in producer():
-                yield chunk
+            async with asyncio.timeout(settings.teacher_request_timeout_seconds):
+                async for chunk in producer():
+                    yield chunk
         except asyncio.CancelledError:
             raise
-        except (OllamaError, RuntimeError) as error:
-            yield sse_event({"error": str(error)})
+        except Exception:
+            logging.getLogger("d4teacher").exception("Teacher stream failed")
+            yield sse_event({"error": "Не удалось завершить объяснение. Повторите запрос позже."})
         finally:
             request.app.state.generation_slots.release()
+            request.app.state.admitted_requests -= 1
 
     return StreamingResponse(
         guarded(),

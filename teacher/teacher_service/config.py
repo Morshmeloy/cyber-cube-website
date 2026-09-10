@@ -14,9 +14,11 @@ class TeacherSettings(BaseSettings):
     ollama_num_ctx: int = 4096
     chroma_dir: str = "/app/chroma_db"
     chroma_collection: str = "tanenbaum_networks"
-    rag_top_k: int = 4
+    rag_top_k: int = Field(default=4, ge=1, le=8)
     teacher_max_concurrent_generations: int = 1
-    teacher_queue_timeout_seconds: float = 30.0
+    teacher_queue_timeout_seconds: float = Field(default=30.0, gt=0)
+    teacher_max_waiting_requests: int = Field(default=16, ge=0)
+    teacher_request_timeout_seconds: float = Field(default=900.0, gt=0)
     teacher_max_explanation_tokens: int = 180
     teacher_max_detail_tokens: int = 420
     teacher_max_chat_tokens: int = 420

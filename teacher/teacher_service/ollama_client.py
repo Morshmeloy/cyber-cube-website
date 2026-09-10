@@ -54,14 +54,19 @@ class OllamaClient:
                     "POST", f"{self.base_url}/api/chat", json=payload
                 ) as response:
                     response.raise_for_status()
+                    finished = False
                     async for line in response.aiter_lines():
                         if not line:
                             continue
                         event = json.loads(line)
                         if event.get("error"):
                             raise OllamaError(str(event["error"]))
+                        if event.get("done"):
+                            finished = True
                         if token := event.get("message", {}).get("content", ""):
                             yield token
+                    if not finished:
+                        raise OllamaError("Ollama оборвала поток до завершения")
         except OllamaError:
             raise
         except (httpx.HTTPError, json.JSONDecodeError) as error:

@@ -9,4 +9,4 @@ COPY index_pdf.py ./
 COPY data/ ./data/
 RUN mkdir -p /app/chroma_db && useradd --system --uid 10001 --home /app teacher && chown -R teacher:teacher /app
 USER teacher
-CMD ["uvicorn", "teacher_service.main:app", "--host", "127.0.0.1", "--port", "8002"]
+CMD ["uvicorn", "teacher_service.main:app", "--host", "127.0.0.1", "--port", "8002", "--workers", "1"]

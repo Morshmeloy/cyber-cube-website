@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     TEACHER_QUEUE_TIMEOUT_SECONDS: float = Field(
         35.0, env="TEACHER_QUEUE_TIMEOUT_SECONDS"
     )
-    TEACHER_MAX_CONCURRENT_STREAMS: int = Field(1, env="TEACHER_MAX_CONCURRENT_STREAMS")
+    TEACHER_MAX_CONCURRENT_STREAMS: int = Field(1, ge=1, env="TEACHER_MAX_CONCURRENT_STREAMS")
 
     class Config:
         env_file = ".env.dev"

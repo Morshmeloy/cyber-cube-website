@@ -21,6 +21,8 @@ export interface Mistake {
   question: string
   options: string[]
   correct: number
+  correct_answers?: number[]
+  selected_answers?: number[]
   userAnswer: number | null
   src: string
 }
