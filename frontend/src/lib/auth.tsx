@@ -104,6 +104,9 @@ export async function login(username: string, password: string): Promise<LoginRe
 }
 
 export function logout(): void {
+  // The endpoint is intentionally idempotent and only removes the HttpOnly
+  // gateway cookie. Start it before clearing the Bearer token.
+  void apiClient.delete('/auth/mail-session').catch(() => undefined)
   clearTokens()
   localStorage.removeItem(USER_CACHE_KEY)
 }

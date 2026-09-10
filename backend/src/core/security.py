@@ -21,6 +21,14 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     to_encode.update({"exp": expire, "type": "access"})
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
+def create_mail_access_token(data: dict) -> str:
+    """Issue a signed, short-lived token accepted only by the mail gateway."""
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(minutes=settings.MAIL_ACCESS_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire, "type": "mail_access"})
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+
 def create_refresh_token(data: dict) -> str:
     to_encode = data.copy()
     expire = datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
