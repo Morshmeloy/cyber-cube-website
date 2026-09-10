@@ -1,4 +1,5 @@
-import { ChevronDown } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { ChevronDown, Mail } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu.tsx'
 import { getUser, logout } from '@/lib/auth.tsx'
 import { LOGO_MARK_IMAGE_PATH, SITE_NAME } from '@/data/site/site.tsx'
@@ -9,15 +10,146 @@ interface UserMenuProps {
   user: ReturnType<typeof getUser>
   navigateTo: (target: PageNavigationTarget) => void
   onLoggedOut: () => void
+  /** Реальное значение появится после подключения серверной проверки Mailcow. */
+  unreadMailCount?: number
 }
+
+const MAIL_UI_URL = '/mail'
+const MAIL_DOMAIN = 'd4tech.ru'
+const MAIL_REFRESH_INTERVAL_MS = 60_000
 
 /** React-порт navigation/user-menu.ts — виджет профиля в правом верхнем углу, вне панели
  * страницы, виден поверх куба и любой открытой страницы. Пусто, пока пользователь не вошёл. */
-export function UserMenu({ user, navigateTo, onLoggedOut }: UserMenuProps) {
+export function UserMenu({ user, navigateTo, onLoggedOut, unreadMailCount }: UserMenuProps) {
+  const [fetchedUnreadMailCount, setFetchedUnreadMailCount] = useState<number | null>(null)
+
+  const siteUsername = user?.username.trim() ?? ''
+  const mailAccount = siteUsername
+    ? (siteUsername.includes('@') ? siteUsername : `${siteUsername}@${MAIL_DOMAIN}`).toLowerCase()
+    : null
+
+  useEffect(() => {
+    if (!mailAccount || unreadMailCount !== undefined) {
+      setFetchedUnreadMailCount(null)
+      return
+    }
+
+    let disposed = false
+    let controller: AbortController | null = null
+
+    const refreshUnreadCount = async () => {
+      controller?.abort()
+      controller = new AbortController()
+
+      try {
+        const mailAccountPath = encodeURIComponent(mailAccount).replace(/%40/gi, '@')
+        const response = await fetch(
+          `/SOGo/so/${mailAccountPath}/Mail/unseenCount`,
+          {
+            method: 'POST',
+            credentials: 'include',
+            cache: 'no-store',
+            headers: {
+              Accept: 'application/json',
+            },
+            signal: controller.signal,
+          },
+        )
+
+        if (!response.ok) {
+          throw new Error(`SOGo unseenCount returned HTTP ${response.status}`)
+        }
+
+        const payload: unknown = await response.json()
+
+        if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+          throw new Error('SOGo unseenCount returned an unexpected response')
+        }
+
+        const entries = Object.entries(payload as Record<string, unknown>)
+        const inboxEntries = entries.filter(([key]) =>
+          key.toLowerCase().endsWith('/folderinbox'),
+        )
+        const relevantEntries = inboxEntries.length > 0 ? inboxEntries : entries
+
+        const count = relevantEntries.reduce((total, [, value]) => {
+          if (typeof value !== 'number' || !Number.isFinite(value)) {
+            return total
+          }
+
+          return total + Math.max(0, Math.trunc(value))
+        }, 0)
+
+        if (!disposed) {
+          setFetchedUnreadMailCount(count)
+        }
+      } catch (error) {
+        const aborted =
+          error instanceof DOMException && error.name === 'AbortError'
+
+        if (!disposed && !aborted) {
+          // Нет активной сессии SOGo — конверт остаётся без счётчика.
+          setFetchedUnreadMailCount(null)
+        }
+      }
+    }
+
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') {
+        void refreshUnreadCount()
+      }
+    }
+
+    void refreshUnreadCount()
+
+    const refreshTimer = window.setInterval(
+      () => void refreshUnreadCount(),
+      MAIL_REFRESH_INTERVAL_MS,
+    )
+
+    document.addEventListener('visibilitychange', refreshWhenVisible)
+
+    return () => {
+      disposed = true
+      controller?.abort()
+      window.clearInterval(refreshTimer)
+      document.removeEventListener('visibilitychange', refreshWhenVisible)
+    }
+  }, [mailAccount, unreadMailCount])
+
   if (!user) return null
 
+  const effectiveUnreadMailCount =
+    unreadMailCount ?? fetchedUnreadMailCount
+
+  const visibleUnreadCount =
+    effectiveUnreadMailCount !== null && effectiveUnreadMailCount > 0
+      ? Math.min(effectiveUnreadMailCount, 99)
+      : null
+
   return (
-    <div className="fixed top-[clamp(10px,2vh,20px)] right-[clamp(10px,2vw,24px)] z-[600]">
+    <div className="fixed top-[clamp(10px,2vh,20px)] right-[clamp(10px,2vw,24px)] z-[600] flex items-center gap-2.5">
+      <a
+        href={MAIL_UI_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Открыть рабочую почту"
+        title="Открыть рабочую почту"
+        className="relative flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-full border border-cyan-400/35 bg-[#050510bf] text-[#e8f8ff] shadow-[0_0_14px_rgba(0,255,255,0.15)] backdrop-blur-md transition-[border-color,color,box-shadow,transform] hover:scale-105 hover:border-cyan-400/75 hover:text-cyan-200 hover:shadow-[0_0_22px_rgba(0,255,255,0.35)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300"
+      >
+        <Mail aria-hidden="true" className="h-6 w-6" strokeWidth={1.8} />
+        {visibleUnreadCount !== null && (
+          <span
+            aria-label={`Непрочитанных писем: ${effectiveUnreadMailCount ?? 0}`}
+            className="absolute -top-1 -right-1 flex min-h-5 min-w-5 items-center justify-center rounded-full border border-[#050510] bg-[#ff3b6b] px-1 text-[10px] leading-none font-bold text-white shadow-[0_0_10px_rgba(255,59,107,0.75)]"
+          >
+            {effectiveUnreadMailCount !== null && effectiveUnreadMailCount > 99
+              ? '99+'
+              : visibleUnreadCount}
+          </span>
+        )}
+      </a>
+
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <button

@@ -26,6 +26,7 @@ import { DashboardPage } from '@/components/private/DashboardPage.tsx'
 import { DocsPage } from '@/components/private/DocsPage.tsx'
 import { WarehousePage } from '@/components/private/WarehousePage.tsx'
 import { FinancePage } from '@/components/private/FinancePage.tsx'
+import { MailPage } from '@/components/private/MailPage.tsx'
 import { AdminPage } from '@/components/private/AdminPage.tsx'
 import { LearningQuiz } from '@/components/private/learning/LearningQuiz.tsx'
 import type { PageContent, PageNavigationTarget, PrivatePageKey } from '@/types/page-content.tsx'
@@ -58,6 +59,7 @@ const PRIVATE_PAGE_CONTENT: Record<Exclude<PrivatePageKey, 'dashboard'>, PageCon
   warehouse: { title: 'Складской учёт', blocks: [{ kind: 'component', render: () => createElement(WarehousePage) }] },
   docs: { title: 'Корпоративная документация', blocks: [{ kind: 'component', render: () => createElement(DocsPage) }] },
   finance: { title: 'Финансы (чеки и командировки)', blocks: [{ kind: 'component', render: () => createElement(FinancePage) }] },
+  mail: { title: 'Корпоративная почта', blocks: [{ kind: 'component', render: () => createElement(MailPage) }] },
 }
 
 /**

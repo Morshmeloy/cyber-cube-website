@@ -22,7 +22,7 @@ const FACE_TO_SLUG: Record<FaceName, string> = {
 
 const SLUG_TO_FACE: Record<string, FaceName> = Object.fromEntries(Object.entries(FACE_TO_SLUG).map(([face, slug]) => [slug, face])) as Record<string, FaceName>
 
-const PRIVATE_KEYS: PrivatePageKey[] = ['dashboard', 'learning', 'warehouse', 'docs', 'finance']
+const PRIVATE_KEYS: PrivatePageKey[] = ['dashboard', 'learning', 'warehouse', 'docs', 'finance', 'mail']
 
 /** Маршрут → URL. Один и тот же путь может быть результатом разных запросов (например,
  * попытка открыть приватный раздел неавторизованным всегда приводит на /login) — вызывающий
