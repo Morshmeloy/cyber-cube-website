@@ -18,3 +18,6 @@ class User(Base):
 
     role = relationship("Role", back_populates="users")
     stock_operations = relationship("StockOperation", back_populates="user")
+    auth_sessions = relationship(
+        "AuthSession", back_populates="user", cascade="all, delete-orphan"
+    )

@@ -31,17 +31,13 @@ class UserResponse(BaseModel):
 class LoginRequest(BaseModel):
     username: str
     password: str
+    remember_me: bool = True
 
 
 class LoginResponse(BaseModel):
     access_token: str
-    refresh_token: str
     token_type: str = "bearer"
     role: str
-
-
-class RefreshRequest(BaseModel):
-    refresh_token: str
 
 
 class RefreshResponse(BaseModel):

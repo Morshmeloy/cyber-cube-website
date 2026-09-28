@@ -2,20 +2,13 @@ import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 
 const API_BASE_URL = '/api'
 
-const ACCESS_TOKEN_KEY = 'd4_access_token'
-const REFRESH_TOKEN_KEY = 'd4_refresh_token'
-
 /**
- * ВНИМАНИЕ (риск для продакшена): access/refresh-токены хранятся в localStorage —
- * он доступен любому JS на странице, включая внедрённый через XSS. Для MVP это
- * осознанно допустимо (см. задачу), но перед продакшеном токены должны переехать
- * в HttpOnly-cookie, которую выставляет и читает только сервер, а JS к ней вообще
- * не имеет доступа — тогда весь код хранения токенов ниже станет не нужен.
- * Основной источник истины — переменные в памяti (accessToken/refreshToken),
- * localStorage — только для переживания перезагрузки страницы.
+ * Короткоживущий access-токен живёт только в памяти вкладки. Долгоживущий
+ * refresh-токен браузер хранит в Secure HttpOnly cookie: JavaScript не может его
+ * прочитать или случайно записать в localStorage. После обновления/открытия сайта
+ * приложение восстанавливает access-токен через /auth/refresh.
  */
-let accessToken: string | null = localStorage.getItem(ACCESS_TOKEN_KEY)
-let refreshToken: string | null = localStorage.getItem(REFRESH_TOKEN_KEY)
+let accessToken: string | null = null
 
 type SessionExpiredHandler = () => void
 let onSessionExpired: SessionExpiredHandler | null = null
@@ -26,23 +19,16 @@ export function setSessionExpiredHandler(handler: SessionExpiredHandler | null):
   onSessionExpired = handler
 }
 
-export function setTokens(tokens: { access_token: string; refresh_token: string }): void {
+export function setAccessTokenFromResponse(tokens: { access_token: string }): void {
   accessToken = tokens.access_token
-  refreshToken = tokens.refresh_token
-  localStorage.setItem(ACCESS_TOKEN_KEY, tokens.access_token)
-  localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refresh_token)
 }
 
 function setAccessToken(token: string): void {
   accessToken = token
-  localStorage.setItem(ACCESS_TOKEN_KEY, token)
 }
 
 export function clearTokens(): void {
   accessToken = null
-  refreshToken = null
-  localStorage.removeItem(ACCESS_TOKEN_KEY)
-  localStorage.removeItem(REFRESH_TOKEN_KEY)
 }
 
 export function getAccessToken(): string | null {
@@ -55,12 +41,11 @@ function withAuthorization(init: RequestInit, token: string | null): RequestInit
   return { ...init, headers }
 }
 
-export const apiClient = axios.create({ baseURL: API_BASE_URL })
+export const apiClient = axios.create({ baseURL: API_BASE_URL, withCredentials: true })
 
 // У этих путей ещё нет (или не нужен) access-токен: /login и /register вызываются
-// анонимно, /refresh аутентифицируется отдельным refresh-токеном в теле запроса,
-// а не заголовком Authorization.
-const AUTH_FREE_PATHS = ['/auth/login', '/auth/register', '/auth/refresh']
+// анонимно, /refresh и /logout аутентифицируются HttpOnly cookie.
+const AUTH_FREE_PATHS = ['/auth/login', '/auth/register', '/auth/refresh', '/auth/logout']
 
 apiClient.interceptors.request.use((config) => {
   const isAuthFree = AUTH_FREE_PATHS.some((path) => config.url?.includes(path))
@@ -78,26 +63,24 @@ interface RetryableRequestConfig extends InternalAxiosRequestConfig {
 // /auth/refresh — все они переиспользуют один и тот же промис обновления токена.
 let refreshPromise: Promise<string> | null = null
 
-async function performRefresh(): Promise<string> {
-  if (!refreshToken) throw new Error('Нет refresh-токена')
-  const response = await axios.post<{ access_token: string }>(`${API_BASE_URL}/auth/refresh`, { refresh_token: refreshToken })
+export async function refreshAccessToken(): Promise<string> {
+  const response = await axios.post<{ access_token: string }>(
+    `${API_BASE_URL}/auth/refresh`,
+    {},
+    { withCredentials: true },
+  )
   setAccessToken(response.data.access_token)
   return response.data.access_token
 }
 
 /** Авторизованный fetch для потоковых SSE-ответов Учителя. */
 export async function authenticatedFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
-  let response = await fetch(input, withAuthorization(init, accessToken))
+  let response = await fetch(input, { ...withAuthorization(init, accessToken), credentials: 'include' })
   if (response.status !== 401) return response
-  if (!refreshToken) {
-    clearTokens()
-    onSessionExpired?.()
-    return response
-  }
   try {
-    refreshPromise ??= performRefresh().finally(() => { refreshPromise = null })
+    refreshPromise ??= refreshAccessToken().finally(() => { refreshPromise = null })
     const token = await refreshPromise
-    response = await fetch(input, withAuthorization(init, token))
+    response = await fetch(input, { ...withAuthorization(init, token), credentials: 'include' })
     if (response.status === 401) {
       clearTokens()
       onSessionExpired?.()
@@ -116,10 +99,10 @@ apiClient.interceptors.response.use(
     const original = error.config as RetryableRequestConfig | undefined
     const isRefreshCall = original?.url?.includes('/auth/refresh')
 
-    if (error.response?.status === 401 && original && !original._retry && !isRefreshCall && refreshToken) {
+    if (error.response?.status === 401 && original && !original._retry && !isRefreshCall) {
       original._retry = true
       try {
-        refreshPromise ??= performRefresh().finally(() => {
+        refreshPromise ??= refreshAccessToken().finally(() => {
           refreshPromise = null
         })
         const newAccessToken = await refreshPromise
@@ -132,7 +115,7 @@ apiClient.interceptors.response.use(
       }
     }
 
-    if (error.response?.status === 401 && (isRefreshCall || !refreshToken)) {
+    if (error.response?.status === 401 && isRefreshCall) {
       clearTokens()
       onSessionExpired?.()
     }

@@ -18,7 +18,7 @@ import { pageContentByFace } from '@/data/navigation/pages/index.tsx'
 import { legalPageColor, legalPageContent } from '@/data/navigation/pages/legal.tsx'
 import { PRIVATE_PAGE_COLORS } from '@/data/navigation/private.tsx'
 import { LOGO_IMAGE_PATH } from '@/data/site/site.tsx'
-import { getUser, isAuthenticated, logout } from '@/lib/auth.tsx'
+import { getUser, isAuthenticated, logout, restoreSession } from '@/lib/auth.tsx'
 import { setSessionExpiredHandler } from '@/lib/http-client.tsx'
 import { pathForRoute, routeForPath, type AppRoute } from '@/lib/router.tsx'
 import { AuthScreen } from '@/components/auth/AuthScreen.tsx'
@@ -195,17 +195,20 @@ export function AppRoot() {
     setUser(getUser())
   }
 
-  // Разбор URL при первой загрузке страницы (прямой переход/обновление по /about,
-  // /dashboard, /admin и т.п. — «deep link»). Выполняется один раз при монтировании.
-  // queueMicrotask: setState нельзя вызывать синхронно из тела эффекта
-  // (react-hooks/set-state-in-effect) — navigateTo/openAdminPage делают это внутри себя.
+  // Сначала пытаемся восстановить вход по HttpOnly cookie и только затем разбираем
+  // URL. Иначе прямой переход на /dashboard успел бы отправить пользователя на форму
+  // входа до ответа /auth/refresh.
   useEffect(() => {
-    queueMicrotask(() => {
+    let cancelled = false
+    void restoreSession().then((restoredUser) => {
+      if (cancelled) return
+      setUser(restoredUser)
       const route = routeForPath(window.location.pathname)
       if (route.kind === 'admin') openAdminPage()
       else if (route.kind === 'nav') navigateTo(route.target)
       // route.kind === 'cube' — уже и так начальное состояние, ничего делать не нужно.
     })
+    return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- должно выполниться один раз при монтировании
   }, [])
 

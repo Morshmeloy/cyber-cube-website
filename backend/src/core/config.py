@@ -10,6 +10,10 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(15, env="ACCESS_TOKEN_EXPIRE_MINUTES")
     MAIL_ACCESS_EXPIRE_MINUTES: int = Field(480, ge=1, le=1440, env="MAIL_ACCESS_EXPIRE_MINUTES")
     REFRESH_TOKEN_EXPIRE_DAYS: int = Field(7, env="REFRESH_TOKEN_EXPIRE_DAYS")
+    PERSISTENT_SESSION_EXPIRE_DAYS: int = Field(
+        30, env="PERSISTENT_SESSION_EXPIRE_DAYS"
+    )
+    REFRESH_COOKIE_NAME: str = Field("d4_refresh_token", env="REFRESH_COOKIE_NAME")
     APP_NAME: str = Field("D4 Technologies", env="APP_NAME")
     DEBUG: bool = Field(False, env="DEBUG")
     CORS_ALLOWED_ORIGINS: list[str] = Field(["*"], env="CORS_ALLOWED_ORIGINS")

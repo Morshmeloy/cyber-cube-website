@@ -13,6 +13,7 @@ interface LoginFormProps {
 export function LoginForm({ navigateTo }: LoginFormProps) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [rememberMe, setRememberMe] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -21,7 +22,7 @@ export function LoginForm({ navigateTo }: LoginFormProps) {
     setError(null)
     setIsSubmitting(true)
 
-    const result = await login(username.trim(), password)
+    const result = await login(username.trim(), password, rememberMe)
     setIsSubmitting(false)
 
     if ('user' in result) {
@@ -79,6 +80,18 @@ export function LoginForm({ navigateTo }: LoginFormProps) {
               className={fieldClass}
             />
           </div>
+          <label className="mb-4 flex cursor-pointer items-start gap-2.5 text-[13px] leading-[1.4] text-[#e8f8ff]/80">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(event) => setRememberMe(event.target.checked)}
+              className="mt-0.5 h-4 w-4 accent-cyan-400"
+            />
+            <span>
+              Запомнить меня на этом устройстве
+              <span className="mt-0.5 block text-[11px] text-[#e8f8ff]/45">Вход сохранится на 30 дней</span>
+            </span>
+          </label>
           <button
             type="submit"
             disabled={isSubmitting}
