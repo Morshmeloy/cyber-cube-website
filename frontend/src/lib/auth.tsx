@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { apiClient, setTokens, clearTokens, getAccessToken } from './http-client.tsx'
+import { apiClient, setAccessTokenFromResponse, clearTokens, getAccessToken, refreshAccessToken } from './http-client.tsx'
 
 export interface Role {
   id: number
@@ -89,10 +89,14 @@ export type LoginResult = { user: User } | { error: LoginError }
 /** Логин через POST /api/auth/login: сохраняет access/refresh-токены (см.
  * lib/http-client.ts), затем сразу запрашивает /api/auth/me за полным профилем —
  * ответ /login содержит только role, без id/email/full_name. */
-export async function login(username: string, password: string): Promise<LoginResult> {
+export async function login(username: string, password: string, rememberMe = true): Promise<LoginResult> {
   try {
-    const response = await apiClient.post<{ access_token: string; refresh_token: string; role: string }>('/auth/login', { username, password })
-    setTokens(response.data)
+    const response = await apiClient.post<{ access_token: string; role: string }>('/auth/login', {
+      username,
+      password,
+      remember_me: rememberMe,
+    })
+    setAccessTokenFromResponse(response.data)
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) return { error: 'invalid-credentials' }
     return { error: 'server-unreachable' }
@@ -104,11 +108,25 @@ export async function login(username: string, password: string): Promise<LoginRe
 }
 
 export function logout(): void {
-  // The endpoint is intentionally idempotent and only removes the HttpOnly
-  // gateway cookie. Start it before clearing the Bearer token.
+  // Оба endpoint идемпотентны: первый удаляет пропуск к почтовому шлюзу, второй
+  // отзывает постоянную браузерную сессию и удаляет refresh-cookie.
   void apiClient.delete('/auth/mail-session').catch(() => undefined)
+  void apiClient.post('/auth/logout').catch(() => undefined)
   clearTokens()
   localStorage.removeItem(USER_CACHE_KEY)
+}
+
+/** Восстанавливает вход из защищённой cookie после перезагрузки страницы или
+ * повторного открытия браузера. Пароль пользователю вводить не требуется. */
+export async function restoreSession(): Promise<User | null> {
+  try {
+    await refreshAccessToken()
+    return await fetchMe()
+  } catch {
+    clearTokens()
+    localStorage.removeItem(USER_CACHE_KEY)
+    return null
+  }
 }
 
 export function isAuthenticated(): boolean {

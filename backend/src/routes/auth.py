@@ -5,7 +5,6 @@ from src.services.auth_service import AuthService
 from src.schemas.auth import (
     LoginRequest,
     LoginResponse,
-    RefreshRequest,
     RefreshResponse,
     UserResponse,
 )
@@ -19,28 +18,83 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 MAIL_ACCESS_COOKIE = "d4_mail_access"
 
 
+def set_refresh_cookie(response: Response, token: str, remember_me: bool) -> None:
+    max_age = (
+        settings.PERSISTENT_SESSION_EXPIRE_DAYS * 24 * 60 * 60 if remember_me else None
+    )
+    response.set_cookie(
+        key=settings.REFRESH_COOKIE_NAME,
+        value=token,
+        max_age=max_age,
+        httponly=True,
+        secure=not settings.DEBUG,
+        samesite="lax",
+        path="/api/auth",
+    )
+
+
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)):
     return UserResponse.model_validate(current_user)
 
 
 @router.post("/login", response_model=LoginResponse)
-async def login(login_data: LoginRequest, db: AsyncSession = Depends(get_db)):
+async def login(
+    login_data: LoginRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+):
     service = AuthService(db)
     user = await service.authenticate_user(login_data)
-    tokens = service.create_tokens(user)
+    tokens = await service.create_session(user, login_data.remember_me)
+    set_refresh_cookie(response, tokens["refresh_token"], tokens["remember_me"])
     return LoginResponse(
         access_token=tokens["access_token"],
-        refresh_token=tokens["refresh_token"],
         role=user.role.name,
     )
 
 
 @router.post("/refresh", response_model=RefreshResponse)
-async def refresh(request: RefreshRequest, db: AsyncSession = Depends(get_db)):
+async def refresh(
+    response: Response,
+    refresh_token: str | None = Cookie(
+        default=None, alias=settings.REFRESH_COOKIE_NAME
+    ),
+    db: AsyncSession = Depends(get_db),
+):
+    if not refresh_token:
+        raise HTTPException(status_code=401, detail="Refresh cookie is missing")
     service = AuthService(db)
-    new_access = await service.refresh_access(request.refresh_token)
-    return RefreshResponse(access_token=new_access)
+    tokens = await service.refresh_session(refresh_token)
+    set_refresh_cookie(response, tokens["refresh_token"], tokens["remember_me"])
+    return RefreshResponse(access_token=tokens["access_token"])
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(
+    response: Response,
+    refresh_token: str | None = Cookie(
+        default=None, alias=settings.REFRESH_COOKIE_NAME
+    ),
+    db: AsyncSession = Depends(get_db),
+):
+    """Revoke the persistent browser session and remove both auth cookies."""
+    if refresh_token:
+        await AuthService(db).revoke_session(refresh_token)
+    response.delete_cookie(
+        key=settings.REFRESH_COOKIE_NAME,
+        httponly=True,
+        secure=not settings.DEBUG,
+        samesite="lax",
+        path="/api/auth",
+    )
+    response.delete_cookie(
+        key=MAIL_ACCESS_COOKIE,
+        secure=True,
+        httponly=True,
+        samesite="lax",
+        path="/",
+    )
 
 
 @router.post("/mail-session", status_code=status.HTTP_204_NO_CONTENT)

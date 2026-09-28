@@ -4,3 +4,4 @@ from .warehouse import Nomenclature, StockOperation, OperationType
 from .audit import AuditLog
 from .documents import Document
 from .expenses import Expense
+from .auth_session import AuthSession
