@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="D4NMS — Cистема мониторинга сетевых устройств с real-time обновлениями. Поддержка Cisco, Eltex, Huawei, MikroTik, Juniper.">
+    <meta name="keywords" content="мониторинг сети, network monitoring, D4NMS, SNMP, SSH, Ping, WebSocket">
+    <meta property="og:title" content="D4NMS — Мониторинг сети нового поколения">
+    <meta property="og:description" content="Легковесная система мониторинга сетевых устройств с real-time обновлениями">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="images/list of devices.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="images/list of devices.jpg">
+    <title>D4NMS — Мониторинг сети нового поколения</title>
+    <link rel="icon" type="image/png" href="images/d4-logo.png">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <style>
+        /* Canvas fix */
+        #networkCanvas {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 0 !important;
+            pointer-events: none !important;
+            display: block;
+        }
+        
+        body {
+            position: relative;
+        }
+        
+        section {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .hero-section {
+            position: relative !important;
+            overflow: visible !important;
+        }
+        .hero-content {
+            position: relative !important;
+            z-index: 10 !important;
+        }
+
+        @keyframes gradientMove {
+            0%   { background-position: 0% 50%; }
+            100% { background-position: 300% 50%; }
+        }
+        @keyframes gradientMoveSub {
+            0%   { background-position: 0% 50%; }
+            100% { background-position: 300% 50%; }
+        }
+        @keyframes hueShift {
+            0%   { filter: hue-rotate(0deg) brightness(1.2); }
+            50%  { filter: hue-rotate(180deg) brightness(1.4); }
+            100% { filter: hue-rotate(360deg) brightness(1.2); }
+        }
+        @keyframes hueShiftSub {
+            0%   { filter: hue-rotate(60deg) brightness(1.1); }
+            50%  { filter: hue-rotate(240deg) brightness(1.3); }
+            100% { filter: hue-rotate(420deg) brightness(1.1); }
+        }
+        .hero-title {
+            background: linear-gradient(90deg, #00d4ff, #ff6b6b, #ffd93d, #6bcf7f, #9c27b0, #00d4ff) !important;
+            background-size: 300% 100% !important;
+            -webkit-background-clip: text !important;
+            background-clip: text !important;
+            -webkit-text-fill-color: transparent !important;
+            color: transparent !important;
+            animation: gradientMove 3s linear infinite, hueShift 6s linear infinite !important;
+            will-change: background-position, filter;
+        }
+        .download-hint {
+            margin-top: 12px;
+            font-size: 0.82rem;
+            color: rgba(255, 255, 255, 0.55);
+            line-height: 1.6;
+        }
+        .download-hint a {
+            color: #00d4ff;
+            text-decoration: none;
+            border-bottom: 1px dashed rgba(0, 212, 255, 0.4);
+            transition: color 0.2s, border-color 0.2s;
+        }
+        .download-hint a:hover {
+            color: #fff;
+            border-color: rgba(255, 255, 255, 0.6);
+        }
+        .hero-subtitle {
+            background: linear-gradient(90deg, #4ecdc4, #ffd93d, #ff6b6b, #667eea, #00d4ff, #4ecdc4) !important;
+            background-size: 300% 100% !important;
+            -webkit-background-clip: text !important;
+            background-clip: text !important;
+            -webkit-text-fill-color: transparent !important;
+            color: transparent !important;
+            animation: gradientMoveSub 4s linear infinite, hueShiftSub 7s linear infinite !important;
+            will-change: background-position, filter;
+        }
+
+        .download-title {
+            background: linear-gradient(90deg, #ff6b6b, #ffd93d, #6bcf7f, #00d4ff, #667eea, #e91e63, #ff6b6b) !important;
+            background-size: 300% 100% !important;
+            -webkit-background-clip: text !important;
+            background-clip: text !important;
+            -webkit-text-fill-color: transparent !important;
+            color: transparent !important;
+            animation: gradientMove 3s linear infinite !important;
+            will-change: background-position;
+        }
+        .download-subtitle {
+            background: linear-gradient(90deg, #4ecdc4, #00d4ff, #667eea, #ffd93d, #ff6b6b, #4ecdc4) !important;
+            background-size: 300% 100% !important;
+            -webkit-background-clip: text !important;
+            background-clip: text !important;
+            -webkit-text-fill-color: transparent !important;
+            color: transparent !important;
+            animation: gradientMoveSub 4s linear infinite !important;
+            will-change: background-position;
+        }
+
+        /* ===== Улучшенные стили для секции правовой информации ===== */
+        .pricing-text {
+            font-size: 16px;
+            line-height: 1.8;
+            color: #e0e0e0;
+        }
+
+        .pricing-text p {
+            margin-bottom: 1.2rem;
+            padding-left: 0;
+        }
+
+        .pricing-text p strong {
+            color: #4ecdc4;
+            font-weight: 700;
+            font-size: 1.05em;
+            display: inline-block;
+            margin-bottom: 0.15rem;
+            letter-spacing: 0.02em;
+            text-shadow: 0 0 8px rgba(78, 205, 196, 0.3);
+        }
+
+        .pricing-text .section-divider {
+            border: 0;
+            height: 1px;
+            background: linear-gradient(to right, rgba(78, 205, 196, 0.4), transparent);
+            margin: 2rem 0;
+        }
+
+        .pricing-text .highlight-block {
+            background: rgba(78, 205, 196, 0.06);
+            border-left: 3px solid #4ecdc4;
+            padding: 1rem 1.5rem;
+            border-radius: 4px;
+            margin: 1.5rem 0;
+        }
+
+        .pricing-text .highlight-block p {
+            margin-bottom: 0;
+        }
+
+        .pricing-text .highlight-block p:not(:last-child) {
+            margin-bottom: 0.8rem;
+        }
+
+        .pricing-text p strong::before {
+            content: "◆ ";
+            color: #4ecdc4;
+            font-size: 0.8em;
+            opacity: 0.7;
+            margin-right: 4px;
+        }
+
+        @media (max-width: 768px) {
+            .pricing-text {
+                font-size: 15px;
+            }
+            .pricing-text .highlight-block {
+                padding: 0.8rem 1rem;
+            }
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Network Canvas Background -->
+    <canvas id="networkCanvas" class="network-canvas"></canvas>
+
+    <!-- Header Navigation -->
+    <header id="site-header">
+        <div class="header-inner">
+            <nav class="header-nav">
+                <a href="#hero" class="header-brand">D4NMS</a>
+                <a href="#features">Возможности</a>
+                <a href="#screenshots">Интерфейс</a>
+                <a href="#documentation">Документация</a>
+                <a href="#licenses">Лицензии</a>
+                <a href="#pricing">Контакты</a>
+            </nav>
+            <button class="burger" id="burgerBtn" aria-label="Меню">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+        <!-- Mobile menu -->
+        <nav class="mobile-nav" id="mobileNav">
+            <a href="#features">Возможности</a>
+            <a href="#screenshots">Интерфейс</a>
+            <a href="#documentation">Документация</a>
+            <a href="#licenses">Лицензии</a>
+            <a href="#pricing">Контакты</a>
+        </nav>
+    </header>
+
+    <!-- Back to Top Button -->
+    <button id="backToTop" aria-label="Наверх">↑</button>
+
+    <!-- Hero Section -->
+    <section id="hero" class="hero-section">
+        <div class="container">
+            <div class="hero-content">
+                <img src="images/d4-logo.png" alt="D4NMS Logo" class="hero-logo">
+                <h1 class="hero-title">D4NMS — Мониторинг сети нового поколения</h1>
+                <p class="hero-subtitle">Система мониторинга сетевых устройств с real-time обновлениями</p>
+                <div class="hero-buttons">
+                    <a href="downloads/D4NMS.zip" download="D4NMS.zip" class="btn btn-primary download-btn" id="heroDownloadBtn">
+                        <span class="icon">⬇️</span>
+                        <span class="text">Скачать D4NMS</span>
+                    </a>
+                    <p class="download-hint">
+                        ⚠️ Встроенный архиватор Windows может не поддержать формат сжатия.<br>
+                        Рекомендуем использовать <a href="https://www.7-zip.org/" target="_blank" rel="noopener">7-Zip</a> или <a href="https://www.win-rar.com/" target="_blank" rel="noopener">WinRAR</a>.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features-section" style="background: transparent;">
+        <div class="container">
+            <h2 class="section-title no-glitch">Ключевые возможности</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <span class="feature-icon">🖥️</span>
+                    <h3>Мониторинг устройств</h3>
+                    <p>Ping, SSH, SNMP — непрерывный контроль до 1000 устройств в реальном времени</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">⚡</span>
+                    <h3>Real-time обновления</h3>
+                    <p>WebSocket — статус устройств и алерты обновляются мгновенно без перезагрузки</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">🔧</span>
+                    <h3>SSH-команды</h3>
+                    <p>Выполнение CLI-команд прямо из браузера, библиотека шаблонов для популярных вендоров</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">🔔</span>
+                    <h3>Система алертов</h3>
+                    <p>Автоматические уведомления при сбоях с классификацией по критичности</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">👥</span>
+                    <h3>Управление доступом</h3>
+                    <p>5-уровневая ролевая модель: от гостя до администратора</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">🌐</span>
+                    <h3>Multi-vendor</h3>
+                    <p>Cisco, Eltex, Huawei, MikroTik, Juniper — поддержка из коробки</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Screenshots Section -->
+    <section id="screenshots" class="screenshots-section">
+        <div class="container">
+            <h2 class="section-title no-glitch">Интерфейс системы</h2>
+            <div class="screenshots-grid">
+                <div class="screenshot-item">
+                    <img src="images/list of devices.jpg" alt="Список устройств" loading="lazy">
+                    <p class="screenshot-caption">Главный дашборд с устройствами</p>
+                </div>
+                <div class="screenshot-item">
+                    <img src="images/device details.jpg" alt="Детали устройства" loading="lazy">
+                    <p class="screenshot-caption">Детальная информация об устройстве</p>
+                </div>
+                <div class="screenshot-item">
+                    <img src="images/executing commands.jpg" alt="Выполнение команд" loading="lazy">
+                    <p class="screenshot-caption">Выполнение SSH-команд</p>
+                </div>
+                <div class="screenshot-item">
+                    <img src="images/alert system.jpg" alt="Система алертов" loading="lazy">
+                    <p class="screenshot-caption">Система уведомлений</p>
+                </div>
+                <div class="screenshot-item">
+                    <img src="images/user management.jpg" alt="Управление пользователями" loading="lazy">
+                    <p class="screenshot-caption">Управление пользователями и ролями</p>
+                </div>
+                <div class="screenshot-item">
+                    <img src="images/monitoring history.jpg" alt="История мониторинга" loading="lazy">
+                    <p class="screenshot-caption">История мониторинга</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Documentation Section -->
+    <section id="documentation" class="documentation-section">
+        <div class="container">
+            <h2 class="section-title no-glitch">Документация D4NMS</h2>
+            <p class="section-subtitle">Полная техническая документация системы мониторинга</p>
+            
+            <div class="docs-grid">
+                <div class="doc-card">
+                    <h3>Вводная информация</h3>
+                    <p>Назначение программы, область применения и преимущества системы</p>
+                    <a href="docs/intro.html" class="doc-link">
+                        <span>Открыть документ</span>
+                        <span>→</span>
+                    </a>
+                </div>
+
+                <div class="doc-card">
+                    <h3>Системные требования</h3>
+                    <p>Минимальные и рекомендуемые требования для установки и работы системы</p>
+                    <a href="docs/requirements.html" class="doc-link">
+                        <span>Открыть документ</span>
+                        <span>→</span>
+                    </a>
+                </div>
+
+                <div class="doc-card">
+                    <h3>Инструкция по установке</h3>
+                    <p>Автоматическая и ручная установка системы на Windows и Linux</p>
+                    <a href="docs/installation.html" class="doc-link">
+                        <span>Открыть документ</span>
+                        <span>→</span>
+                    </a>
+                </div>
+
+                <div class="doc-card">
+                    <h3>Руководство по эксплуатации</h3>
+                    <p>Пошаговые инструкции по работе с системой: добавление устройств, выполнение команд, управление пользователями</p>
+                    <a href="docs/manual.html" class="doc-link">
+                        <span>Открыть документ</span>
+                        <span>→</span>
+                    </a>
+                </div>
+
+                <div class="doc-card">
+                    <h3>Функциональные характеристики ПО</h3>
+                    <p>Подробное описание всех возможностей системы, поддерживаемых вендоров и технических характеристик</p>
+                    <a href="docs/functional.html" class="doc-link">
+                        <span>Открыть документ</span>
+                        <span>→</span>
+                    </a>
+                </div>
+
+                <div class="doc-card">
+                    <h3>Задачи, которые решает программа</h3>
+                    <p>Описание проблем и задач, для решения которых предназначена система D4NMS</p>
+                    <a href="docs/tasks.html" class="doc-link">
+                        <span>Открыть документ</span>
+                        <span>→</span>
+                    </a>
+                </div>
+
+                <div class="doc-card">
+                    <h3>Затрачиваемые ресурсы</h3>
+                    <p>Детальная информация о вычислительных и сетевых ресурсах для работы системы</p>
+                    <a href="docs/resources.html" class="doc-link">
+                        <span>Открыть документ</span>
+                        <span>→</span>
+                    </a>
+                </div>
+
+                <div class="doc-card">
+                    <h3>Выходные данные</h3>
+                    <p>Форматы данных, отчеты, логи и возможности интеграции с внешними системами</p>
+                    <a href="docs/output.html" class="doc-link">
+                        <span>Открыть документ</span>
+                        <span>→</span>
+                    </a>
+                </div>
+
+                <div class="doc-card">
+                    <h3>Жизненный цикл ПО</h3>
+                    <p>Информация о процессе разработки, сопровождении и персонале для поддержки работоспособности системы</p>
+                    <a href="docs/lifecycle.html" class="doc-link">
+                        <span>Открыть документ</span>
+                        <span>→</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Licenses Section -->
+    <section id="licenses" class="licenses-section">
+        <div class="container">
+            <h2 class="section-title no-glitch">Лицензии и сертификаты</h2>
+            <p class="section-subtitle">Официальные документы, подтверждающие качество и соответствие стандартам</p>
+
+            <div class="licenses-slider">
+                <button class="lic-arrow lic-arrow--prev" aria-label="Предыдущий">&#8592;</button>
+
+                <div class="lic-track-wrap">
+                    <div class="lic-track" id="licTrack">
+                        <div class="lic-slide active" data-index="0">
+                            <div class="lic-card">
+                                <img src="licenses/partners.jpg" alt="Партнёрская лицензия" loading="lazy">
+                                <div class="lic-caption">Партнёрская лицензия</div>
+                            </div>
+                        </div>
+                        <div class="lic-slide" data-index="1">
+                            <div class="lic-card">
+                                <img src="licenses/reg.jpg" alt="Свидетельство о регистрации" loading="lazy">
+                                <div class="lic-caption">Свидетельство о регистрации</div>
+                            </div>
+                        </div>
+                        <div class="lic-slide" data-index="2">
+                            <div class="lic-card">
+                                <img src="licenses/sert.jpg" alt="Сертификат" loading="lazy">
+                                <div class="lic-caption">Сертификат</div>
+                            </div>
+                        </div>
+                        <div class="lic-slide" data-index="3">
+                            <div class="lic-card">
+                                <img src="licenses/cert-1.jpg" alt="Сертификат PT Sandbox — авторизованный партнёр Positive Technologies" loading="lazy">
+                                <div class="lic-caption">Сертификат PT Sandbox</div>
+                            </div>
+                        </div>
+                        <div class="lic-slide" data-index="4">
+                            <div class="lic-card">
+                                <img src="licenses/cert-2.jpg" alt="Сертификат PT Multiscanner — авторизованный партнёр Positive Technologies" loading="lazy">
+                                <div class="lic-caption">Сертификат PT Multiscanner</div>
+                            </div>
+                        </div>
+                        <div class="lic-slide" data-index="5">
+                            <div class="lic-card">
+                                <img src="licenses/cert-3.jpg" alt="Сертификат MaxPatrol VM — авторизованный партнёр Positive Technologies" loading="lazy">
+                                <div class="lic-caption">Сертификат MaxPatrol VM</div>
+                            </div>
+                        </div>
+                        <div class="lic-slide" data-index="6">
+                            <div class="lic-card">
+                                <img src="licenses/cert-4.jpg" alt="Сертификат MaxPatrol EDR — авторизованный партнёр Positive Technologies" loading="lazy">
+                                <div class="lic-caption">Сертификат MaxPatrol EDR</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="lic-arrow lic-arrow--next" aria-label="Следующий">&#8594;</button>
+            </div>
+
+            <div class="lic-dots" id="licDots">
+                <span class="lic-dot active" data-dot="0"></span>
+                <span class="lic-dot" data-dot="1"></span>
+                <span class="lic-dot" data-dot="2"></span>
+                <span class="lic-dot" data-dot="3"></span>
+                <span class="lic-dot" data-dot="4"></span>
+                <span class="lic-dot" data-dot="5"></span>
+                <span class="lic-dot" data-dot="6"></span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== ОБНОВЛЁННАЯ СЕКЦИЯ: Правовая информация, лицензирование и техническая поддержка ===== -->
+    <section id="pricing" class="pricing-section">
+        <div class="container">
+            <h2 class="section-title no-glitch">Правовая информация, лицензирование и техническая поддержка</h2>
+            
+            <div class="pricing-content">
+                <div class="pricing-text">
+                    <!-- Блок 1: Реестровый статус -->
+                    <div class="highlight-block">
+                        <p><strong>Реестровый статус и правообладание</strong></p>
+                        <p><strong>Правовой статус ПО:</strong> Исключительные права на программное обеспечение принадлежат ООО «Д4 технологии» на основании Свидетельства о государственной регистрации программы для ЭВМ № 2026611391, выданного Федеральной службой по интеллектуальной собственности (Роспатент).</p>
+                        <p><strong>Статус в Едином реестре:</strong> Программный комплекс D4 NMS официально включен в Единый реестр российских программ для ЭВМ и баз данных Минцифры России. Реестровая запись №33911.</p>
+                    </div>
+
+                    <hr class="section-divider">
+
+                    <!-- Блок 2: Стоимость и условия -->
+                    <div class="highlight-block pricing-tariffs">
+                        <p><strong>Стоимость и условия лицензирования</strong></p>
+                        <p class="pricing-effective-date">Тарифы действуют с 16 сентября 2026 года.</p>
+
+                        <h3 class="tariff-heading">Лицензии</h3>
+                        <div class="tariff-table-wrap">
+                            <table class="tariff-table">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Тариф</th>
+                                        <th scope="col">Количество устройств</th>
+                                        <th scope="col">Стоимость</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>«Старт»</td>
+                                        <td>До 50</td>
+                                        <td>500 000 рублей</td>
+                                    </tr>
+                                    <tr>
+                                        <td>«Оптима»</td>
+                                        <td>До 150</td>
+                                        <td>1 100 000 рублей</td>
+                                    </tr>
+                                    <tr>
+                                        <td>«Про»</td>
+                                        <td>До 500</td>
+                                        <td>2 500 000 рублей</td>
+                                    </tr>
+                                    <tr>
+                                        <td>«Корп»</td>
+                                        <td>500, с возможностью расширения</td>
+                                        <td>3 000 000 рублей</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <h3 class="tariff-heading">Расширения и переходы</h3>
+                        <div class="tariff-table-wrap">
+                            <table class="tariff-table">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Позиция</th>
+                                        <th scope="col">Стоимость</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Расширение тарифа «Корп» на 50 устройств</td>
+                                        <td>250 000 рублей</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Расширение тарифа «Про» или «Корп» на 10 устройств</td>
+                                        <td>100 000 рублей</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Переход «Старт» → «Оптима»</td>
+                                        <td>600 000 рублей</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Переход «Оптима» → «Про»</td>
+                                        <td>1 400 000 рублей</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Переход «Про» → «Корп»</td>
+                                        <td>500 000 рублей</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <h3 class="tariff-heading">Техническая поддержка и обновления</h3>
+                        <div class="tariff-table-wrap">
+                            <table class="tariff-table">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Услуга на 1 год</th>
+                                        <th scope="col">Стоимость</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Базовая техническая поддержка</td>
+                                        <td>10% от стоимости лицензии</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Расширенная техническая поддержка</td>
+                                        <td>12% от стоимости лицензии</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Обновления при наличии технической поддержки</td>
+                                        <td>20% от стоимости лицензии</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Обновления без технической поддержки</td>
+                                        <td>25% от стоимости лицензии</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <ul class="pricing-rules">
+                            <li>Все тарифы предоставляют одинаковую функциональность и различаются количеством подключаемых устройств.</li>
+                            <li>Для тарифов «Старт» и «Оптима» расширения на 10 устройств не предоставляются: при превышении лимита выполняется переход на следующий тариф.</li>
+                            <li>Стоимость тарифа «Корп» свыше 500 устройств рассчитывается как 3 000 000 рублей плюс 250 000 рублей за каждое расширение на 50 устройств; также доступны расширения на 10 устройств.</li>
+                            <li>Стоимость технической поддержки и обновлений рассчитывается от стоимости лицензии с учётом приобретённых расширений.</li>
+                        </ul>
+
+                        <p class="pricing-note">Все цены указаны в российских рублях. НДС не облагается на основании подпункта 26 пункта 2 статьи 149 НК РФ. Окончательная стоимость поставки фиксируется в договоре.</p>
+                        <p class="pricing-source"><a href="https://reestr.digital.gov.ru/reestr/12166751/" target="_blank" rel="noopener noreferrer">Тарифная политика и запись №33911 в Едином реестре российского ПО →</a></p>
+                        <p><strong>Способ предоставления прав:</strong> Права на использование Программного комплекса D4NMS предоставляются конечным пользователям на основании Лицензионного договора путем передачи неисключительной лицензии в объеме и на срок, определенные соглашением сторон.</p>
+                    </div>
+
+                    <hr class="section-divider">
+
+                    <!-- Блок 3: Порядок поставки -->
+                    <div class="highlight-block">
+                        <p><strong>Порядок предоставления доступа (техническая поставка)</strong></p>
+                        <p>Передача дистрибутива программного обеспечения D4NMS и сопроводительной технической документации осуществляется правообладателем в электронном виде (путем отправки на защищенный электронный адрес Заказчика или предоставления удаленного доступа к закрытому репозиторию компании) в течение 3 рабочих дней после подписания Лицензионного договора.</p>
+                    </div>
+
+                    <hr class="section-divider">
+
+                    <!-- Блок 4: Техподдержка -->
+                    <div class="highlight-block">
+                        <p><strong>Техническая поддержка и сопровождение</strong></p>
+                        <p>Техническая поддержка, гарантийное обслуживание, модернизация и сопровождение системы D4 NMS осуществляются силами штатных специалистов компании «Д4 технологии» на русском языке на всей территории Российской Федерации. Время реагирования на инциденты и каналы связи регламентируются условиями договора технической поддержки (SLA).</p>
+                    </div>
+
+                    <hr class="section-divider">
+
+                    <!-- Контакты и реквизиты -->
+                    <div class="contact-grid">
+                        <div class="contact-item">
+                            <div class="contact-icon">📞</div>
+                            <div class="contact-info">
+                                <div class="contact-label">Телефон:</div>
+                                <a href="tel:+79102357037" class="contact-value">+7 (910) 235-70-37</a>
+                            </div>
+                        </div>
+                        
+                        <div class="contact-item">
+                            <div class="contact-icon">📧</div>
+                            <div class="contact-info">
+                                <div class="contact-label">Email:</div>
+                                <a href="mailto:infod4@mail.ru" class="contact-value">infod4@mail.ru</a>
+                            </div>
+                        </div>
+                        
+                        <div class="contact-item">
+                            <div class="contact-icon">📍</div>
+                            <div class="contact-info">
+                                <div class="contact-label">Адрес:</div>
+                                <span class="contact-value contact-value--address">Москва вн.тер.г.&nbsp;МО&nbsp;Текстильщики<br>Ул. Люблинская<br>Дом 47<br>Офис 17-5</span>
+                            </div>
+                        </div>
+
+                        <div class="contact-item">
+                            <div class="contact-icon">🌐</div>
+                            <div class="contact-info">
+                                <div class="contact-label">Сайт:</div>
+                                <a href="https://d4tech.ru" target="_blank" class="contact-value">d4tech.ru</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="requisites-block">
+                        <div class="requisites-title">Реквизиты:</div>
+                        <div class="requisites-text">ООО «Д4 ТЕХНОЛОГИИ» &nbsp;|&nbsp; ИНН 9723116807 &nbsp;|&nbsp; ОГРН 1217700245916 &nbsp;|&nbsp; КПП 772301001</div>
+                    </div>
+                </div>
+
+                <div class="pricing-footer">
+                    © 2026 Д4 Технологии. Все права защищены.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Lightbox Modal -->
+    <div id="lightbox" class="lightbox">
+        <span class="lightbox-close">&times;</span>
+        <img class="lightbox-content" id="lightbox-img">
+    </div>
+
+    <script src="js/main.js"></script>
+    <script src="js/network-bg.js"></script>
+    <script src="js/scroll-animations.js"></script>
+    <script src="js/animations.js"></script>
+    <script>
+        (function () {
+            const track = document.getElementById('licTrack');
+            const dots = document.querySelectorAll('.lic-dot');
+            const slides = document.querySelectorAll('.lic-slide');
+            let current = 0;
+            const total = slides.length;
+
+            function goTo(idx) {
+                current = (idx + total) % total;
+                track.style.transform = `translateX(-${current * 100}%)`;
+                dots.forEach((d, i) => d.classList.toggle('active', i === current));
+            }
+
+            document.querySelector('.lic-arrow--prev').addEventListener('click', () => goTo(current - 1));
+            document.querySelector('.lic-arrow--next').addEventListener('click', () => goTo(current + 1));
+            dots.forEach(d => d.addEventListener('click', () => goTo(+d.dataset.dot)));
+
+            // Click to open in lightbox
+            document.querySelectorAll('.lic-card img').forEach(img => {
+                img.addEventListener('click', () => {
+                    const lb = document.getElementById('lightbox');
+                    document.getElementById('lightbox-img').src = img.src;
+                    lb.classList.add('active');
+                });
+            });
+
+            // Swipe support
+            let startX = 0;
+            track.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, { passive: true });
+            track.addEventListener('touchend', e => {
+                const diff = startX - e.changedTouches[0].clientX;
+                if (Math.abs(diff) > 40) goTo(diff > 0 ? current + 1 : current - 1);
+            });
+        })();
+    </script>
+</body>
+</html>
