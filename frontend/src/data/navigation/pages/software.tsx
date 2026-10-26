@@ -1,4 +1,11 @@
 import type { PageContent } from '../../../types/page-content.tsx'
+import {
+  D4NMS_EXPANSION_CARDS,
+  D4NMS_LICENSE_CARDS,
+  D4NMS_PRICING_NOTICE,
+  D4NMS_PRICING_RULES,
+  D4NMS_SERVICE_CARDS,
+} from '../../site/d4nms-pricing.tsx'
 
 /** Грань «Программное обеспечение» — источник: «Программное обеспечение — Д4 Технологии.html». */
 export const softwarePageContent: PageContent = {
@@ -42,11 +49,14 @@ export const softwarePageContent: PageContent = {
     { kind: 'heading', level: 3, text: 'Стоимость и условия лицензирования' },
     {
       kind: 'cardGrid',
-      cards: [
-        { title: 'Базовая лицензия', text: '500 000 рублей (включает поддержку до 50 сетевых устройств).' },
-        { title: 'Расширенная лицензия', text: 'дополнительные 100 000 рублей за каждые 10 хостов сверх базовой лицензии.' },
-      ],
+      cards: D4NMS_LICENSE_CARDS,
     },
+    { kind: 'heading', level: 3, text: 'Расширения и переходы между тарифами' },
+    { kind: 'cardGrid', cards: D4NMS_EXPANSION_CARDS },
+    { kind: 'heading', level: 3, text: 'Техническая поддержка и обновления' },
+    { kind: 'cardGrid', cards: D4NMS_SERVICE_CARDS },
+    { kind: 'list', items: D4NMS_PRICING_RULES },
+    { kind: 'paragraph', text: D4NMS_PRICING_NOTICE },
     {
       kind: 'paragraph',
       text: 'Способ предоставления прав: Права на использование Программного комплекса D4NMS предоставляются конечным пользователям на основании Лицензионного договора путем передачи неисключительной лицензии в объеме и на срок, определенные соглашением сторон.',

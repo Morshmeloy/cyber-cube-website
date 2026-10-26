@@ -1,4 +1,11 @@
 import type { PageContent } from '../../../types/page-content.tsx'
+import {
+  D4NMS_EXPANSION_CARDS,
+  D4NMS_LICENSE_CARDS,
+  D4NMS_PRICING_NOTICE,
+  D4NMS_PRICING_RULES,
+  D4NMS_SERVICE_CARDS,
+} from '../../site/d4nms-pricing.tsx'
 
 /** Не привязана ни к одной грани куба — открывается только по ссылке «Правовая информация» в футере.
  * Источник: «Правовая информация — Д4 Технологии.html» (раскрытие информации по Приказу Минцифры № 511). */
@@ -99,13 +106,13 @@ export const legalPageContent: PageContent = {
     },
 
     { kind: 'heading', level: 3, text: '2.6. Стоимость лицензирования программного комплекса D4NMS' },
-    {
-      kind: 'cardGrid',
-      cards: [
-        { title: 'Базовая лицензия', text: '500 000 рублей (до 50 сетевых устройств).' },
-        { title: 'Расширенная лицензия', text: 'дополнительные 100 000 рублей за каждые 10 хостов сверх базовой лицензии.' },
-      ],
-    },
+    { kind: 'cardGrid', cards: D4NMS_LICENSE_CARDS },
+    { kind: 'heading', level: 3, text: '2.6.1. Расширения и переходы между тарифами' },
+    { kind: 'cardGrid', cards: D4NMS_EXPANSION_CARDS },
+    { kind: 'heading', level: 3, text: '2.6.2. Техническая поддержка и обновления' },
+    { kind: 'cardGrid', cards: D4NMS_SERVICE_CARDS },
+    { kind: 'list', items: D4NMS_PRICING_RULES },
+    { kind: 'paragraph', text: D4NMS_PRICING_NOTICE },
     {
       kind: 'paragraphLink',
       before: 'Официальный сайт продукта и техническая документация: ',
