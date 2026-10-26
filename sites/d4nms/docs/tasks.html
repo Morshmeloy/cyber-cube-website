@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Задачи, которые решает программа - D4NMS</title>
+    <link rel="icon" type="image/png" href="../images/d4-logo.png">
+    <link rel="stylesheet" href="../css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        .doc-page { max-width: 1000px; margin: 0 auto; padding: 60px 20px; background: #0a0e27; min-height: 100vh; }
+        .doc-header { margin-bottom: 50px; }
+        .doc-title { font-size: 42px; font-weight: 800; background: linear-gradient(90deg, #00d4ff, #667eea); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 20px; }
+        .doc-content { background: linear-gradient(145deg, #1e2139 0%, #2a2f4a 100%); border-radius: 16px; padding: 40px; border: 1px solid rgba(255,255,255,0.1); line-height: 1.8; }
+        .doc-content h2 { color: #00d4ff; font-size: 26px; margin-top: 40px; margin-bottom: 10px; font-weight: 700; }
+        .doc-content h2:first-child { margin-top: 0; }
+        .doc-content h3 { color: #667eea; font-size: 18px; margin-top: 20px; margin-bottom: 8px; font-weight: 600; }
+        .doc-content p { color: #e0e0e0; margin-bottom: 15px; }
+        .doc-content ul { color: #e0e0e0; margin-left: 25px; margin-bottom: 16px; }
+        .doc-content li { margin-bottom: 6px; }
+        .doc-content strong { color: #fff; font-weight: 600; }
+        .back-btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 20px; background: #1976d2; color: white; text-decoration: none; border-radius: 4px; font-weight: 500; font-family: Roboto, sans-serif; text-transform: uppercase; letter-spacing: 0.08em; transition: all 0.2s ease; margin-bottom: 30px; }
+        .back-btn:hover { background: #1565c0; box-shadow: 0 4px 12px rgba(25,118,210,0.4); transform: translateX(-3px); }
+        .pdf-btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 20px; background: #2e7d32; color: white; text-decoration: none; border-radius: 4px; font-weight: 500; font-family: Roboto, sans-serif; text-transform: uppercase; letter-spacing: 0.08em; transition: all 0.2s ease; margin-bottom: 30px; margin-left: 10px; cursor: pointer; border: none; font-size: 14px; }
+        .pdf-btn:hover { background: #1b5e20; box-shadow: 0 4px 12px rgba(46,125,50,0.4); }
+        @media print { .back-btn, .pdf-btn, .doc-nav, .mobile-nav { display: none !important; } .doc-page { padding: 20px; } body { background: white; } .doc-title { -webkit-text-fill-color: #0a0e27 !important; background: none !important; color: #0a0e27 !important; } .doc-content { background: white !important; border: 1px solid #ccc !important; color: #000 !important; } .doc-content h2 { color: #0a5c7a !important; } .doc-content p, .doc-content ul, .doc-content li { color: #000 !important; } }
+        @page { size: A4; margin: 1.5cm; }
+        .highlight-box { background: rgba(76,175,80,0.1); border-left: 4px solid #4caf50; padding: 16px 20px; margin: 16px 0; border-radius: 8px; }
+        .doc-nav { position: fixed; top: 50%; transform: translateY(-50%); z-index: 100; }
+        .doc-nav a { display: flex; align-items: center; gap: 8px; text-decoration: none; color: rgba(200,200,200,0.9); font-size: 14px; font-weight: 500; transition: all 0.3s ease; padding: 14px 18px; border-radius: 12px; background: linear-gradient(145deg, rgba(76,175,80,0.35), rgba(56,142,60,0.25)); backdrop-filter: blur(10px); border: 1px solid rgba(129,199,132,0.6); box-shadow: 0 0 18px rgba(76,175,80,0.25), inset 0 0 12px rgba(76,175,80,0.08); }
+        .doc-nav a:hover { color: #fff; border-color: rgba(129,199,132,0.9); background: linear-gradient(145deg, rgba(76,175,80,0.5), rgba(56,142,60,0.38)); box-shadow: 0 0 28px rgba(76,175,80,0.4), inset 0 0 12px rgba(76,175,80,0.12); }
+        .doc-nav a:hover .nav-arrow { transform: scale(1.3); color: #b9f6ca; }
+        .doc-nav.prev { left: 20px; }
+        .doc-nav.next { right: 20px; }
+        .nav-arrow { font-size: 24px; transition: transform 0.3s ease; animation: navPulse 3s ease-in-out infinite; }
+        .nav-label { writing-mode: vertical-rl; text-orientation: mixed; letter-spacing: 1px; font-size: 12px; text-transform: uppercase; }
+        .doc-nav.prev .nav-label { transform: rotate(180deg); }
+
+        .cover-page { background: linear-gradient(145deg, #1e2139 0%, #2a2f4a 100%); border-radius: 16px; padding: 0; margin-bottom: 32px; border: 1px solid rgba(255,255,255,0.1); overflow: hidden; }
+        .cover-page-inner { padding: 50px 50px 50px 50px; text-align: center; min-height: 400px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; }
+        .cover-logo { width: 180px; height: 80px; object-fit: contain; margin-bottom: 0; }
+        .cover-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 40px 0; }
+        .cover-title { font-size: 22px; font-weight: 400; color: #e0e0e0; font-family: 'Inter', sans-serif; }
+        .cover-subtitle { font-size: 20px; font-weight: 400; color: #ffffff; font-family: 'Inter', sans-serif; line-height: 1.5; }
+        .cover-code { font-size: 18px; font-weight: 600; color: #00d4ff; font-family: 'Inter', sans-serif; margin-top: 10px; }
+        .cover-year { font-size: 16px; color: rgba(255,255,255,0.5); font-family: 'Inter', sans-serif; padding-bottom: 10px; }
+        @media print { .cover-page { border: none; } .cover-page-inner { background: white !important; } }
+        @keyframes navPulse { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+        @media (max-width: 1300px) { .nav-label { display: none; } .doc-nav a { padding: 12px; } }
+        @media (max-width: 768px) { .doc-nav { position: static; transform: none; } }
+    </style>
+</head>
+<body>
+    <div class="doc-page">
+        <div style="display:inline-flex;gap:0;margin-bottom:30px;">
+            <a href="../index.html#documentation" class="back-btn" style="margin-bottom:0;"><span>←</span><span>На главную</span></a>
+            <button class="pdf-btn" onclick="downloadPDF()" style="margin-bottom:0;margin-left:10px;"><span>⬇</span><span>Скачать документ</span></button>
+        </div>
+        <div class="doc-header">
+            <h1 class="doc-title">Задачи, которые решает программа</h1>
+        </div>
+        <div class="doc-content">
+
+            <div class="cover-page">
+                <div class="cover-page-inner">
+                    <img src="../images/d4-logo.png" alt="D4 Технологии" class="cover-logo">
+                    <div class="cover-body">
+                        <div class="cover-title">Система мониторинга сети D4NMS</div>
+                        <div class="cover-subtitle">Задачи, которые решает программа D4NMS</div>
+                        <div class="cover-code">D4NMS</div>
+                    </div>
+                    <div class="cover-year">2026</div>
+                </div>
+            </div>
+
+            <h2>Оглавление</h2>
+            <ul>
+                <li>1. Задачи, которые решает программа</li>
+                <li>1.1. Для сетевых администраторов</li>
+                <li>1.2. Для операторов связи</li>
+                <li>1.3. Мониторинг VoIP-инфраструктуры</li>
+                <li>1.4. Управление VLAN</li>
+                <li>1.5. Для IT-отделов предприятий</li>
+                <li>1.6. Для малого и среднего бизнеса</li>
+            </ul>
+
+            <h2>1. Задачи, которые решает программа</h2>
+
+            <h3>1.1. Для сетевых администраторов</h3>
+
+            <h3>1.1.1. Централизованный мониторинг:</h3>
+            <ul>
+                <li>Единая точка контроля за всей сетевой инфраструктурой;</li>
+                <li>Мгновенное обнаружение проблем с доступностью устройств;</li>
+                <li>Отслеживание изменений в конфигурации сети;</li>
+                <li>Контроль состояния портов и интерфейсов.</li>
+            </ul>
+
+            <h3>1.1.2. Оперативное реагирование</h3>
+            <ul>
+                <li>Автоматические уведомления о сбоях;</li>
+                <li>Быстрая диагностика проблем через выполнение команд;</li>
+                <li>История событий для анализа инцидентов;</li>
+                <li>Минимизация времени простоя сети.</li>
+            </ul>
+
+            <h3>1.1.3. Управление конфигурациями</h3>
+            <ul>
+                <li>Выполнение команд на множестве устройств;</li>
+                <li>Шаблоны команд для типовых операций;</li>
+                <li>Автоматизация рутинных задач через polling;</li>
+                <li>Аудит всех изменений.</li>
+            </ul>
+
+            <h3>1.2. Для операторов связи</h3>
+
+            <h3>1.3. Мониторинг VoIP-инфраструктуры</h3>
+            <ul>
+                <li>Специальная роль для VoIP-администраторов;</li>
+                <li>Контроль доступности IP-телефонов;</li>
+                <li>Мониторинг качества связи;</li>
+                <li>Быстрое выявление проблемных устройств.</li>
+            </ul>
+
+            <h3>1.4. Управление VLAN</h3>
+            <ul>
+                <li>Визуализация виртуальных сетей;</li>
+                <li>Контроль сегментации трафика;</li>
+                <li>Мониторинг IP-адресации;</li>
+                <li>Отслеживание изменений в топологии.</li>
+            </ul>
+
+            <h3>1.5. Для IT-отделов предприятий</h3>
+
+            <h3>1.5.1. Контроль сетевой безопасности</h3>
+            <ul>
+                <li>Мониторинг событий безопасности L2;</li>
+                <li>Отслеживание STP-топологии;</li>
+                <li>Контроль доступа к сетевым устройствам;</li>
+                <li>Аудит действий пользователей системы.</li>
+            </ul>
+
+            <h3>1.5.2. Документирование инфраструктуры</h3>
+            <ul>
+                <li>Автоматическое обнаружение устройств и интерфейсов;</li>
+                <li>Карта связей между устройствами;</li>
+                <li>История изменения конфигурации;</li>
+                <li>Отчёты по состоянию сети.</li>
+            </ul>
+
+            <h3>1.5.3. Оптимизация ресурсов</h3>
+            <ul>
+                <li>Выявление неиспользуемых портов;</li>
+                <li>Анализ загрузки каналов;</li>
+                <li>Планирование расширения сети;</li>
+                <li>Снижение затрат на обслуживание.</li>
+            </ul>
+
+            <h3>1.6. Для малого и среднего бизнеса</h3>
+
+            <h3>1.6.1. Простота внедрения</h3>
+            <ul>
+                <li>Установка за 5 минут;</li>
+                <li>Минимальные системные требования;</li>
+                <li>Не требует специальных знаний для базового использования;</li>
+                <li>Бесплатная лицензия MIT.</li>
+            </ul>
+
+            <h3>1.6.2. Экономия средств</h3>
+            <ul>
+                <li>Замена дорогих коммерческих систем мониторинга;</li>
+                <li>Снижение времени на диагностику проблем;</li>
+                <li>Уменьшение количества выездов специалистов;</li>
+                <li>Отсутствие лицензионных платежей.</li>
+            </ul>
+        </div>
+
+        <div class="doc-nav prev desktop-nav">
+            <a href="functional.html">
+                <span class="nav-arrow">‹</span>
+                <span class="nav-label">Предыдущая</span>
+            </a>
+        </div>
+        <div class="doc-nav next desktop-nav">
+            <a href="resources.html">
+                <span class="nav-label">Следующая</span>
+                <span class="nav-arrow">›</span>
+            </a>
+        </div>
+
+        <div class="doc-bottom-nav mobile-nav">
+            <a href="functional.html" style="display:inline-flex;align-items:center;gap:8px;padding:8px 20px;background:rgba(30,33,57,0.8);color:rgba(255,255,255,0.6);text-decoration:none;border-radius:8px;border:1px solid rgba(255,255,255,0.08);font-size:14px;">
+                <span style="font-size:18px;">‹</span>
+                <span>Предыдущая</span>
+            </a>
+            <a href="resources.html" style="display:inline-flex;align-items:center;gap:8px;padding:8px 20px;background:rgba(30,33,57,0.8);color:rgba(255,255,255,0.6);text-decoration:none;border-radius:8px;border:1px solid rgba(255,255,255,0.08);font-size:14px;">
+                <span>Следующая</span>
+                <span style="font-size:18px;">›</span>
+            </a>
+        </div>
+    </div>
+
+    <style>
+        .mobile-nav { display: none; }
+        @media (max-width: 768px) { .desktop-nav { display: none !important; } .mobile-nav { display: flex; justify-content: space-between; margin-top: 40px; gap: 12px; } }
+    </style>
+    
+    <script src="../js/html2pdf.bundle.min.js"></script>
+    <script>
+        function downloadPDF() {
+            const btn = document.querySelector('.pdf-btn');
+            btn.innerHTML = '<span>⏳</span><span>Генерация...</span>';
+            btn.disabled = true;
+
+            // Hide nav elements
+            const navEls = document.querySelectorAll('.back-btn, .pdf-btn, .doc-nav, .mobile-nav, .doc-bottom-nav');
+            navEls.forEach(el => el.style.visibility = 'hidden');
+
+            const element = document.querySelector('.doc-page');
+
+            html2pdf().set({
+                margin: [10, 10, 10, 10],
+                filename: document.title + '.pdf',
+                image: { type: 'jpeg', quality: 0.85 },
+                html2canvas: {
+                    scale: 1.5,
+                    useCORS: true,
+                    backgroundColor: '#0a0e27',
+                    logging: false,
+                    imageTimeout: 30000
+                },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+            }).from(element).save().then(() => {
+                navEls.forEach(el => el.style.visibility = '');
+                btn.innerHTML = '<span>⬇</span><span>Скачать документ</span>';
+                btn.disabled = false;
+            }).catch(() => {
+                navEls.forEach(el => el.style.visibility = '');
+                btn.innerHTML = '<span>⬇</span><span>Скачать документ</span>';
+                btn.disabled = false;
+            });
+        }
+    </script>
+</body>
+</html>

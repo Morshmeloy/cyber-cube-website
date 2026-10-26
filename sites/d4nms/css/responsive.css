@@ -1,0 +1,295 @@
+/* Tablet Styles (768px - 1024px) */
+@media (max-width: 1024px) {
+    .hero-title {
+        font-size: 2.8rem;
+    }
+
+    .hero-subtitle {
+        font-size: 1.3rem;
+    }
+
+    .section-title {
+        font-size: 2rem;
+    }
+
+    .features-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .screenshots-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .tech-columns {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .requirements-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Mobile Styles (max-width: 768px) */
+@media (max-width: 768px) {
+    .container {
+        padding: 0 15px;
+    }
+
+    section {
+        padding: 60px 0;
+    }
+
+    /* Hero Section */
+    .hero-title {
+        font-size: 2rem;
+    }
+
+    .hero-subtitle {
+        font-size: 1.1rem;
+    }
+
+    .hero-logo {
+        width: 80px;
+    }
+
+    .hero-buttons {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .btn {
+        padding: 15px 30px;
+        font-size: 1rem;
+        justify-content: center;
+    }
+
+    /* Section Titles */
+    .section-title {
+        font-size: 1.8rem;
+        margin-bottom: 40px;
+    }
+
+    /* Features */
+    .features-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .feature-card {
+        padding: 30px 20px;
+    }
+
+    .feature-icon {
+        font-size: 2.5rem;
+    }
+
+    .feature-card h3 {
+        font-size: 1.3rem;
+    }
+
+    /* Screenshots */
+    .screenshots-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    /* Tech Stack */
+    .tech-columns {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .tech-column {
+        padding: 30px 20px;
+    }
+
+    .tech-column h3 {
+        font-size: 1.5rem;
+    }
+
+    /* Requirements */
+    .requirements-card {
+        padding: 30px 20px;
+    }
+
+    .requirements-card h3 {
+        font-size: 1.5rem;
+    }
+
+    /* Download Section */
+    .download-section {
+        padding: 80px 0;
+    }
+
+    .download-section h2 {
+        font-size: 2rem;
+    }
+
+    .download-section p {
+        font-size: 1.2rem;
+    }
+
+    .btn-download {
+        padding: 20px 40px;
+        font-size: 1.1rem;
+    }
+
+    /* Download Section */
+    .footer-content {
+        grid-template-columns: 1fr;
+        gap: 30px;
+        text-align: center;
+    }
+
+    .footer-logo img {
+        margin: 0 auto 20px;
+    }
+
+    /* Lightbox */
+    .lightbox-close {
+        top: 20px;
+        right: 20px;
+        font-size: 40px;
+    }
+}
+
+/* Small Mobile (max-width: 480px) */
+@media (max-width: 480px) {
+    .hero-title {
+        font-size: 1.6rem;
+    }
+
+    .hero-subtitle {
+        font-size: 1rem;
+    }
+
+    .section-title {
+        font-size: 1.5rem;
+    }
+
+    .btn {
+        padding: 12px 24px;
+        font-size: 0.95rem;
+    }
+
+    .download-section h2 {
+        font-size: 1.6rem;
+    }
+
+    .download-section p {
+        font-size: 1rem;
+    }
+
+    .btn-download {
+        padding: 18px 30px;
+        font-size: 1rem;
+    }
+
+    .screenshots-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .screenshot-item {
+        min-width: 100%;
+    }
+}
+
+/* Large Desktop (min-width: 1920px) */
+@media (min-width: 1920px) {
+    .container {
+        max-width: 1600px;
+    }
+
+    .hero-title {
+        font-size: 4.5rem;
+    }
+
+    .hero-subtitle {
+        font-size: 2rem;
+    }
+
+    .section-title {
+        font-size: 3rem;
+    }
+
+    .features-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .screenshots-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* Landscape Mobile */
+@media (max-height: 600px) and (orientation: landscape) {
+    .hero-section {
+        min-height: auto;
+        padding: 60px 0;
+    }
+
+    .hero-logo {
+        width: 60px;
+        margin-bottom: 20px;
+    }
+
+    .hero-title {
+        font-size: 2rem;
+        margin-bottom: 15px;
+    }
+
+    .hero-subtitle {
+        font-size: 1rem;
+        margin-bottom: 25px;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .hero-section,
+    .download-section,
+    .footer {
+        display: none;
+    }
+
+    body {
+        background: white;
+        color: black;
+    }
+
+    .feature-card,
+    .tech-column,
+    .requirements-card {
+        break-inside: avoid;
+    }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+    :root {
+        --dark-bg: #000000;
+        --dark-bg-secondary: #1a1a1a;
+        --text-primary: #ffffff;
+        --text-secondary: #ffffff;
+    }
+
+    .btn {
+        border: 2px solid currentColor;
+    }
+}
+
+/* Dark Mode Support (if system preference) */
+@media (prefers-color-scheme: dark) {
+    /* Already dark by default */
+}

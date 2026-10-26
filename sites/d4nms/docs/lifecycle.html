@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Жизненный цикл ПО - D4NMS</title>
+    <link rel="icon" type="image/png" href="../images/d4-logo.png">
+    <link rel="stylesheet" href="../css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        .doc-page { max-width: 1000px; margin: 0 auto; padding: 60px 20px; background: #0a0e27; min-height: 100vh; }
+        .doc-header { margin-bottom: 50px; }
+        .doc-title { font-size: 42px; font-weight: 800; background: linear-gradient(90deg, #00d4ff, #667eea); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 20px; }
+        .doc-content { background: linear-gradient(145deg, #1e2139 0%, #2a2f4a 100%); border-radius: 16px; padding: 40px; border: 1px solid rgba(255,255,255,0.1); line-height: 1.8; }
+        .doc-content h2 { color: #00d4ff; font-size: 28px; margin-top: 35px; margin-bottom: 15px; font-weight: 700; }
+        .doc-content h2:first-child { margin-top: 0; }
+        .doc-content h3 { color: #667eea; font-size: 18px; margin-top: 20px; margin-bottom: 8px; font-weight: 600; }
+        .doc-content p { color: #e0e0e0; margin-bottom: 15px; }
+        .doc-content ul { color: #e0e0e0; margin-left: 25px; margin-bottom: 20px; }
+        .doc-content li { margin-bottom: 8px; }
+        .doc-content strong { color: #fff; font-weight: 600; }
+        .back-btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 20px; background: #1976d2; color: white; text-decoration: none; border-radius: 4px; font-weight: 500; font-family: Roboto, sans-serif; text-transform: uppercase; letter-spacing: 0.08em; transition: all 0.2s ease; margin-bottom: 30px; }
+        .back-btn:hover { background: #1565c0; box-shadow: 0 4px 12px rgba(25,118,210,0.4); transform: translateX(-3px); }
+        .pdf-btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 20px; background: #2e7d32; color: white; text-decoration: none; border-radius: 4px; font-weight: 500; font-family: Roboto, sans-serif; text-transform: uppercase; letter-spacing: 0.08em; transition: all 0.2s ease; margin-bottom: 30px; margin-left: 10px; cursor: pointer; border: none; font-size: 14px; }
+        .pdf-btn:hover { background: #1b5e20; box-shadow: 0 4px 12px rgba(46,125,50,0.4); }
+        @media print { .back-btn, .pdf-btn, .doc-nav, .mobile-nav { display: none !important; } .doc-page { padding: 20px; } body { background: white; } .doc-title { -webkit-text-fill-color: #0a0e27 !important; background: none !important; color: #0a0e27 !important; } .doc-content { background: white !important; border: 1px solid #ccc !important; color: #000 !important; } .doc-content h2 { color: #0a5c7a !important; } .doc-content p, .doc-content ul, .doc-content li { color: #000 !important; } }
+        @page { size: A4; margin: 1.5cm; }
+        .highlight-box { background: rgba(0,212,255,0.1); border-left: 4px solid #00d4ff; padding: 16px 20px; margin: 16px 0; border-radius: 8px; }
+        .doc-nav { position: fixed; top: 50%; transform: translateY(-50%); z-index: 100; }
+        .doc-nav a { display: flex; align-items: center; gap: 8px; text-decoration: none; color: rgba(200,200,200,0.9); font-size: 14px; font-weight: 500; transition: all 0.3s ease; padding: 14px 18px; border-radius: 12px; background: linear-gradient(145deg, rgba(76,175,80,0.35), rgba(56,142,60,0.25)); backdrop-filter: blur(10px); border: 1px solid rgba(129,199,132,0.6); box-shadow: 0 0 18px rgba(76,175,80,0.25), inset 0 0 12px rgba(76,175,80,0.08); }
+        .doc-nav a:hover { color: #fff; border-color: rgba(129,199,132,0.9); background: linear-gradient(145deg, rgba(76,175,80,0.5), rgba(56,142,60,0.38)); box-shadow: 0 0 28px rgba(76,175,80,0.4), inset 0 0 12px rgba(76,175,80,0.12); }
+        .doc-nav a:hover .nav-arrow { transform: scale(1.3); color: #b9f6ca; }
+        .doc-nav.prev { left: 20px; }
+        .doc-nav.next { right: 20px; }
+        .nav-arrow { font-size: 24px; transition: transform 0.3s ease; animation: navPulse 3s ease-in-out infinite; }
+        .nav-label { writing-mode: vertical-rl; text-orientation: mixed; letter-spacing: 1px; font-size: 12px; text-transform: uppercase; }
+        .doc-nav.prev .nav-label { transform: rotate(180deg); }
+
+        .cover-page { background: linear-gradient(145deg, #1e2139 0%, #2a2f4a 100%); border-radius: 16px; padding: 0; margin-bottom: 32px; border: 1px solid rgba(255,255,255,0.1); overflow: hidden; }
+        .cover-page-inner { padding: 50px 50px 50px 50px; text-align: center; min-height: 400px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; }
+        .cover-logo { width: 180px; height: 80px; object-fit: contain; margin-bottom: 0; }
+        .cover-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 40px 0; }
+        .cover-title { font-size: 22px; font-weight: 400; color: #e0e0e0; font-family: 'Inter', sans-serif; }
+        .cover-subtitle { font-size: 20px; font-weight: 400; color: #ffffff; font-family: 'Inter', sans-serif; line-height: 1.5; }
+        .cover-code { font-size: 18px; font-weight: 600; color: #00d4ff; font-family: 'Inter', sans-serif; margin-top: 10px; }
+        .cover-year { font-size: 16px; color: rgba(255,255,255,0.5); font-family: 'Inter', sans-serif; padding-bottom: 10px; }
+        @media print { .cover-page { border: none; } .cover-page-inner { background: white !important; } }
+        @keyframes navPulse { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+        @media (max-width: 1300px) { .nav-label { display: none; } .doc-nav a { padding: 12px; } }
+        @media (max-width: 768px) { .doc-nav { position: static; transform: none; } }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; color: #e0e0e0; }
+        th { background: rgba(0,212,255,0.15); color: #00d4ff; padding: 12px 16px; text-align: left; font-weight: 600; border: 1px solid rgba(255,255,255,0.1); }
+        td { padding: 10px 16px; border: 1px solid rgba(255,255,255,0.08); vertical-align: top; }
+        tr:nth-child(even) td { background: rgba(255,255,255,0.03); }
+    </style>
+</head>
+<body>
+    <div class="doc-page">
+        <div style="display:inline-flex;gap:0;margin-bottom:30px;">
+            <a href="../index.html#documentation" class="back-btn" style="margin-bottom:0;"><span>←</span><span>На главную</span></a>
+            <button class="pdf-btn" onclick="downloadPDF()" style="margin-bottom:0;margin-left:10px;"><span>⬇</span><span>Скачать документ</span></button>
+        </div>
+        <div class="doc-header">
+            <h1 class="doc-title">Жизненный цикл ПО</h1>
+        </div>
+        <div class="doc-content">
+
+            <div class="cover-page">
+                <div class="cover-page-inner">
+                    <img src="../images/d4-logo.png" alt="D4 Технологии" class="cover-logo">
+                    <div class="cover-body">
+                        <div class="cover-title">Система мониторинга сети D4NMS</div>
+                        <div class="cover-subtitle">Жизненный цикл программного обеспечения D4NMS</div>
+                        <div class="cover-code">D4NMS ЖЦ</div>
+                    </div>
+                    <div class="cover-year">2026</div>
+                </div>
+            </div>
+
+            <h2>Оглавление</h2>
+            <ul>
+                <li>1. Информация о процессе разработки</li>
+                <li>2. Информация о процессах, обеспечивающих поддержание жизненного цикла программного обеспечения</li>
+                <li>3. Информация о персонале, необходимом для обеспечения поддержки работоспособности программного обеспечения</li>
+            </ul>
+
+            <p>Программное обеспечение D4NMS разработано для предприятий, управляющих сетевыми устройствами (маршрутизаторы, коммутаторы и т.д.). D4NMS даёт возможность организовать полноценное управление сетями на основе анализа данных.</p>
+
+            <h2>1. Информация о процессе разработки</h2>
+            <p>1.1. Программное обеспечение D4NMS разрабатывается российской компанией ООО «Д4 Технологии» по адресу: г. Москва, вн.тер.г. Муниципальный округ Текстильщики, ул. Люблинская, д. 47, помещ. IX (этаж 1), ком. 1 офис 17-5.</p>
+
+            <p>1.2. Процесс разработки включает в себя:</p>
+            <ul>
+                <li>разработку новых модулей и функций как для реализации различных бизнес-функций, так и в части поддержки новых периферийных модулей;</li>
+                <li>комплексное интеграционное и регрессионное тестирование;</li>
+                <li>исправление найденных ошибок;</li>
+                <li>исправление проблем совместимости;</li>
+                <li>разработку документации и инструкций.</li>
+            </ul>
+
+            <p>1.2.1. Создание, изменение, модернизация программы D4NMS выполнялись и осуществляются в настоящий момент силами специалистов ООО «Д4 Технологии» в количестве 4 человек.</p>
+            <p>1.2.2. Выпуск новых версий осуществляется в соответствии с собственным планом разработки, а также в случае выявленных проблем в ходе эксплуатации программного обеспечения у конечных потребителей.</p>
+
+            <h3>1.2.3. Информация о процессе сопровождения</h3>
+            <p>Сопровождение ПО D4NMS осуществляется компанией-разработчиком — ООО «Д4 Технологии».</p>
+            <p>1.2.4. Процесс сопровождения включает в себя:</p>
+            <ul>
+                <li>техническую поддержку пользователей;</li>
+                <li>устранение неисправностей;</li>
+                <li>помощь в конфигурации всех компонент программного обеспечения;</li>
+                <li>консультирование по работе в ПО.</li>
+            </ul>
+            <div class="highlight-box">1.2.5. Вопросы и предложения по работе и доработке системы необходимо направлять по адресу <strong>infod4@mail.ru</strong> или на персональную почту менеджера проекта, который выделяется на каждого Заказчика. Приём и обработка вопросов осуществляется по рабочим дням с 8:00 до 17:00 по московскому времени.</div>
+
+            <h2>2. Информация о процессах, обеспечивающих поддержание жизненного цикла программного обеспечения</h2>
+            <p>Поддержание жизненного цикла D4NMS осуществляется за счёт сопровождения системы в течение всего периода эксплуатации Заказчиком.</p>
+            <p>Сопровождение системы необходимо для отсутствия простоя в предоставлении услуг конечным клиентам организации Заказчика по причине невозможности функционирования системы (аварийная ситуация, ошибки в работе системы) и обеспечения гарантий корректного функционирования системы и дальнейшего развития её функциональности.</p>
+            <p>Сопровождение системы также включает в себя проведение модернизаций системы в соответствии с собственным планом доработок и по заявкам заказчика с целью расширения функциональности или исправления ошибок в системе.</p>
+            <p>Модернизация системы осуществляется путём модификации программного обеспечения по заявкам пользователей, с выпуском новых версий программного обеспечения, полученных в результате модернизации.</p>
+
+            <h2>3. Информация о персонале, необходимом для обеспечения поддержки работоспособности программного обеспечения</h2>
+            <p>Персонал Заказчика, который работает с поставляемым программным обеспечением, должен обладать навыками работы и обслуживания устройств, находящихся в эксплуатации у Заказчика.</p>
+
+            <p>В состав персонала, необходимого для обеспечения эксплуатации, должны входить:</p>
+            <ul>
+                <li>инженер отдела сопровождения программного обеспечения;</li>
+                <li>администратор ОС.</li>
+            </ul>
+
+            <p>В состав персонала, необходимого для поддержания Системы в функциональном состоянии, должны входить:</p>
+            <ul>
+                <li>менеджер проекта;</li>
+                <li>сотрудник службы информационной безопасности;</li>
+                <li>инженер отдела мониторинга;</li>
+                <li>технический писатель.</li>
+            </ul>
+
+            <p>Состав персонала для обеспечения эксплуатации приведён в таблице 1.</p>
+
+            <p><strong>Таблица 1 — Состав персонала</strong></p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Роль</th>
+                        <th>Количество</th>
+                        <th>Квалификация</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Администратор ОС</td>
+                        <td>1</td>
+                        <td>Навыки администрирования операционных систем семейства Windows и Linux</td>
+                    </tr>
+                    <tr>
+                        <td>Инженер отдела сопровождения ПО</td>
+                        <td>1</td>
+                        <td>Навыки работы с системами мониторинга сети</td>
+                    </tr>
+                    <tr>
+                        <td>Менеджер проекта</td>
+                        <td>1</td>
+                        <td>Классификация руководителя проекта. Навыки управления проектами</td>
+                    </tr>
+                    <tr>
+                        <td>Сотрудник службы информационной безопасности</td>
+                        <td>1</td>
+                        <td>Навыки построения инфраструктуры, отвечающей требованиям ГОСТ Р 51275-2006, ГОСТ Р 51583-2014, ГОСТ Р ИСО/МЭК 27001-2021, ГОСТ Р ИСО/МЭК 27005-2010, ГОСТ Р 53114-2008</td>
+                    </tr>
+                    <tr>
+                        <td>Технический писатель</td>
+                        <td>1</td>
+                        <td>Подготовка технической документации по системе, знание внутренних отраслевых и нормативных актов по подготовке и внедрению ПО</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p>Поддержка и администрирование системы могут осуществляться как непосредственно сотрудниками Заказчика, так и согласно договору поддержки сотрудниками ООО «Д4 Технологии» совместно с профильными подразделениями Заказчика.</p>
+
+            <p>ООО «Д4 Технологии» полностью укомплектовано необходимым персоналом для поддержки и администрирования поставляемого программного решения для чего в компании предусмотрены следующие должности:</p>
+            <ul>
+                <li>1. Разработчик программного обеспечения — 1 чел.</li>
+                <li>2. Тестировщик программного обеспечения — 1 чел.</li>
+                <li>3. Системный аналитик — 1 чел.</li>
+                <li>4. Руководитель проектов — технический писатель — 1 чел.</li>
+            </ul>
+
+            <p>Таким образом, специалисты ООО «Д4 Технологии» обладают необходимым набором знаний для работы со всеми компонентами, входящими в состав ПО, при решении прикладных задач, соответствующих функционалу программы.</p>
+
+        <div class="doc-nav prev desktop-nav">
+            <a href="output.html">
+                <span class="nav-arrow">‹</span>
+                <span class="nav-label">Предыдущая</span>
+            </a>
+        </div>
+
+        <div class="doc-bottom-nav mobile-nav">
+            <a href="output.html" style="display:inline-flex;align-items:center;gap:8px;padding:8px 20px;background:rgba(30,33,57,0.8);color:rgba(255,255,255,0.6);text-decoration:none;border-radius:8px;border:1px solid rgba(255,255,255,0.08);font-size:14px;">
+                <span style="font-size:18px;">‹</span>
+                <span>Предыдущая</span>
+            </a>
+        </div>
+    </div>
+
+    <style>
+        .mobile-nav { display: none; }
+        @media (max-width: 768px) { .desktop-nav { display: none !important; } .mobile-nav { display: flex; justify-content: flex-start; margin-top: 40px; gap: 12px; } }
+    </style>
+    
+    <script src="../js/html2pdf.bundle.min.js"></script>
+    <script>
+        function downloadPDF() {
+            const btn = document.querySelector('.pdf-btn');
+            btn.innerHTML = '<span>⏳</span><span>Генерация...</span>';
+            btn.disabled = true;
+
+            // Hide nav elements
+            const navEls = document.querySelectorAll('.back-btn, .pdf-btn, .doc-nav, .mobile-nav, .doc-bottom-nav');
+            navEls.forEach(el => el.style.visibility = 'hidden');
+
+            const element = document.querySelector('.doc-page');
+
+            html2pdf().set({
+                margin: [10, 10, 10, 10],
+                filename: document.title + '.pdf',
+                image: { type: 'jpeg', quality: 0.85 },
+                html2canvas: {
+                    scale: 1.5,
+                    useCORS: true,
+                    backgroundColor: '#0a0e27',
+                    logging: false,
+                    imageTimeout: 30000
+                },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+            }).from(element).save().then(() => {
+                navEls.forEach(el => el.style.visibility = '');
+                btn.innerHTML = '<span>⬇</span><span>Скачать документ</span>';
+                btn.disabled = false;
+            }).catch(() => {
+                navEls.forEach(el => el.style.visibility = '');
+                btn.innerHTML = '<span>⬇</span><span>Скачать документ</span>';
+                btn.disabled = false;
+            });
+        }
+    </script>
+</body>
+</html>

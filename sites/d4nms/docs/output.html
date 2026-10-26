@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Выходные данные - D4NMS</title>
+    <link rel="icon" type="image/png" href="../images/d4-logo.png">
+    <link rel="stylesheet" href="../css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        .doc-page { max-width: 1000px; margin: 0 auto; padding: 60px 20px; background: #0a0e27; min-height: 100vh; }
+        .doc-header { margin-bottom: 50px; }
+        .doc-title { font-size: 42px; font-weight: 800; background: linear-gradient(90deg, #00d4ff, #667eea); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 20px; }
+        .doc-content { background: linear-gradient(145deg, #1e2139 0%, #2a2f4a 100%); border-radius: 16px; padding: 40px; border: 1px solid rgba(255,255,255,0.1); line-height: 1.8; }
+        .doc-content h2 { color: #00d4ff; font-size: 28px; margin-top: 35px; margin-bottom: 15px; font-weight: 700; }
+        .doc-content h2:first-child { margin-top: 0; }
+        .doc-content p { color: #e0e0e0; margin-bottom: 15px; }
+        .doc-content ul { color: #e0e0e0; margin-left: 25px; margin-bottom: 20px; }
+        .doc-content li { margin-bottom: 8px; }
+        .doc-content strong { color: #fff; font-weight: 600; }
+        .doc-content code { background: #0a0e27; color: #00d4ff; padding: 2px 8px; border-radius: 4px; font-family: 'Courier New', monospace; }
+        .back-btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 20px; background: #1976d2; color: white; text-decoration: none; border-radius: 4px; font-weight: 500; font-family: Roboto, sans-serif; text-transform: uppercase; letter-spacing: 0.08em; transition: all 0.2s ease; margin-bottom: 30px; }
+        .back-btn:hover { background: #1565c0; box-shadow: 0 4px 12px rgba(25,118,210,0.4); transform: translateX(-3px); }
+        .pdf-btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 20px; background: #2e7d32; color: white; text-decoration: none; border-radius: 4px; font-weight: 500; font-family: Roboto, sans-serif; text-transform: uppercase; letter-spacing: 0.08em; transition: all 0.2s ease; margin-bottom: 30px; margin-left: 10px; cursor: pointer; border: none; font-size: 14px; }
+        .pdf-btn:hover { background: #1b5e20; box-shadow: 0 4px 12px rgba(46,125,50,0.4); }
+        @media print { .back-btn, .pdf-btn, .doc-nav, .mobile-nav { display: none !important; } .doc-page { padding: 20px; } body { background: white; } .doc-title { -webkit-text-fill-color: #0a0e27 !important; background: none !important; color: #0a0e27 !important; } .doc-content { background: white !important; border: 1px solid #ccc !important; color: #000 !important; } .doc-content h2 { color: #0a5c7a !important; } .doc-content p, .doc-content ul, .doc-content li { color: #000 !important; } }
+        @page { size: A4; margin: 1.5cm; }
+        .code-block { background: #0a0e27; border: 1px solid rgba(0,212,255,0.3); border-radius: 8px; padding: 20px; margin: 16px 0; overflow-x: auto; font-family: 'Courier New', monospace; color: #00d4ff; font-size: 14px; line-height: 1.6; }
+        .doc-nav { position: fixed; top: 50%; transform: translateY(-50%); z-index: 100; }
+        .doc-nav a { display: flex; align-items: center; gap: 8px; text-decoration: none; color: rgba(200,200,200,0.9); font-size: 14px; font-weight: 500; transition: all 0.3s ease; padding: 14px 18px; border-radius: 12px; background: linear-gradient(145deg, rgba(76,175,80,0.35), rgba(56,142,60,0.25)); backdrop-filter: blur(10px); border: 1px solid rgba(129,199,132,0.6); box-shadow: 0 0 18px rgba(76,175,80,0.25), inset 0 0 12px rgba(76,175,80,0.08); }
+        .doc-nav a:hover { color: #fff; border-color: rgba(129,199,132,0.9); background: linear-gradient(145deg, rgba(76,175,80,0.5), rgba(56,142,60,0.38)); box-shadow: 0 0 28px rgba(76,175,80,0.4), inset 0 0 12px rgba(76,175,80,0.12); }
+        .doc-nav a:hover .nav-arrow { transform: scale(1.3); color: #b9f6ca; }
+        .doc-nav.prev { left: 20px; }
+        .doc-nav.next { right: 20px; }
+        .nav-arrow { font-size: 24px; transition: transform 0.3s ease; animation: navPulse 3s ease-in-out infinite; }
+        .nav-label { writing-mode: vertical-rl; text-orientation: mixed; letter-spacing: 1px; font-size: 12px; text-transform: uppercase; }
+        .doc-nav.prev .nav-label { transform: rotate(180deg); }
+
+        .cover-page { background: linear-gradient(145deg, #1e2139 0%, #2a2f4a 100%); border-radius: 16px; padding: 0; margin-bottom: 32px; border: 1px solid rgba(255,255,255,0.1); overflow: hidden; }
+        .cover-page-inner { padding: 50px 50px 50px 50px; text-align: center; min-height: 400px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; }
+        .cover-logo { width: 180px; height: 80px; object-fit: contain; margin-bottom: 0; }
+        .cover-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 40px 0; }
+        .cover-title { font-size: 22px; font-weight: 400; color: #e0e0e0; font-family: 'Inter', sans-serif; }
+        .cover-subtitle { font-size: 20px; font-weight: 400; color: #ffffff; font-family: 'Inter', sans-serif; line-height: 1.5; }
+        .cover-code { font-size: 18px; font-weight: 600; color: #00d4ff; font-family: 'Inter', sans-serif; margin-top: 10px; }
+        .cover-year { font-size: 16px; color: rgba(255,255,255,0.5); font-family: 'Inter', sans-serif; padding-bottom: 10px; }
+        @media print { .cover-page { border: none; } .cover-page-inner { background: white !important; } }
+        @keyframes navPulse { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+        @media (max-width: 1300px) { .nav-label { display: none; } .doc-nav a { padding: 12px; } }
+        @media (max-width: 768px) { .doc-nav { position: static; transform: none; } }
+    </style>
+</head>
+<body>
+    <div class="doc-page">
+        <div style="display:inline-flex;gap:0;margin-bottom:30px;">
+            <a href="../index.html#documentation" class="back-btn" style="margin-bottom:0;"><span>←</span><span>На главную</span></a>
+            <button class="pdf-btn" onclick="downloadPDF()" style="margin-bottom:0;margin-left:10px;"><span>⬇</span><span>Скачать документ</span></button>
+        </div>
+        <div class="doc-header">
+            <h1 class="doc-title">Выходные данные</h1>
+        </div>
+        <div class="doc-content">
+
+            <div class="cover-page">
+                <div class="cover-page-inner">
+                    <img src="../images/d4-logo.png" alt="D4 Технологии" class="cover-logo">
+                    <div class="cover-body">
+                        <div class="cover-title">Система мониторинга сети D4NMS</div>
+                        <div class="cover-subtitle">Выходные данные D4NMS</div>
+                        <div class="cover-code">D4NMS</div>
+                    </div>
+                    <div class="cover-year">2026</div>
+                </div>
+            </div>
+
+            <h2>Оглавление</h2>
+            <ul>
+                <li>1. Выходные данные</li>
+                <li>1.1. Форматы данных</li>
+                <li>1.2. Отчёты и статистика</li>
+                <li>1.3. REST API</li>
+                <li>1.4. WebSocket</li>
+            </ul>
+
+            <h2>1. Выходные данные</h2>
+
+            <h3>1.1. Форматы данных</h3>
+
+            <h3>1.1.1. Веб-интерфейс</h3>
+            <ul>
+                <li>HTML5 страницы с динамическим контентом;</li>
+                <li>JSON данные через REST API;</li>
+                <li>WebSocket сообщения в реальном времени;</li>
+                <li>Таблицы с сортировкой и фильтрацией;</li>
+                <li>Графические индикаторы статуса.</li>
+            </ul>
+
+            <h3>1.2. Отчёты и статистика</h3>
+
+            <h3>1.2.1. Сводные отчёты</h3>
+            <ul>
+                <li>Общее количество устройств;</li>
+                <li>Количество устройств онлайн/офлайн;</li>
+                <li>Статистика по типам устройств;</li>
+                <li>Статистика по вендорам;</li>
+                <li>Количество интерфейсов и каналов;</li>
+                <li>Количество активных алертов.</li>
+            </ul>
+
+            <h3>1.2.2. Детальная информация по устройству</h3>
+            <ul>
+                <li>Основные параметры (IP, тип, вендор);</li>
+                <li>Статус доступности (ping, SSH, SNMP);</li>
+                <li>Список интерфейсов с состоянием;</li>
+                <li>История выполненных команд;</li>
+                <li>История алертов;</li>
+                <li>Время последней проверки.</li>
+            </ul>
+
+            <h3>1.2.3. История команд</h3>
+            <ul>
+                <li>Дата и время выполнения;</li>
+                <li>Пользователь, выполнивший команду;</li>
+                <li>Тип команды;</li>
+                <li>Результат выполнения (успех/ошибка);</li>
+                <li>Вывод команды (полный текст).</li>
+            </ul>
+
+            <h3>1.2.4. Журнал алертов</h3>
+            <ul>
+                <li>Тип события (device_down, device_up, interface_down и т.д.);</li>
+                <li>Уровень важности (critical, warning, info);</li>
+                <li>Устройство и интерфейс;</li>
+                <li>Дата и время события;</li>
+                <li>Описание события.</li>
+            </ul>
+
+            <h3>1.3. REST API</h3>
+            <ul>
+                <li>Полный доступ ко всем данным через HTTP GET-запросы;</li>
+                <li>Поддержка пагинации, фильтрации и сортировки;</li>
+                <li>Аутентификация через JWT токены.</li>
+            </ul>
+
+            <h3>1.4. WebSocket</h3>
+            <ul>
+                <li>Real-time обновления статуса устройств;</li>
+                <li>Уведомления о новых алертах;</li>
+                <li>Результаты выполнения команд.</li>
+            </ul>
+        </div>
+
+        <div class="doc-nav prev desktop-nav">
+            <a href="resources.html">
+                <span class="nav-arrow">‹</span>
+                <span class="nav-label">Предыдущая</span>
+            </a>
+        </div>
+        <div class="doc-nav next desktop-nav">
+            <a href="lifecycle.html">
+                <span class="nav-label">Следующая</span>
+                <span class="nav-arrow">›</span>
+            </a>
+        </div>
+
+        <div class="doc-bottom-nav mobile-nav">
+            <a href="resources.html" style="display:inline-flex;align-items:center;gap:8px;padding:8px 20px;background:rgba(30,33,57,0.8);color:rgba(255,255,255,0.6);text-decoration:none;border-radius:8px;border:1px solid rgba(255,255,255,0.08);font-size:14px;">
+                <span style="font-size:18px;">‹</span>
+                <span>Предыдущая</span>
+            </a>
+            <a href="lifecycle.html" style="display:inline-flex;align-items:center;gap:8px;padding:8px 20px;background:rgba(30,33,57,0.8);color:rgba(255,255,255,0.6);text-decoration:none;border-radius:8px;border:1px solid rgba(255,255,255,0.08);font-size:14px;">
+                <span>Следующая</span>
+                <span style="font-size:18px;">›</span>
+            </a>
+        </div>
+    </div>
+
+    <style>
+        .mobile-nav { display: none; }
+        @media (max-width: 768px) { .desktop-nav { display: none !important; } .mobile-nav { display: flex; justify-content: space-between; margin-top: 40px; gap: 12px; } }
+    </style>
+    
+    <script src="../js/html2pdf.bundle.min.js"></script>
+    <script>
+        function downloadPDF() {
+            const btn = document.querySelector('.pdf-btn');
+            btn.innerHTML = '<span>⏳</span><span>Генерация...</span>';
+            btn.disabled = true;
+
+            // Hide nav elements
+            const navEls = document.querySelectorAll('.back-btn, .pdf-btn, .doc-nav, .mobile-nav, .doc-bottom-nav');
+            navEls.forEach(el => el.style.visibility = 'hidden');
+
+            const element = document.querySelector('.doc-page');
+
+            html2pdf().set({
+                margin: [10, 10, 10, 10],
+                filename: document.title + '.pdf',
+                image: { type: 'jpeg', quality: 0.85 },
+                html2canvas: {
+                    scale: 1.5,
+                    useCORS: true,
+                    backgroundColor: '#0a0e27',
+                    logging: false,
+                    imageTimeout: 30000
+                },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+            }).from(element).save().then(() => {
+                navEls.forEach(el => el.style.visibility = '');
+                btn.innerHTML = '<span>⬇</span><span>Скачать документ</span>';
+                btn.disabled = false;
+            }).catch(() => {
+                navEls.forEach(el => el.style.visibility = '');
+                btn.innerHTML = '<span>⬇</span><span>Скачать документ</span>';
+                btn.disabled = false;
+            });
+        }
+    </script>
+</body>
+</html>

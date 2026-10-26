@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Руководство по эксплуатации - D4NMS</title>
+    <link rel="icon" type="image/png" href="../images/d4-logo.png">
+    <link rel="stylesheet" href="../css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        .doc-page { max-width: 1000px; margin: 0 auto; padding: 60px 20px; background: #0a0e27; min-height: 100vh; }
+        .doc-header { margin-bottom: 50px; }
+        .doc-title { font-size: 42px; font-weight: 800; background: linear-gradient(90deg, #00d4ff, #667eea); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 20px; }
+        .doc-content { background: linear-gradient(145deg, #1e2139 0%, #2a2f4a 100%); border-radius: 16px; padding: 40px; border: 1px solid rgba(255,255,255,0.1); line-height: 1.8; }
+        .doc-content h2 { color: #00d4ff; font-size: 28px; margin-top: 35px; margin-bottom: 15px; font-weight: 700; }
+        .doc-content h2:first-child { margin-top: 0; }
+        .doc-content p { color: #e0e0e0; margin-bottom: 15px; }
+        .doc-content ul, .doc-content ol { color: #e0e0e0; margin-left: 25px; margin-bottom: 20px; }
+        .doc-content li { margin-bottom: 8px; }
+        .doc-content strong { color: #fff; font-weight: 600; }
+        .doc-content code { background: #0a0e27; color: #00d4ff; padding: 2px 8px; border-radius: 4px; font-family: 'Courier New', monospace; }
+        .back-btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 20px; background: #1976d2; color: white; text-decoration: none; border-radius: 4px; font-weight: 500; font-family: Roboto, sans-serif; text-transform: uppercase; letter-spacing: 0.08em; transition: all 0.2s ease; margin-bottom: 30px; }
+        .back-btn:hover { background: #1565c0; box-shadow: 0 4px 12px rgba(25,118,210,0.4); transform: translateX(-3px); }
+        .pdf-btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 20px; background: #2e7d32; color: white; text-decoration: none; border-radius: 4px; font-weight: 500; font-family: Roboto, sans-serif; text-transform: uppercase; letter-spacing: 0.08em; transition: all 0.2s ease; margin-bottom: 30px; margin-left: 10px; cursor: pointer; border: none; font-size: 14px; }
+        .pdf-btn:hover { background: #1b5e20; box-shadow: 0 4px 12px rgba(46,125,50,0.4); }
+        @media print { .back-btn, .pdf-btn, .doc-nav, .mobile-nav { display: none !important; } .doc-page { padding: 20px; } body { background: white; } .doc-title { -webkit-text-fill-color: #0a0e27 !important; background: none !important; color: #0a0e27 !important; } .doc-content { background: white !important; border: 1px solid #ccc !important; color: #000 !important; } .doc-content h2 { color: #0a5c7a !important; } .doc-content p, .doc-content ul, .doc-content li { color: #000 !important; } }
+        @page { size: A4; margin: 1.5cm; }
+        .warning-box { background: rgba(255,107,107,0.1); border-left: 4px solid #ff6b6b; padding: 16px 20px; margin: 16px 0; border-radius: 8px; }
+        .info-box { background: rgba(0,212,255,0.1); border-left: 4px solid #00d4ff; padding: 16px 20px; margin: 16px 0; border-radius: 8px; }
+        .doc-nav { position: fixed; top: 50%; transform: translateY(-50%); z-index: 100; }
+        .doc-nav a { display: flex; align-items: center; gap: 8px; text-decoration: none; color: rgba(200,200,200,0.9); font-size: 14px; font-weight: 500; transition: all 0.3s ease; padding: 14px 18px; border-radius: 12px; background: linear-gradient(145deg, rgba(76,175,80,0.35), rgba(56,142,60,0.25)); backdrop-filter: blur(10px); border: 1px solid rgba(129,199,132,0.6); box-shadow: 0 0 18px rgba(76,175,80,0.25), inset 0 0 12px rgba(76,175,80,0.08); }
+        .doc-nav a:hover { color: #fff; border-color: rgba(129,199,132,0.9); background: linear-gradient(145deg, rgba(76,175,80,0.5), rgba(56,142,60,0.38)); box-shadow: 0 0 28px rgba(76,175,80,0.4), inset 0 0 12px rgba(76,175,80,0.12); }
+        .doc-nav a:hover .nav-arrow { transform: scale(1.3); color: #b9f6ca; }
+        .doc-nav.prev { left: 20px; }
+        .doc-nav.next { right: 20px; }
+        .nav-arrow { font-size: 24px; transition: transform 0.3s ease; animation: navPulse 3s ease-in-out infinite; }
+        .nav-label { writing-mode: vertical-rl; text-orientation: mixed; letter-spacing: 1px; font-size: 12px; text-transform: uppercase; }
+        .doc-nav.prev .nav-label { transform: rotate(180deg); }
+
+        .cover-page { background: linear-gradient(145deg, #1e2139 0%, #2a2f4a 100%); border-radius: 16px; padding: 0; margin-bottom: 32px; border: 1px solid rgba(255,255,255,0.1); overflow: hidden; }
+        .cover-page-inner { padding: 50px 50px 50px 50px; text-align: center; min-height: 400px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; }
+        .cover-logo { width: 180px; height: 80px; object-fit: contain; margin-bottom: 0; }
+        .cover-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 40px 0; }
+        .cover-title { font-size: 22px; font-weight: 400; color: #e0e0e0; font-family: 'Inter', sans-serif; }
+        .cover-subtitle { font-size: 20px; font-weight: 400; color: #ffffff; font-family: 'Inter', sans-serif; line-height: 1.5; }
+        .cover-code { font-size: 18px; font-weight: 600; color: #00d4ff; font-family: 'Inter', sans-serif; margin-top: 10px; }
+        .cover-year { font-size: 16px; color: rgba(255,255,255,0.5); font-family: 'Inter', sans-serif; padding-bottom: 10px; }
+        @media print { .cover-page { border: none; } .cover-page-inner { background: white !important; } }
+        @keyframes navPulse { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+        @media (max-width: 1300px) { .nav-label { display: none; } .doc-nav a { padding: 12px; } }
+        @media (max-width: 768px) { .doc-nav { position: static; transform: none; } }
+    </style>
+</head>
+<body>
+    <div class="doc-page">
+        <div style="display:inline-flex;gap:0;margin-bottom:30px;">
+            <a href="../index.html#documentation" class="back-btn" style="margin-bottom:0;"><span>←</span><span>На главную</span></a>
+            <button class="pdf-btn" onclick="downloadPDF()" style="margin-bottom:0;margin-left:10px;"><span>⬇</span><span>Скачать документ</span></button>
+        </div>
+        <div class="doc-header">
+            <h1 class="doc-title">Руководство по эксплуатации</h1>
+        </div>
+                <div class="doc-content">
+
+            <div class="cover-page">
+                <div class="cover-page-inner">
+                    <div style="border:1px solid rgba(255,255,255,0.3);padding:8px 16px;align-self:flex-start;color:#e0e0e0;font-size:13px;">ОКПД2 62.03.11</div>
+                    <img src="../images/d4-logo.png" alt="D4 Технологии" class="cover-logo">
+                    <div class="cover-body">
+                        <div class="cover-title">Система мониторинга сети D4NMS</div>
+                        <div class="cover-subtitle">Руководство по эксплуатации</div>
+                        <div class="cover-code">D4NMS РЭ</div>
+                    </div>
+                    <div class="cover-year">2026</div>
+                </div>
+            </div>
+
+            <h2>Оглавление</h2>
+            <ol style="color:#e0e0e0;margin-left:25px;line-height:2;">
+                <li>🚀 Быстрый старт
+                    <ol style="margin-top:6px;">
+                        <li>1.1. Требования</li>
+                        <li>1.2. Первый запуск</li>
+                        <li>1.3. 📋 Что включено</li>
+                        <li>1.4. 🔧 Полезные команды</li>
+                        <li>1.5. 📱 Использование</li>
+                        <li>1.6. Основное окно программы</li>
+                    </ol>
+                </li>
+                <li>Работа с устройствами
+                    <ol style="margin-top:6px;">
+                        <li>2.1. Добавление устройства</li>
+                        <li>2.2. Добавление нового устройства</li>
+                        <li>2.3. Редактирование устройства</li>
+                        <li>2.4. Удаление устройства</li>
+                        <li>2.5. Просмотр деталей. Обзор</li>
+                        <li>2.6. Просмотр деталей. Интерфейсы</li>
+                        <li>2.7. Просмотр деталей. Конфигурация команд</li>
+                        <li>2.8. Просмотр деталей. История мониторинга</li>
+                        <li>2.9. Просмотр деталей. Алерты</li>
+                        <li>2.10. Просмотр деталей. Опрос команд</li>
+                        <li>2.11. Просмотр деталей. SNMP OID</li>
+                    </ol>
+                </li>
+                <li>Управление пользователями</li>
+                <li>📁 Структура проекта</li>
+                <li>📚 Документация</li>
+                <li>🛠️ Разработка</li>
+                <li>📝 Лицензия</li>
+                <li>Особенности</li>
+                <li>📚 Документация API</li>
+                <li>🔐 Безопасность</li>
+            </ol>
+
+            <p>Данное руководство предназначено для администраторов и операторов, эксплуатирующих программу NMS (Network Management System).</p>
+            <p>Программное обеспечение (ПО) D4NMS предназначено для предприятий, управляющих сетевыми устройствами (маршрутизаторы, коммутаторы и т.д.), с целью:</p>
+            <ul>
+                <li>автоматизации мониторинга состояния сетевых устройств;</li>
+                <li>централизованного управления конфигурациями;</li>
+                <li>сбора и анализа статистических данных;</li>
+                <li>оповещения о нештатных ситуациях.</li>
+            </ul>
+            <div class="info-box"><strong>D4NMS</strong> — лёгкая система мониторинга сетевых устройств с веб-интерфейсом и real-time обновлениями.</div>
+
+            <h2>1. 🚀 Быстрый старт</h2>
+
+            <h3>1.1. Требования</h3>
+            <ul>
+                <li>Docker;</li>
+                <li>Docker Compose.</li>
+            </ul>
+
+            <h3>1.2. Первый запуск</h3>
+            <p><strong>1.2.1. Настройте переменные окружения:</strong></p>
+            <ol>
+                <li>Скопируйте пример конфигурации:
+                    <div class="code-block">cp .env.example .env</div>
+                </li>
+                <li>Сгенерируйте ключ шифрования для SSH паролей:
+                    <div class="code-block">docker-compose run --rm backend python -m app.encryption</div>
+                </li>
+                <li>Добавьте сгенерированный ключ в .env:
+                    <div class="code-block">ENCRYPTION_SECRET_KEY=your-generated-key-here</div>
+                </li>
+            </ol>
+
+            <p><strong>1.2.2. Запустите систему:</strong></p>
+            <p>Windows:</p>
+            <div class="code-block">start.bat</div>
+            <p>Linux/Mac:</p>
+            <div class="code-block">chmod +x start.sh
+./start.sh</div>
+
+            <p><strong>1.2.3. Остановка:</strong></p>
+            <p>Windows:</p>
+            <div class="code-block">stop.bat</div>
+            <p>Linux/Mac:</p>
+            <div class="code-block">./stop.sh</div>
+            <div class="warning-box">⚠️ <strong>Важно:</strong> Для production окружения обязательно смените <code>ENCRYPTION_SECRET_KEY</code> и <code>SECRET_KEY</code> в .env файле!</div>
+
+            <h3>1.3. 📋 Что включено</h3>
+            <ul>
+                <li>Backend API (FastAPI) — порт 8000;</li>
+                <li>Frontend (React) — порт 3000;</li>
+                <li>Monitoring Worker — фоновый мониторинг;</li>
+                <li>Redis — кэширование и очереди;</li>
+                <li>SQLite — база данных.</li>
+            </ul>
+
+            <h3>1.4. 🔧 Полезные команды</h3>
+            <p>Просмотр статуса сервисов:</p>
+            <div class="code-block">docker-compose ps</div>
+            <p>Просмотр логов:</p>
+            <div class="code-block">docker-compose logs -f</div>
+            <p>Перезапуск сервиса:</p>
+            <div class="code-block">docker-compose restart backend</div>
+            <p>Остановка всех сервисов:</p>
+            <div class="code-block">docker-compose down</div>
+
+            <h3>1.5. 📱 Использование</h3>
+            <p><strong>1.5.1. Первый вход:</strong></p>
+            <ol>
+                <li>Откройте <code>http://localhost:3000</code> — после запуска программы появится окно входа в систему:
+                    <div style="margin:12px 0;"><img src="../images/docs/manual_p6_1.jpg" alt="Окно входа в систему" style="max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);"></div>
+                </li>
+                <li>Войдите под учётной записью администратора по умолчанию:
+                    <ul>
+                        <li>Имя пользователя: <code>admin</code>;</li>
+                        <li>Пароль: <code>admin123</code>.</li>
+                    </ul>
+                </li>
+                <li>⚠️ <strong>ВАЖНО:</strong> Измените пароль после первого входа!</li>
+            </ol>
+
+            <h3>1.6. Основное окно программы</h3>
+            <p><strong>1.6.1. Основное окно программы содержит:</strong></p>
+            <div style="margin:12px 0;"><img src="../images/docs/manual_p7_3.jpg" alt="Основное окно программы" style="max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);"></div>
+            <ul>
+                <li>список подключённых устройств с отображением статуса;</li>
+                <li>столбец действий;</li>
+                <li>просмотр деталей — позволяет настроить параметры мониторинга устройств (п. 2.5);</li>
+                <li>редактирование устройства (п. 2.3);</li>
+                <li>удаление устройства (п. 2.4).</li>
+            </ul>
+
+            <h2>2. Работа с устройствами</h2>
+
+            <h3>2.1. Добавление устройства</h3>
+            <div style="margin:12px 0;"><img src="../images/docs/manual_p8_1.png" alt="Список устройств" style="max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);"></div>
+            <ol>
+                <li><strong>2.1.1.</strong> Нажмите на вкладку «Добавить устройство».</li>
+                <li><strong>2.1.2.</strong> Заполните данные устройства (IP, SSH, SNMP).</li>
+                <li><strong>2.1.3.</strong> Устройство появится в списке с real-time статусом. Нажмите на вкладку «Все типы» и выберите нужный.</li>
+                <li><strong>2.1.4.</strong> Определите «Статус» на соответствующей вкладке.
+                    <div style="margin:12px 0;"><img src="../images/docs/manual_p9_1.png" alt="Сортировка устройств" style="max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);"></div>
+                    <p style="margin-top:8px;">Существует сортировка по:</p>
+                    <ul>
+                        <li>названию;</li>
+                        <li>IP-адресу;</li>
+                        <li>типу;</li>
+                        <li>статусу;</li>
+                        <li>времени отклика.</li>
+                    </ul>
+                </li>
+                <li><strong>2.1.5.</strong> Обновить конфигурацию: синхронизируйте настройки с устройством.</li>
+                <li><strong>2.1.6.</strong> Перезагрузить: отправьте команду перезагрузки.</li>
+                <li><strong>2.1.7.</strong> Изолировать: отключите устройство от сети.</li>
+            </ol>
+
+            <h3>2.2. Добавление нового устройства</h3>
+            <ol>
+                <li><strong>2.2.1.</strong> Нажмите на вкладку «Добавить новое устройство».
+                    <div style="margin:12px 0;"><img src="../images/docs/manual_p10_1.png" alt="Добавить новое устройство" style="max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);"></div>
+                </li>
+                <li><strong>2.2.2.</strong> Выберите тип устройства.
+                    <div style="margin:12px 0;"><img src="../images/docs/manual_p11_1.png" alt="Тип устройства" style="max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);"></div>
+                </li>
+                <li><strong>2.2.3.</strong> Выберите производителя устройства.
+                    <div style="margin:12px 0;"><img src="../images/docs/manual_p12_1.png" alt="Производитель устройства" style="max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);"></div>
+                </li>
+                <li><strong>2.2.4.</strong> Выберите детали устройства.
+                    <div style="margin:12px 0;"><img src="../images/docs/manual_p13_1.png" alt="Детали устройства" style="max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);"></div>
+                    <div style="margin:12px 0;"><img src="../images/docs/manual_p13_2.png" alt="Детали устройства 2" style="max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);"></div>
+                </li>
+                <li><strong>2.2.5.</strong> Выполните настройки SNMP.
+                    <div style="margin:12px 0;"><img src="../images/docs/manual_p14_1.png" alt="Настройки SNMP" style="max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);"></div>
+                    <p style="margin-top:8px;">SNMP конфигурация:</p>
+                    <ul>
+                        <li><strong>SNMP v1 (устаревшая)</strong> — низкая безопасность, использует общедоступные community-строки (например, public), уязвима к атакам;</li>
+                        <li><strong>SNMP v2c (рекомендуется)</strong> — улучшенная версия с поддержкой 64-битных счётчиков, но всё ещё использует community-строки (без шифрования);</li>
+                        <li><strong>SNMP v3 (безопасный)</strong> — единственная версия с полноценной безопасностью, включая аутентификацию и шифрование. Используется в современных сетях для защиты от несанкционированного доступа.</li>
+                    </ul>
+                    <p>SNMP v3 требует указать дополнительные параметры.</p>
+                    <div style="margin:12px 0;"><img src="../images/docs/manual_p15_1.png" alt="SNMP v3 параметры" style="max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);"></div>
+                </li>
+            </ol>
+
+            <h3>2.3. Редактирование устройства</h3>
+            <p>Кнопка «Редактировать устройство» — позволяет изменить настройки, заданные при добавлении устройства.</p>
+            <div style="margin:12px 0;"><img src="../images/docs/manual_p16_2.png" alt="Редактирование устройства" style="max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);"></div>
+
+            <h3>2.4. Удаление устройства</h3>
+            <p>Кнопка «Удалить устройство» — удаляет устройство из системы.</p>
+
+            <h3>2.5. Просмотр деталей. Обзор</h3>
+            <p>Общая информация об устройстве.</p>
+            <div style="margin:12px 0;"><img src="../images/docs/manual_p17_1.png" alt="Просмотр деталей — Обзор" style="max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);"></div>
+
+            <h3>2.6. Просмотр деталей. Интерфейсы</h3>
+            <p>Отображает информацию о состоянии сетевых интерфейсов.</p>
+            <div style="margin:12px 0;"><img src="../images/docs/manual_p18_1.png" alt="Просмотр деталей — Интерфейсы" style="max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);"></div>
+
+            <h3>2.7. Просмотр деталей. Конфигурация команд</h3>
+            <p><strong>2.7.1. Конфигурация команд из шаблона</strong></p>
+            <p>По нажатию кнопки «Выполнить» команда на устройстве по протоколу SSH выполняется из шаблона, созданного в окне «Конфигурация программ».</p>
+            <div style="margin:12px 0;"><img src="../images/docs/manual_p19_1.png" alt="Конфигурация команд из шаблона" style="max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);"></div>
+            <p><strong>2.7.2. Конфигурация команд. Произвольная команда</strong></p>
+            <p>По нажатию кнопки «Выполнить» команда на устройстве по протоколу SSH выполняется произвольная команда.</p>
+            <div style="margin:12px 0;"><img src="../images/docs/manual_p20_1.png" alt="Произвольная команда" style="max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);"></div>
+            <p><strong>2.7.3. Конфигурация команд. Окно шаблонов команд</strong></p>
+            <p>Позволяет создавать шаблоны команд SSH для устройств. Создание шаблона.</p>
+            <div style="margin:12px 0;"><img src="../images/docs/manual_p21_1.png" alt="Окно шаблонов команд" style="max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);"></div>
+            <div style="margin:12px 0;"><img src="../images/docs/manual_p21_2.png" alt="Создание шаблона" style="max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);"></div>
+
+            <h3>2.8. Просмотр деталей. История мониторинга</h3>
+            <p><strong>2.8.1. История мониторинга</strong> — отображает историю опросов устройства.</p>
+            <div style="margin:12px 0;"><img src="../images/docs/manual_p22_1.png" alt="История мониторинга" style="max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);"></div>
+
+            <h3>2.9. Просмотр деталей. Алерты</h3>
+            <p><strong>2.9.1.</strong> Вывод алертов выбранного устройства.</p>
+            <div style="margin:12px 0;"><img src="../images/docs/manual_p23_1.png" alt="Алерты устройства" style="max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);"></div>
+
+            <h3>2.10. Просмотр деталей. Опрос команд</h3>
+            <p><strong>2.10.1. Кнопка «Опрос команд». Конфигурация</strong> — настройка автоматического опроса команд.</p>
+            <div style="margin:12px 0;"><img src="../images/docs/manual_p24_1.png" alt="Опрос команд — конфигурация" style="max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);"></div>
+            <p><strong>2.10.2. Кнопка «Опрос команд». История результатов</strong> — просмотр результатов выполненных опросов.</p>
+            <div style="margin:12px 0;"><img src="../images/docs/manual_p25_1.png" alt="Опрос команд — история" style="max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);"></div>
+
+            <h3>2.11. Просмотр деталей. SNMP OID</h3>
+            <p><strong>2.11.1. Кнопка «SNMP OID». Конфигурации</strong> — настройка OID для опроса.</p>
+            <div style="margin:12px 0;"><img src="../images/docs/manual_p26_1.png" alt="SNMP OID конфигурация" style="max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);"></div>
+            <div style="margin:12px 0;"><img src="../images/docs/manual_p27_1.png" alt="SNMP OID конфигурация 2" style="max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);"></div>
+            <p><strong>2.11.2. Кнопка «SNMP OID». Результаты</strong></p>
+            <ul>
+                <li>Графическое представление — данные в виде графиков:
+                    <div style="margin:12px 0;"><img src="../images/docs/manual_p28_1.png" alt="SNMP OID — графики" style="max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);"></div>
+                </li>
+                <li>Табличное представление — данные в виде таблицы:
+                    <div style="margin:12px 0;"><img src="../images/docs/manual_p29_1.png" alt="SNMP OID — таблица" style="max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);"></div>
+                </li>
+            </ul>
+            <p>Вывод алертов по устройствам:</p>
+            <div style="margin:12px 0;"><img src="../images/docs/manual_p30_2.png" alt="Алерты по устройствам" style="max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);"></div>
+            <p>Возможна сортировка по:</p>
+            <ul>
+                <li>серьёзности;</li>
+                <li>устройству;</li>
+                <li>типу;</li>
+                <li>статусу;</li>
+                <li>дате создания.</li>
+            </ul>
+            <p>Действия: по кнопке — переходит на «Просмотр деталей. Алерты».</p>
+
+            <h2>3. Управление пользователями</h2>
+            <p><strong>3.1. Только для администраторов:</strong></p>
+            <ol>
+                <li><strong>3.1.1.</strong> Нажмите на иконку профиля в правом верхнем углу;</li>
+                <li><strong>3.1.2.</strong> Выберите «Управление пользователями»;</li>
+                <li><strong>3.1.3.</strong> Создавайте, редактируйте или удаляйте пользователей;</li>
+                <li><strong>3.1.4.</strong> Нажмите на вкладку «Добавить пользователя»:
+                    <div style="margin:12px 0;"><img src="../images/docs/manual_p32_1.png" alt="Управление пользователями" style="max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);"></div>
+                </li>
+                <li><strong>3.1.5.</strong> Создайте пользователя и определите его роль:
+                    <div style="margin:12px 0;"><img src="../images/docs/manual_p32_2.png" alt="Создание пользователя" style="max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);"></div>
+                </li>
+            </ol>
+
+            <p><strong>3.1.6. Определение базовых ролей:</strong></p>
+            <p>D4NMS поддерживает 5 ролей с различными уровнями доступа:</p>
+            <table style="width:100%;border-collapse:collapse;margin:16px 0;color:#e0e0e0;">
+                <thead>
+                    <tr>
+                        <th style="background:rgba(0,212,255,0.15);color:#00d4ff;padding:10px 14px;text-align:left;border:1px solid rgba(255,255,255,0.1);">Роль</th>
+                        <th style="background:rgba(0,212,255,0.15);color:#00d4ff;padding:10px 14px;text-align:left;border:1px solid rgba(255,255,255,0.1);">Описание</th>
+                        <th style="background:rgba(0,212,255,0.15);color:#00d4ff;padding:10px 14px;text-align:left;border:1px solid rgba(255,255,255,0.1);">Основные права</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="padding:10px 14px;border:1px solid rgba(255,255,255,0.08);">Администратор</td>
+                        <td style="padding:10px 14px;border:1px solid rgba(255,255,255,0.08);">Полный доступ</td>
+                        <td style="padding:10px 14px;border:1px solid rgba(255,255,255,0.08);">Все функции плюс управление пользователями</td>
+                    </tr>
+                    <tr style="background:rgba(255,255,255,0.03);">
+                        <td style="padding:10px 14px;border:1px solid rgba(255,255,255,0.08);">VoIP Админ</td>
+                        <td style="padding:10px 14px;border:1px solid rgba(255,255,255,0.08);">Управление IP-телефонами</td>
+                        <td style="padding:10px 14px;border:1px solid rgba(255,255,255,0.08);">Полный доступ к IP-телефонам, просмотр остального</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:10px 14px;border:1px solid rgba(255,255,255,0.08);">Оператор</td>
+                        <td style="padding:10px 14px;border:1px solid rgba(255,255,255,0.08);">Мониторинг и отчёты</td>
+                        <td style="padding:10px 14px;border:1px solid rgba(255,255,255,0.08);">Просмотр, отчёты, стандартные команды</td>
+                    </tr>
+                    <tr style="background:rgba(255,255,255,0.03);">
+                        <td style="padding:10px 14px;border:1px solid rgba(255,255,255,0.08);">Пользователь</td>
+                        <td style="padding:10px 14px;border:1px solid rgba(255,255,255,0.08);">Просмотр данных</td>
+                        <td style="padding:10px 14px;border:1px solid rgba(255,255,255,0.08);">Просмотр устройств и сводных отчётов</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:10px 14px;border:1px solid rgba(255,255,255,0.08);">Гость</td>
+                        <td style="padding:10px 14px;border:1px solid rgba(255,255,255,0.08);">Минимальный доступ</td>
+                        <td style="padding:10px 14px;border:1px solid rgba(255,255,255,0.08);">Только журнал событий и статус устройств</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p><strong>3.1.7. Действия над пользователями</strong> — создание, редактирование, удаление через интерфейс управления.</p>
+            <div style="margin:12px 0;"><img src="../images/docs/manual_p33_1.png" alt="Действия над пользователями" style="max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);"></div>
+            <div style="margin:12px 0;"><img src="../images/docs/manual_p33_2.png" alt="Действия над пользователями 2" style="max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);"></div>
+            <div style="margin:12px 0;"><img src="../images/docs/manual_p33_3.png" alt="Действия над пользователями 3" style="max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);"></div>
+            <p>📖 Подробное руководство: см. USER_ROLES_GUIDE.md</p>
+
+            <h2>4. 📁 Структура проекта</h2>
+            <div class="code-block">Project_D4NMS/
+├── backend/           — FastAPI backend
+├── frontend/          — React frontend
+├── data/              — SQLite база данных
+├── docker-compose.yml — Docker конфигурация
+├── start.bat/sh       — Скрипты запуска
+└── stop.bat/sh        — Скрипты остановки</div>
+
+            <h2>5. 📚 Документация</h2>
+            <ul>
+                <li>SECURITY: <code>./SECURITY.md</code></li>
+                <li>THREAT MODEL: <code>./THREAT_MODEL.md</code></li>
+                <li>DEPLOYMENT: <code>./DEPLOYMENT.md</code></li>
+                <li>TESTING: <code>./TESTING.md</code></li>
+                <li>STYLEGUIDE: <code>./STYLEGUIDE.md</code></li>
+                <li>CHANGELOG: <code>./CHANGELOG.md</code></li>
+            </ul>
+
+            <h2>6. 🛠️ Разработка</h2>
+            <p><strong>6.1. Пересборка после изменений:</strong></p>
+            <div class="code-block">docker-compose up --build -d</div>
+            <p><strong>6.2. Просмотр логов конкретного сервиса:</strong></p>
+            <div class="code-block">docker-compose logs -f backend
+docker-compose logs -f frontend
+docker-compose logs -f monitoring</div>
+
+            <h2>7. 📝 Лицензия</h2>
+            <p>MIT License</p>
+
+            <h2>8. Особенности</h2>
+            <ul>
+                <li>✅ JWT аутентификация с токенами на 24 часа;</li>
+                <li>✅ Безопасное хеширование паролей (bcrypt);</li>
+                <li>✅ Ограничение: максимум 3 администратора;</li>
+                <li>✅ Специальная логика для VoIP администратора;</li>
+                <li>✅ Автоматическое создание администратора по умолчанию.</li>
+            </ul>
+
+            <h2>9. 📚 Документация API</h2>
+            <p>После запуска системы документация доступна по адресам:</p>
+            <ul>
+                <li>Swagger UI: <code>http://localhost:8000/docs</code></li>
+                <li>ReDoc: <code>http://localhost:8000/redoc</code></li>
+            </ul>
+            <p>Все эндпоинты с русскими названиями и описаниями!</p>
+
+            <h2>10. 🔐 Безопасность</h2>
+            <ul>
+                <li>✅ SSH пароли автоматически шифруются в базе данных (Fernet encryption);</li>
+                <li>✅ JWT аутентификация с токенами на 24 часа;</li>
+                <li>✅ Система ролей и прав доступа (5 ролей);</li>
+                <li>✅ Безопасное хеширование паролей пользователей (bcrypt);</li>
+                <li>✅ Поддержка различных SSH портов;</li>
+                <li>✅ Таймауты для предотвращения зависания;</li>
+                <li>✅ История всех выполненных команд.</li>
+            </ul>
+        </div>
+
+        <div class="doc-nav prev desktop-nav">
+            <a href="installation.html">
+                <span class="nav-arrow">‹</span>
+                <span class="nav-label">Предыдущая</span>
+            </a>
+        </div>
+        <div class="doc-nav next desktop-nav">
+            <a href="functional.html">
+                <span class="nav-label">Следующая</span>
+                <span class="nav-arrow">›</span>
+            </a>
+        </div>
+
+        <div class="doc-bottom-nav mobile-nav">
+            <a href="installation.html" style="display:inline-flex;align-items:center;gap:8px;padding:8px 20px;background:rgba(30,33,57,0.8);color:rgba(255,255,255,0.6);text-decoration:none;border-radius:8px;border:1px solid rgba(255,255,255,0.08);font-size:14px;">
+                <span style="font-size:18px;">‹</span>
+                <span>Предыдущая</span>
+            </a>
+            <a href="functional.html" style="display:inline-flex;align-items:center;gap:8px;padding:8px 20px;background:rgba(30,33,57,0.8);color:rgba(255,255,255,0.6);text-decoration:none;border-radius:8px;border:1px solid rgba(255,255,255,0.08);font-size:14px;">
+                <span>Следующая</span>
+                <span style="font-size:18px;">›</span>
+            </a>
+        </div>
+    </div>
+
+    <style>
+        .mobile-nav { display: none; }
+        @media (max-width: 768px) { .desktop-nav { display: none !important; } .mobile-nav { display: flex; justify-content: space-between; margin-top: 40px; gap: 12px; } }
+    </style>
+    
+    <script src="../js/html2pdf.bundle.min.js"></script>
+    <script>
+        function downloadPDF() {
+            const btn = document.querySelector('.pdf-btn');
+            btn.innerHTML = '<span>⏳</span><span>Генерация...</span>';
+            btn.disabled = true;
+
+            // Hide nav elements
+            const navEls = document.querySelectorAll('.back-btn, .pdf-btn, .doc-nav, .mobile-nav, .doc-bottom-nav');
+            navEls.forEach(el => el.style.visibility = 'hidden');
+
+            const element = document.querySelector('.doc-page');
+
+            html2pdf().set({
+                margin: [10, 10, 10, 10],
+                filename: document.title + '.pdf',
+                image: { type: 'jpeg', quality: 0.85 },
+                html2canvas: {
+                    scale: 1.5,
+                    useCORS: true,
+                    backgroundColor: '#0a0e27',
+                    logging: false,
+                    imageTimeout: 30000
+                },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+            }).from(element).save().then(() => {
+                navEls.forEach(el => el.style.visibility = '');
+                btn.innerHTML = '<span>⬇</span><span>Скачать документ</span>';
+                btn.disabled = false;
+            }).catch(() => {
+                navEls.forEach(el => el.style.visibility = '');
+                btn.innerHTML = '<span>⬇</span><span>Скачать документ</span>';
+                btn.disabled = false;
+            });
+        }
+    </script>
+</body>
+</html>
