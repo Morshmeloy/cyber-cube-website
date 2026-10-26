@@ -1259,6 +1259,84 @@ section {
     margin-bottom: 0.8rem;
 }
 
+.pricing-effective-date {
+    color: rgba(255, 255, 255, 0.88);
+}
+
+.tariff-heading {
+    margin: 1.8rem 0 0.75rem;
+    color: #fff;
+    font-family: 'Inter', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.tariff-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    margin-bottom: 1.25rem;
+    border: 1px solid rgba(78, 205, 196, 0.22);
+    border-radius: 4px;
+}
+
+.tariff-table {
+    width: 100%;
+    min-width: 620px;
+    border-collapse: collapse;
+    font-family: 'Roboto', sans-serif;
+    font-size: 0.95rem;
+}
+
+.tariff-table th,
+.tariff-table td {
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: left;
+    vertical-align: top;
+}
+
+.tariff-table th {
+    background: rgba(78, 205, 196, 0.13);
+    color: #7de3dc;
+    font-weight: 700;
+}
+
+.tariff-table td {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.tariff-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.pricing-rules {
+    margin: 1.25rem 0;
+    padding-left: 1.35rem;
+    color: rgba(255, 255, 255, 0.88);
+}
+
+.pricing-rules li {
+    margin-bottom: 0.65rem;
+}
+
+.pricing-note {
+    padding: 0.9rem 1rem !important;
+    border: 1px solid rgba(78, 205, 196, 0.3);
+    border-radius: 4px;
+    background: rgba(78, 205, 196, 0.08);
+}
+
+.pricing-source a {
+    color: #7de3dc;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.pricing-source a:hover {
+    color: #fff;
+}
+
 /* Иконка перед жирным заголовком (можно добавить через ::before) */
 .pricing-text p strong::before {
     content: "◆ ";
@@ -1275,5 +1353,13 @@ section {
     }
     .pricing-text .highlight-block {
         padding: 0.8rem 1rem;
+    }
+    .tariff-table {
+        min-width: 560px;
+        font-size: 0.9rem;
+    }
+    .tariff-table th,
+    .tariff-table td {
+        padding: 0.7rem 0.8rem;
     }
 }
