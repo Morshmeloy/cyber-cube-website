@@ -6,6 +6,7 @@
 
     let W, H, mouseX = 0, mouseY = 0;
     let animFrame;
+    const mobileViewport = window.matchMedia('(max-width: 768px)');
 
     // --- Config ---
     const CONFIG = {
@@ -294,8 +295,10 @@
         ctx.fillStyle = 'rgba(10,14,39,0.25)';
         ctx.fillRect(0, 0, W, H);
 
-        // Hex grid
-        drawHexGrid();
+        // Hex grid is decorative and too visually dense on mobile screens.
+        if (!mobileViewport.matches) {
+            drawHexGrid();
+        }
 
         // Scanline
         drawScanline();
