@@ -6,6 +6,7 @@
 
     let W, H, mouseX = 0, mouseY = 0;
     let animFrame;
+    const mobileViewport = window.matchMedia('(max-width: 768px)');
 
     // --- Config ---
     const CONFIG = {
@@ -295,7 +296,7 @@
         ctx.fillRect(0, 0, W, H);
 
         // Hex grid is decorative and too visually dense on mobile screens.
-        if (!window.matchMedia('(max-width: 768px)').matches) {
+        if (!mobileViewport.matches) {
             drawHexGrid();
         }
 
