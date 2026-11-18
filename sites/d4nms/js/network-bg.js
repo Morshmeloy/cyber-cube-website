@@ -294,8 +294,10 @@
         ctx.fillStyle = 'rgba(10,14,39,0.25)';
         ctx.fillRect(0, 0, W, H);
 
-        // Hex grid
-        drawHexGrid();
+        // Hex grid is decorative and too visually dense on mobile screens.
+        if (!window.matchMedia('(max-width: 768px)').matches) {
+            drawHexGrid();
+        }
 
         // Scanline
         drawScanline();
